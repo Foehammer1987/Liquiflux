@@ -263,6 +263,20 @@ AniListPlace? placeEpisode(List<AniListMedia> chain, PlexItem episode, List<Plex
       }
     }
   }
+  // A whole season without dates (often the newest) carries on from the season before.
+  DateTime? carry;
+  for (final n in bySeason.keys.toList()..sort()) {
+    final list = bySeason[n]!;
+    if (list.every((e) => guessed[e.ratingKey] == null)) {
+      if (carry != null) {
+        for (final e in list) {
+          guessed[e.ratingKey] = carry;
+        }
+      }
+    } else {
+      carry = list.map((e) => guessed[e.ratingKey]).whereType<DateTime>().reduce((a, b) => a.isAfter(b) ? a : b);
+    }
+  }
   DateTime? aired(PlexItem e) => DateTime.tryParse(e.originallyAvailableAt ?? '') ?? guessed[e.ratingKey];
   final when = aired(episode);
   final dated = chain.where((m) => m.start != null).toList()..sort((a, b) => a.start!.compareTo(b.start!));

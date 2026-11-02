@@ -243,6 +243,9 @@ void main() {
           ep(2, 2),
         ];
         expect(placeEpisode(one, eps[7], eps)!.number, 7);
+        // A last season with no dates at all (Naruto Shippuden S21-S22) carries on from the one before.
+        final undated = [...eps, for (var i = 9; i <= 10; i++) ep(3, i)];
+        expect(placeEpisode(one, undated.last, undated)!.number, 10);
         // Per-season numbering with a stray in season 1.
         final two = [media(1, episodes: 4, start: DateTime.utc(2020, 1, 1)), media(2, episodes: 4, start: DateTime.utc(2021, 1, 1))];
         final per = [for (var i = 1; i <= 4; i++) ep(1, i, aired: '2020-01-0$i'), ep(1, 50), for (var i = 1; i <= 4; i++) ep(2, i, aired: '2021-01-0$i')];
