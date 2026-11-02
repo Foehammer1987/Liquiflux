@@ -47,7 +47,10 @@ class RequestsDest extends Dest {
 }
 
 class SettingsDest extends Dest {
-  const SettingsDest();
+  const SettingsDest({this.update = false});
+
+  /// Opened from the update card's Update: straight to Updates, and start it.
+  final bool update;
   @override
   String get railId => 'settings';
 }

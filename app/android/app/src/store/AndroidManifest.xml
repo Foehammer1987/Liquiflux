@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The app-store build (Amazon Appstore): stores update their apps themselves and don't take
+     apps that install other APKs or use an accessibility service for something else, so this
+     build leaves out the in-app updater's permission and the sleep timer's "turn the TV off"
+     service. build.gradle.kts merges this over the main manifest when the build is made with
+     -P liquiflux.store=amazon (tools/build-android.ps1 -Store amazon); the Dart side hides both
+     features from LIQUIFLUX_STORE. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" tools:node="remove" />
+    <application>
+        <service android:name=".SleepService" tools:node="remove" />
+    </application>
+</manifest>

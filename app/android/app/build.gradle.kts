@@ -54,6 +54,14 @@ android {
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
+
+    // The app-store build (flutter build apk -P liquiflux.store=amazon, with
+    // --dart-define=LIQUIFLUX_STORE=amazon): src/store/AndroidManifest.xml takes out the
+    // in-app updater's permission and the sleep timer's accessibility service. As the release
+    // build type's manifest it outranks the main one, so its tools:node="remove" applies.
+    if ((project.findProperty("liquiflux.store") as String?)?.isNotEmpty() == true) {
+        sourceSets.getByName("release").manifest.srcFile("src/store/AndroidManifest.xml")
+    }
 }
 
 kotlin {

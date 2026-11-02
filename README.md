@@ -109,6 +109,12 @@ Grab the files from the [latest release](https://github.com/Foehammer1987/Liquif
 If you're not sure which APK your TV needs, use `armeabi-v7a`: it runs on every device.
 [ANDROID-TV.md](ANDROID-TV.md) walks through sideloading on the Shield, Google TV and Fire TV.
 
+After that, Liquiflux keeps itself up to date. It looks for a new release when it starts (at most
+twice a day; Settings > Advanced > Updates turns that off) and offers to install it. The download
+is checked against the release's SHA-256 before anything runs. On Windows the installer updates it
+quietly and starts it again; on a TV, Android asks you to confirm. The portable zip only says a new
+version is out.
+
 ### First run
 
 1. **Sign In with Plex.** Your browser opens to approve the app, and Liquiflux finds your server

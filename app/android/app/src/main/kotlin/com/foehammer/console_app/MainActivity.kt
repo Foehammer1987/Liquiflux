@@ -18,6 +18,7 @@ class MainActivity : FlutterActivity() {
     private var textureView: FlutterTextureView? = null
     private var started = false
     private var reconnectPending = false
+    private var updater: AppUpdater? = null
 
     /**
      * Measuring switches for one launch, from adb (services/probe.dart):
@@ -95,6 +96,8 @@ class MainActivity : FlutterActivity() {
         val plane = VideoPlane(this, planeChannel)
         planeChannel.setMethodCallHandler(plane::onMethodCall)
         MethodChannel(messenger, SleepService.CHANNEL).setMethodCallHandler(SleepService.Channel(this)::onMethodCall)
+        val updateChannel = MethodChannel(messenger, AppUpdater.CHANNEL)
+        updater = AppUpdater(this, updateChannel).also { updateChannel.setMethodCallHandler(it::onMethodCall) }
         MethodChannel(messenger, "liquiflux/probe").setMethodCallHandler { call, result ->
             if (call.method == "flags") result.success(probe) else result.notImplemented()
         }
@@ -103,6 +106,12 @@ class MainActivity : FlutterActivity() {
             window.setBackgroundDrawableResource(android.R.color.black)
             result.success(null)
         }
+    }
+
+    override fun onDestroy() {
+        updater?.dispose()
+        updater = null
+        super.onDestroy()
     }
 
     companion object {

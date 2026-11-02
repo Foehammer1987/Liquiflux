@@ -10,9 +10,12 @@ import 'package:window_manager/window_manager.dart';
 
 import '../main.dart' show customTitleBar;
 import '../platform.dart';
+import '../app_info.dart';
+import '../services/links.dart';
 import '../services/live_players.dart';
 import '../services/notifier.dart';
 import '../services/probe.dart';
+import '../services/updater.dart';
 import '../state/app_state.dart';
 import '../state/scope.dart';
 import 'nav.dart';
@@ -54,6 +57,8 @@ class _ShellState extends State<Shell> {
   StreamSubscription<RequestRow>? _readySub;
   StreamSubscription<TogetherRoom>? _inviteSub;
   StreamSubscription<PlexItem>? _roomSub;
+  StreamSubscription<UpdateInfo>? _updateSub;
+  Timer? _updateCheck;
 
   /// Cards at the bottom right: requests that are ready ([RequestRow]) and invitations ([_Invite]).
   final _toasts = <Object>[];
@@ -67,6 +72,9 @@ class _ShellState extends State<Shell> {
       _readySub = app.readyEvents.stream.listen(_ready);
       _inviteSub = app.watchTogether.invites.stream.listen(_invited);
       _roomSub = app.openParty.opens.stream.listen(_roomTitle);
+      _updateSub = app.updater.found.stream.listen(_updateFound);
+      // Once things have settled after launch: is there a newer Liquiflux on GitHub?
+      _updateCheck = Timer(const Duration(seconds: 20), () => unawaited(app.updater.checkInBackground()));
       Notifier.instance.onAction = _onNotification;
       unawaited(Probe.atHome(context, openTitle: (key) => push(ItemDest(key))));
     });
@@ -109,6 +117,8 @@ class _ShellState extends State<Shell> {
     _readySub?.cancel();
     _inviteSub?.cancel();
     _roomSub?.cancel();
+    _updateSub?.cancel();
+    _updateCheck?.cancel();
     Notifier.instance.onAction = null;
     _searchFocus.dispose();
     _searchButton.dispose();
@@ -137,6 +147,16 @@ class _ShellState extends State<Shell> {
   }
 
   void _dismiss(Object t) => setState(() => _toasts.remove(t));
+
+  /// The launch check found a newer Liquiflux.
+  void _updateFound(UpdateInfo info) {
+    if (!mounted) return;
+    setState(
+      () => _toasts
+        ..removeWhere((t) => t is UpdateInfo)
+        ..add(info),
+    );
+  }
 
   /// A friend asked us into a Watch Together room.
   Future<void> _invited(TogetherRoom room) async {
@@ -233,6 +253,32 @@ class _ShellState extends State<Shell> {
   }
 
   Widget _toast(Object t) {
+    if (t is UpdateInfo) {
+      final updater = AppScope.read(context).updater;
+      return NoticeToast(
+        eyebrow: 'UPDATE',
+        icon: LucideIcons.download,
+        title: '$appName ${t.version} is out',
+        body: updater.canInstall ? 'Update now, or any time from Settings > Advanced.' : 'See what’s new and download it from GitHub.',
+        primary: updater.canInstall ? 'Update' : 'What’s New',
+        primaryIcon: updater.canInstall ? LucideIcons.download : LucideIcons.externalLink,
+        onPrimary: () {
+          _dismiss(t);
+          if (updater.canInstall) {
+            go(const SettingsDest(update: true));
+          } else {
+            unawaited(openExternal(t.pageUrl));
+          }
+        },
+        secondary: 'Not Now',
+        onSecondary: () {
+          _dismiss(t);
+          unawaited(updater.skip(t.version));
+        },
+        onDismiss: () => _dismiss(t),
+        lifetime: const Duration(seconds: 20),
+      );
+    }
     if (t is RequestRow) {
       final d = t.details;
       return NoticeToast(
@@ -292,7 +338,7 @@ class _ShellState extends State<Shell> {
     LibraryDest(:final sectionKey) => LibraryPage(key: ValueKey(sectionKey), sectionKey: sectionKey),
     SearchDest(:final query) => SearchPage(key: ValueKey(query), query: query),
     RequestsDest() => const RequestsPage(),
-    SettingsDest() => const SettingsPage(),
+    SettingsDest(:final update) => SettingsPage(key: ValueKey('settings:$update'), update: update),
     ItemDest(:final ratingKey) => ItemPage(key: ValueKey(ratingKey), ratingKey: ratingKey),
     SeerrDest(:final mediaType, :final tmdbId) => SeerrTitlePage(key: ValueKey('$mediaType:$tmdbId'), mediaType: mediaType, tmdbId: tmdbId),
     PersonDest() => PersonPage(key: ValueKey('person:${d.name}'), person: d),
@@ -523,7 +569,11 @@ class _ShellState extends State<Shell> {
                               // Keyed on the row itself, so a newcomer doesn't restart the others.
                               for (final t in _toasts.reversed.take(3))
                                 Padding(
-                                  key: ValueKey(t is RequestRow ? 'ready:${t.request.id}' : 'invite:${(t as _Invite).room.id}'),
+                                  key: ValueKey(switch (t) {
+                                    RequestRow r => 'ready:${r.request.id}',
+                                    UpdateInfo u => 'update:${u.version}',
+                                    _ => 'invite:${(t as _Invite).room.id}',
+                                  }),
                                   padding: const EdgeInsets.only(top: Space.space3),
                                   child: TweenAnimationBuilder<double>(
                                     tween: Tween(begin: 0, end: 1),

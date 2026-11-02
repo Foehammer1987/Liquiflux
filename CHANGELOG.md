@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.1
+
+Liquiflux updates itself, and the release workflow can publish it to WinGet.
+
+- Update check: about 20 seconds after launch (at most every 12 hours) Liquiflux asks GitHub for the latest release, with no sign-in and no token, and shows a card when there's a newer one. Settings > Advanced > Updates has the version, Check Now, Update and a Check at Launch switch. "Not Now" on the card hides it for that version only.
+- Windows: Update downloads `Liquiflux-Setup-x64.exe`, checks its SHA-256 against both GitHub's record of the upload and the release's SHA256SUMS.txt, closes the players, and runs the installer silently with `/RELAUNCH=1`, which starts the new Liquiflux when it's done (tools/installer/liquiflux.iss). The portable zip (no `unins000.exe` beside the exe) only links to the release.
+- Android TV: Update downloads the APK for this system's ABI (armeabi-v7a on a 32-bit system such as the 2019 Shield), checks the SHA-256 the same way, then AppUpdater.kt checks it's Liquiflux, newer, and signed with the same key before handing it to Android's installer through a PackageInstaller session. Android asks once to allow installs from Liquiflux and then to confirm each update. New permission: REQUEST_INSTALL_PACKAGES.
+- An app store build: `tools/build-android.ps1 -Store amazon` (or `--dart-define=LIQUIFLUX_STORE=amazon` with `--android-project-arg=liquiflux.store=amazon`) leaves out the updater's permission and the sleep timer's accessibility service, and hides both features. A copy that Google Play or the Amazon Appstore installed never updates itself either.
+- WinGet: tools/winget/make-manifests.sh writes the manifests for `Liquiflux.Liquiflux`, and with a `WINGET_TOKEN` secret the release workflow sends each new version to microsoft/winget-pkgs with wingetcreate (pinned by checksum). Run workflow with "Submit this version to WinGet" sends a version that's already released.
+- Version 1.0.1+59 (Android versionCode 1059 for armeabi-v7a, 2059 for arm64-v8a).
+
 ## 1.0.0
 
 The first public release. Liquiflux now lives on GitHub, and every version is built and published there, so nobody has to compile it to use it.
