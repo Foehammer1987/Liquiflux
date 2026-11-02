@@ -102,6 +102,17 @@ Without a PC: install **Downloader** from the Amazon Appstore and open the armea
 Fire TV doesn't show sideloaded apps on the home row straight away: find Liquiflux under
 **Your Apps & Channels** (hold the Home button > Apps) and move it to the front.
 
+## Updates
+
+From 1.0.1 Liquiflux checks GitHub for a new release when it starts and shows a card when there
+is one; Settings > Advanced > Updates has the same. Choose **Update**: it downloads the APK for
+your TV, checks its SHA-256 against the release, and checks it is signed with the same key as the
+Liquiflux you have. The first time, Android opens the setting to allow installs from Liquiflux
+(on the Shield: Settings > Apps > Security & restrictions > Unknown sources > Liquiflux); turn
+it on, go back, and choose Update again. Android then asks you to confirm the update.
+
+A copy installed from an app store is updated by that store, so it doesn't offer this.
+
 ## Measuring memory
 
 For finding what takes the 2019 Shield's memory, the app takes switches from adb for one launch

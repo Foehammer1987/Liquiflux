@@ -9,6 +9,7 @@ import '../services/collections_cache.dart';
 import '../services/open_party.dart';
 import '../services/series_cache.dart';
 import '../services/settings_store.dart';
+import '../services/updater.dart';
 import '../services/watch_together.dart';
 
 /// One Seerr request with its title and live state.
@@ -24,8 +25,11 @@ enum Conn { unknown, ok, failed, off }
 
 /// App-wide state: settings, the Plex and Seerr clients, and the live request list.
 class AppState extends ChangeNotifier {
-  AppState(this._store);
+  AppState(this._store, {Updater? updater}) : updater = updater ?? Updater();
   final SettingsStore _store;
+
+  /// Newer Liquiflux releases on GitHub (Settings > Advanced > Updates).
+  final Updater updater;
 
   Settings settings = const Settings(clientId: 'console');
   PlexClient? plex;
@@ -619,6 +623,7 @@ class AppState extends ChangeNotifier {
     plex?.close();
     seerr?.close();
     trakt?.close();
+    updater.dispose();
     watchTogether.dispose();
     openParty.dispose();
     unawaited(readyEvents.close());

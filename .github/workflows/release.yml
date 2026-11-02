@@ -15,7 +15,12 @@
 # leave the APKs out rather than ship ones that can't be updated later; once the secrets are
 # added, Run workflow on main adds the signed APKs to that release.
 #
-# Third-party actions are pinned by commit.
+# WinGet: with a WINGET_TOKEN secret (a classic GitHub token with the public_repo scope), each
+# new release is also sent to microsoft/winget-pkgs as a pull request, from a fork of it under
+# the token's account (wingetcreate makes the fork). Run workflow with "Submit this version to
+# WinGet" ticked sends a version that is already released. Without the secret this is skipped.
+#
+# Third-party actions are pinned by commit, and downloaded tools by checksum.
 name: build-and-release
 
 on:
@@ -23,6 +28,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      winget:
+        description: Submit this version to WinGet even if it is already released
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -51,6 +61,9 @@ jobs:
       - name: App analyze and tests
         working-directory: app
         run: flutter pub get && flutter analyze && flutter test
+      - name: App tests as a TV (remote-control focus)
+        working-directory: app
+        run: CONSOLE_TV=1 flutter test test/tv_home_test.dart test/updates_focus_test.dart
       - name: Read the version
         id: version
         run: |
@@ -179,6 +192,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ needs.test.outputs.version }}
       SIGNED: ${{ needs.android.outputs.signed }}
+    outputs:
+      published: ${{ steps.check.outputs.publish }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -227,3 +242,50 @@ jobs:
           (cd dist && sha256sum *.apk > apk-sums.txt)
           cat old/SHA256SUMS.txt dist/apk-sums.txt > SHA256SUMS.txt 2>/dev/null || cp dist/apk-sums.txt SHA256SUMS.txt
           gh release upload "v$VERSION" dist/*.apk SHA256SUMS.txt --clobber --repo "$GITHUB_REPOSITORY"
+
+  winget:
+    needs: [test, release]
+    if: needs.release.result == 'success' && (needs.release.outputs.published == 'true' || inputs.winget == true)
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.test.outputs.version }}
+      HAS_TOKEN: ${{ secrets.WINGET_TOKEN != '' }}
+      # microsoft/winget-create v1.12.13.0
+      WINGETCREATE_URL: https://github.com/microsoft/winget-create/releases/download/v1.12.13.0/wingetcreate.exe
+      WINGETCREATE_SHA256: 24042BD37915805615E6CF969AC57C6439124C3FE85823327F5F3FB24BD9FFEA
+    steps:
+      - name: No WinGet token
+        if: env.HAS_TOKEN != 'true'
+        shell: bash
+        run: echo "No WINGET_TOKEN secret, so v$VERSION was not sent to WinGet." | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.HAS_TOKEN == 'true'
+        with:
+          persist-credentials: false
+      - name: Manifests
+        if: env.HAS_TOKEN == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "v$VERSION" --repo "$GITHUB_REPOSITORY" --pattern Liquiflux-Setup-x64.exe --dir dl
+          sha=$(sha256sum dl/Liquiflux-Setup-x64.exe | cut -d' ' -f1)
+          date=$(gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" --json publishedAt --jq .publishedAt | cut -c1-10)
+          dir=$(tools/winget/make-manifests.sh "$VERSION" "$sha" "$date" winget)
+          echo "MANIFESTS=$dir" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: env.HAS_TOKEN == 'true'
+        with:
+          name: winget-manifests
+          path: winget
+      - name: Submit to microsoft/winget-pkgs
+        if: env.HAS_TOKEN == 'true'
+        shell: pwsh
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          Invoke-WebRequest $env:WINGETCREATE_URL -OutFile wingetcreate.exe -UseBasicParsing
+          if ((Get-FileHash wingetcreate.exe -Algorithm SHA256).Hash -ne $env:WINGETCREATE_SHA256) { throw 'wingetcreate.exe does not match its checksum' }
+          ./wingetcreate.exe submit --no-open --prtitle "New version: Liquiflux.Liquiflux version $env:VERSION" --token $env:WINGET_TOKEN $env:MANIFESTS
+          if ($LASTEXITCODE -ne 0) { throw "wingetcreate failed ($LASTEXITCODE)" }
+          "Sent v$env:VERSION to WinGet: see the pull requests on microsoft/winget-pkgs." | Tee-Object -Append $env:GITHUB_STEP_SUMMARY

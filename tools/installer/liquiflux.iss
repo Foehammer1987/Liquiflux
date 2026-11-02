@@ -52,3 +52,11 @@ Name: "{autodesktop}\Liquiflux"; Filename: "{app}\Liquiflux.exe"; Tasks: desktop
 
 [Run]
 Filename: "{app}\Liquiflux.exe"; Description: "{cm:LaunchProgram,Liquiflux}"; Flags: nowait postinstall skipifsilent
+; The in-app updater runs this installer with /SILENT /RELAUNCH=1, and gets Liquiflux back afterwards.
+Filename: "{app}\Liquiflux.exe"; Flags: nowait runasoriginaluser; Check: Relaunch
+
+[Code]
+function Relaunch: Boolean;
+begin
+  Result := WizardSilent and (ExpandConstant('{param:RELAUNCH|0}') = '1');
+end;

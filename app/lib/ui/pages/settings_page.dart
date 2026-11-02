@@ -15,11 +15,15 @@ import '../common.dart';
 import '../settings/focus_handle.dart';
 import '../settings/plex_link_code.dart';
 import '../settings/settings_field.dart';
+import '../settings/updates_panel.dart';
 import '../shell.dart' show isWindows;
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key, this.welcome = false});
+  const SettingsPage({super.key, this.welcome = false, this.update = false});
   final bool welcome;
+
+  /// Open on Advanced and start the update (the update card's Update).
+  final bool update;
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
@@ -73,7 +77,7 @@ class _SettingsPageState extends State<SettingsPage> {
   final _linkFocus = FocusHandle();
   final _serverFocus = FocusHandle();
 
-  _Tab _tab = _Tab.general;
+  late _Tab _tab = widget.update ? _Tab.advanced : _Tab.general;
   final _mpv = TextEditingController();
 
   bool _seeded = false;
@@ -1022,6 +1026,7 @@ class _SettingsPageState extends State<SettingsPage> {
   ];
 
   List<Widget> _advanced(AppState app, ConsoleColors c, PlaybackPrefs p) => [
+    UpdatesPanel(updater: app.updater, start: widget.update),
     ConsolePanel(
       title: 'mpv Options',
       child: Column(

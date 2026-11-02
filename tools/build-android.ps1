@@ -4,9 +4,14 @@
 #
 #   tools\build-android.ps1                     build both APKs into dist\
 #   tools\build-android.ps1 -Install 192.168.1.50   ...then install on the TV at that address
+#   tools\build-android.ps1 -Store amazon       the app-store build: no in-app updater and no
+#                                               sleep-timer accessibility service
 param(
   # IP address of the TV to install on over the network (ADB debugging must be on).
-  [string]$Install
+  [string]$Install,
+  # An app store to build for (amazon). Leave out for the GitHub build.
+  [ValidateSet('amazon')]
+  [string]$Store = ''
 )
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..')
@@ -103,14 +108,16 @@ $env:LIQUIFLUX_KEY_PROPERTIES = $keyProps
 flutter pub get
 # One APK per CPU type keeps each one small. Trimming unused icons corrupts the Lucide icon
 # font, so keep it whole.
-flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64 --no-tree-shake-icons
+$storeArgs = if ($Store) { @("--dart-define=LIQUIFLUX_STORE=$Store", "--android-project-arg=liquiflux.store=$Store") } else { @() }
+flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64 --no-tree-shake-icons @storeArgs
 if ($LASTEXITCODE -ne 0) { throw 'The Android build failed.' }
 
 $dist = Join-Path $root 'dist'
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
 $apks = @{}
 foreach ($abi in 'arm64-v8a', 'armeabi-v7a') {
-  $to = Join-Path $dist "Liquiflux-$version-$abi.apk"
+  $suffix = if ($Store) { "-$Store" } else { '' }
+  $to = Join-Path $dist "Liquiflux-$version-$abi$suffix.apk"
   Copy-Item "build\app\outputs\flutter-apk\app-$abi-release.apk" $to -Force
   $apks[$abi] = $to
   Write-Host ("Built {0} ({1:N0} MB)" -f $to, ((Get-Item $to).Length / 1MB))
