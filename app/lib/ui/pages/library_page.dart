@@ -34,7 +34,20 @@ class _LibraryPageState extends State<LibraryPage> {
     if (e is KeyUpEvent || e.logicalKey != LogicalKeyboardKey.arrowDown) return KeyEventResult.ignored;
     final first = _firstCell.descendants.where((n) => n.canRequestFocus && !n.skipTraversal).firstOrNull;
     if (first == null) return KeyEventResult.ignored;
+    _cameFrom = FocusManager.instance.primaryFocus;
     glideTo(first);
+    return KeyEventResult.handled;
+  }
+
+  /// The sort button Down came from, for Up to go back to it, as everywhere else.
+  FocusNode? _cameFrom;
+
+  KeyEventResult _firstKey(FocusNode _, KeyEvent e) {
+    if (e is KeyUpEvent) return KeyEventResult.ignored;
+    final back = _cameFrom;
+    _cameFrom = null;
+    if (e.logicalKey != LogicalKeyboardKey.arrowUp || back == null || back.context?.mounted != true) return KeyEventResult.ignored;
+    glideTo(back);
     return KeyEventResult.handled;
   }
   final _items = <PlexItem>[];
@@ -143,7 +156,7 @@ class _LibraryPageState extends State<LibraryPage> {
                       childCount: _items.length,
                       (context, i) {
                         final poster = PlexPoster(key: ValueKey(_items[i].ratingKey), item: _items[i], autofocus: i == 0);
-                        return i == 0 ? Focus(focusNode: _firstCell, child: poster) : poster;
+                        return i == 0 ? Focus(focusNode: _firstCell, onKeyEvent: _firstKey, child: poster) : poster;
                       },
                     ),
                   );

@@ -59,6 +59,9 @@ void main() {
     expect(focused(), contains('Rating'));
     await press(t, LogicalKeyboardKey.arrowDown);
     expect(focused(), startsWith('Film 1 '));
+    // And Up goes back to the button it came from.
+    await press(t, LogicalKeyboardKey.arrowUp);
+    expect(focused(), contains('Rating'));
     await t.pumpWidget(const SizedBox());
     await t.pump(const Duration(seconds: 1));
   });
