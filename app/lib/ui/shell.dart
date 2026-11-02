@@ -276,7 +276,8 @@ class _ShellState extends State<Shell> {
           unawaited(updater.skip(t.version));
         },
         onDismiss: () => _dismiss(t),
-        lifetime: const Duration(seconds: 20),
+        // Longer on a TV, where the remote has further to go to reach it.
+        lifetime: Duration(seconds: isTv ? 40 : 20),
       );
     }
     if (t is RequestRow) {

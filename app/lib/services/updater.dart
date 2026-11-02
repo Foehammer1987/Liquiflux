@@ -327,7 +327,7 @@ class Updater extends ChangeNotifier {
       if (_os == 'android' && await _channel.invokeMethod<bool>('canInstall') != true) {
         // Android wants the user to allow installs from Liquiflux once.
         await _channel.invokeMethod<bool>('allowInstalls');
-        _fail('Allow Liquiflux to install apps, then choose Update again.');
+        _fail('Allow Liquiflux to install apps. Android closes Liquiflux when you do, so open it again and choose Update once more.');
         return;
       }
       file = await fetch(info, asset);

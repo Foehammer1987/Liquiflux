@@ -41,6 +41,11 @@ class _UpdatesPanelState extends State<UpdatesPanel> {
 
   Future<void> _install() => _u.install(beforeExit: LivePlayers.releaseAll);
 
+  /// A button that can't be pressed right now. On a TV it stays focusable (and does nothing),
+  /// since the remote skips a disabled button: Down from the tabs went past the whole row
+  /// while the check that opening the page starts was still running.
+  VoidCallback? _unless(bool busy, VoidCallback action) => !busy ? action : (isTv ? () {} : null);
+
   @override
   Widget build(BuildContext context) {
     final c = context.c;
@@ -75,10 +80,10 @@ class _UpdatesPanelState extends State<UpdatesPanel> {
                 runSpacing: Space.space2,
                 children: [
                   if (info != null && _u.canInstall)
-                    ConsoleButton(label: 'Update to ${info.version}', icon: LucideIcons.download, kind: ButtonKind.primary, onPressed: busy ? null : () => unawaited(_install())),
+                    ConsoleButton(label: 'Update to ${info.version}', icon: LucideIcons.download, kind: ButtonKind.primary, onPressed: _unless(busy, () => unawaited(_install()))),
                   if (info != null)
                     ConsoleButton(label: _u.canInstall ? 'What’s New' : 'Get It on GitHub', icon: LucideIcons.externalLink, onPressed: () => unawaited(openExternal(info.pageUrl))),
-                  ConsoleButton(label: 'Check Now', onPressed: busy ? null : () => unawaited(_u.check())),
+                  ConsoleButton(label: 'Check Now', onPressed: _unless(busy, () => unawaited(_u.check()))),
                 ],
               ),
               const SizedBox(height: Space.space4),
@@ -106,7 +111,10 @@ class _UpdatesPanelState extends State<UpdatesPanel> {
 
   String get _help {
     if (!_u.selfUpdate) return 'Asks GitHub about new releases, at most twice a day. The app store this copy came from installs them.';
-    if (isTv) return 'Asks GitHub about new releases, at most twice a day. Updates are checked, then Android asks you to confirm.';
+    if (isTv) {
+      return 'Asks GitHub about new releases, at most twice a day. Updates are checked, then Android asks you to confirm. '
+          'Android turns the sleep timer’s “turn the TV off” permission off when it updates an app, so switch it on again from the sleep timer afterwards.';
+    }
     if (!Updater.installedWithSetup) return 'Asks GitHub about new releases, at most twice a day. This is the portable copy, so download new ones from GitHub.';
     return 'Asks GitHub about new releases, at most twice a day. Updates are checked before they install, and Liquiflux restarts.';
   }
