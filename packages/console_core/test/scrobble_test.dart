@@ -233,6 +233,26 @@ void main() {
         expect((q.media.id, q.number), (21, 6));
       });
 
+      test('a stray undated file with an odd number does not move the rest', () {
+        // Naruto Shippuden style: absolute numbers, S1 1-4 plus a stray "Episode 100" with no date.
+        final one = [media(1735, episodes: 500, start: DateTime.utc(2007, 2, 15))];
+        final eps = [
+          for (var i = 1; i <= 4; i++) ep(1, i, aired: '2007-03-0$i'),
+          ep(1, 100),
+          for (var i = 5; i <= 8; i++) ep(2, i, aired: '2008-01-0$i'),
+          ep(2, 2),
+        ];
+        expect(placeEpisode(one, eps[7], eps)!.number, 7);
+        // A last season with no dates at all (Naruto Shippuden S21-S22) carries on from the one before.
+        final undated = [...eps, for (var i = 9; i <= 10; i++) ep(3, i)];
+        expect(placeEpisode(one, undated.last, undated)!.number, 10);
+        // Per-season numbering with a stray in season 1.
+        final two = [media(1, episodes: 4, start: DateTime.utc(2020, 1, 1)), media(2, episodes: 4, start: DateTime.utc(2021, 1, 1))];
+        final per = [for (var i = 1; i <= 4; i++) ep(1, i, aired: '2020-01-0$i'), ep(1, 50), for (var i = 1; i <= 4; i++) ep(2, i, aired: '2021-01-0$i')];
+        expect(placeEpisode(two, per[7], per)!.number, 3);
+        expect(placeEpisode(two, per[7], per)!.media.id, 2);
+      });
+
       test('without air dates season N is the Nth entry', () {
         final p = placeEpisode(chain, ep(2, 4), const [])!;
         expect((p.media.id, p.number), (2, 4));

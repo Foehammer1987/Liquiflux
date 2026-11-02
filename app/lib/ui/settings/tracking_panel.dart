@@ -10,6 +10,7 @@ import '../../services/phone_link.dart';
 import '../../services/scrobbler.dart';
 import '../../state/app_state.dart';
 import '../common.dart' show muted;
+import 'focus_handle.dart';
 import 'qr_view.dart';
 import 'settings_field.dart';
 
@@ -51,6 +52,11 @@ class _TrackingPanelsState extends State<TrackingPanels> {
   Tone _anilistTone = Tone.neutral;
   bool _busy = false;
 
+  // On a TV the remote is moved onto the code or the phone page when it appears (Down from
+  // the Trakt buttons went past the page's Cancel to AniList).
+  final _phoneFocus = FocusHandle();
+  final _codeFocus = FocusHandle();
+
   final _id = TextEditingController();
   final _secret = TextEditingController();
   final _anilistId = TextEditingController();
@@ -73,6 +79,8 @@ class _TrackingPanelsState extends State<TrackingPanels> {
     for (final c in [_id, _secret, _anilistId, _token]) {
       c.dispose();
     }
+    _phoneFocus.dispose();
+    _codeFocus.dispose();
     super.dispose();
   }
 
@@ -93,6 +101,7 @@ class _TrackingPanelsState extends State<TrackingPanels> {
         _code = code;
         _gettingCode = false;
       });
+      if (_tv) _codeFocus.focus();
       _clock?.cancel();
       _clock = Timer.periodic(const Duration(seconds: 1), (_) {
         if (mounted) setState(() {});
@@ -241,6 +250,7 @@ class _TrackingPanelsState extends State<TrackingPanels> {
       _link = link;
       _linkFor = what;
     });
+    if (_tv) _phoneFocus.focus();
   }
 
   Future<void> _closeLink() async {
@@ -286,7 +296,7 @@ class _TrackingPanelsState extends State<TrackingPanels> {
       children.add(const SizedBox(height: Space.space3));
       children.add(_buttons([ConsoleButton(label: 'Disconnect Trakt', icon: LucideIcons.logOut, expand: _tv, onPressed: () => unawaited(s.traktSignOut()))]));
     } else if (_code != null || _gettingCode) {
-      children.add(_TraktCode(code: _code, onNewCode: () => unawaited(_traktConnect()), onCancel: _cancelCode, tv: _tv));
+      children.add(_codeFocus.wrap(_TraktCode(code: _code, onNewCode: () => unawaited(_traktConnect()), onCancel: _cancelCode, tv: _tv)));
     } else {
       children.add(Text(
         s.traktAppChanged
@@ -302,7 +312,7 @@ class _TrackingPanelsState extends State<TrackingPanels> {
         if (_tv) ConsoleButton(label: hasApp ? 'Use My Own Trakt App' : 'Add Keys from My Phone', icon: LucideIcons.smartphone, kind: hasApp ? ButtonKind.secondary : ButtonKind.primary, expand: true, onPressed: () => unawaited(_traktKeysOnPhone())),
       ]));
     }
-    if (_linkFor == 'trakt' && _link != null) children.addAll([const SizedBox(height: Space.space4), _PhonePage(link: _link!, onCancel: () => unawaited(_closeLink()))]);
+    if (_linkFor == 'trakt' && _link != null) children.addAll([const SizedBox(height: Space.space4), _phoneFocus.wrap(_PhonePage(link: _link!, onCancel: () => unawaited(_closeLink())))]);
     // A keyboard: the keys go in right here.
     if (!_tv && !s.traktOn) {
       children.addAll([
@@ -385,7 +395,7 @@ class _TrackingPanelsState extends State<TrackingPanels> {
         }
       }
     }
-    if (_linkFor == 'anilist' && _link != null) children.addAll([const SizedBox(height: Space.space4), _PhonePage(link: _link!, onCancel: () => unawaited(_closeLink()))]);
+    if (_linkFor == 'anilist' && _link != null) children.addAll([const SizedBox(height: Space.space4), _phoneFocus.wrap(_PhonePage(link: _link!, onCancel: () => unawaited(_closeLink())))]);
     children.add(_status(_anilistMsg, _anilistTone));
     return ConsolePanel(title: 'AniList', child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children));
   }
@@ -476,7 +486,7 @@ class _PhonePage extends StatelessWidget {
               const SizedBox(height: Space.space1),
               Text('Your phone needs to be on the same Wi-Fi as this device. The page closes after 15 minutes.', style: ConsoleText.caption.copyWith(color: c.text300)),
               const SizedBox(height: Space.space2),
-              SelectableText(link.url, style: ConsoleText.data.copyWith(color: c.text200)),
+              Text(link.url, style: ConsoleText.data.copyWith(color: c.text200)),
               const SizedBox(height: Space.space3),
               ConsoleButton(label: 'Cancel', onPressed: onCancel),
             ],

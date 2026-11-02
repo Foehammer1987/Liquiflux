@@ -263,6 +263,20 @@ AniListPlace? placeEpisode(List<AniListMedia> chain, PlexItem episode, List<Plex
       }
     }
   }
+  // A whole season without dates (often the newest) carries on from the season before.
+  DateTime? carry;
+  for (final n in bySeason.keys.toList()..sort()) {
+    final list = bySeason[n]!;
+    if (list.every((e) => guessed[e.ratingKey] == null)) {
+      if (carry != null) {
+        for (final e in list) {
+          guessed[e.ratingKey] = carry;
+        }
+      }
+    } else {
+      carry = list.map((e) => guessed[e.ratingKey]).whereType<DateTime>().reduce((a, b) => a.isAfter(b) ? a : b);
+    }
+  }
   DateTime? aired(PlexItem e) => DateTime.tryParse(e.originallyAvailableAt ?? '') ?? guessed[e.ratingKey];
   final when = aired(episode);
   final dated = chain.where((m) => m.start != null).toList()..sort((a, b) => a.start!.compareTo(b.start!));
@@ -274,23 +288,36 @@ AniListPlace? placeEpisode(List<AniListMedia> chain, PlexItem episode, List<Plex
     final until = at + 1 < dated.length ? dated[at + 1].start!.subtract(slack) : null;
     // Aired long after the last entry ended: AniList doesn't have this season yet.
     if (until == null && media.end != null && when.isAfter(media.end!.add(const Duration(days: 45)))) return null;
+    // Only real air dates measure the seasons: a guessed one belongs to a file Plex couldn't
+    // match, often a stray with an out-of-place number ("Episode 100" in a season of 1-32).
+    DateTime? real(PlexItem e) => DateTime.tryParse(e.originallyAvailableAt ?? '');
+    bool regular(PlexItem e) => (e.parentIndex ?? 0) >= 1 && e.index != null;
     bool inside(PlexItem e) {
-      final d = aired(e);
-      return d != null && (e.parentIndex ?? 0) >= 1 && e.index != null && !d.isBefore(media.start!.subtract(slack)) && (until == null || d.isBefore(until));
+      final d = real(e);
+      return d != null && regular(e) && !d.isBefore(media.start!.subtract(slack)) && (until == null || d.isBefore(until));
     }
 
-    // Per Plex season inside this entry: where it starts and how many numbers it covers.
-    final first = <int, int>{}, last = <int, int>{};
-    for (final e in [...episodes.where(inside), episode]) {
-      final s = e.parentIndex!, i = e.index!;
-      first[s] = first[s] == null || i < first[s]! ? i : first[s]!;
-      last[s] = last[s] == null || i > last[s]! ? i : last[s]!;
+    final within = [...episodes.where((e) => e.ratingKey != episode.ratingKey && inside(e)), episode];
+    int number;
+    if (_absolute(episodes)) {
+      // Numbered straight through the show (One Piece, Naruto Shippuden): count from the
+      // first episode of this entry, whatever Plex season it's in.
+      final start = within.map((e) => e.index!).reduce((a, b) => a < b ? a : b);
+      number = index - start + 1;
+    } else {
+      // Per Plex season inside this entry: where it starts and how many numbers it covers.
+      final first = <int, int>{}, last = <int, int>{};
+      for (final e in within) {
+        final s = e.parentIndex!, i = e.index!;
+        first[s] = first[s] == null || i < first[s]! ? i : first[s]!;
+        last[s] = last[s] == null || i > last[s]! ? i : last[s]!;
+      }
+      number = 0;
+      for (final s in first.keys.toList()..sort()) {
+        if (s < season) number += last[s]! - first[s]! + 1;
+      }
+      number += index - first[season]! + 1;
     }
-    var number = 0;
-    for (final s in first.keys.toList()..sort()) {
-      if (s < season) number += last[s]! - first[s]! + 1;
-    }
-    number += index - first[season]! + 1;
     if (media.episodes != null && number > media.episodes!) return null;
     return AniListPlace(media, number);
   }
@@ -298,6 +325,18 @@ AniListPlace? placeEpisode(List<AniListMedia> chain, PlexItem episode, List<Plex
   final media = chain[season - 1];
   if (media.episodes != null && index > media.episodes!) return null;
   return AniListPlace(media, index);
+}
+
+/// True when the show's episodes are numbered straight through, not from 1 each season:
+/// most later seasons (by their dated episodes) start past 1.
+bool _absolute(List<PlexItem> episodes) {
+  final start = <int, int>{};
+  for (final e in episodes) {
+    final s = e.parentIndex ?? 0, i = e.index;
+    if (s < 2 || i == null || DateTime.tryParse(e.originallyAvailableAt ?? '') == null) continue;
+    start[s] = start[s] == null || i < start[s]! ? i : start[s]!;
+  }
+  return start.isNotEmpty && start.values.where((i) => i > 1).length * 4 >= start.length * 3;
 }
 
 /// Builds a show's chain of AniList series: from the entry its title finds, back through
