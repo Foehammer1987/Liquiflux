@@ -5,6 +5,7 @@ import 'dart:ffi' show Abi;
 import 'dart:io';
 
 import 'package:console_app/services/updater.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
@@ -22,7 +23,7 @@ void main() {
       final u = Updater(client: client, os: os, abi: abi, folder: () async => tmp, downloadFolder: () async => tmp);
       final f = await u.fetch(info, asset);
       expect(f.lengthSync(), asset.size);
-      print('${asset.name} ${info.version}: ${asset.size} bytes, sha256 ${asset.digest ?? '(from SHA256SUMS)'} verified');
+      debugPrint('${asset.name} ${info.version}: ${asset.size} bytes, sha256 ${asset.digest ?? '(from SHA256SUMS)'} verified');
     }, skip: live ? false : 'set LIQUIFLUX_LIVE_UPDATE=1', timeout: const Timeout(Duration(minutes: 5)));
   }
 }
