@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import '../app_info.dart';
 import '../services/collections_cache.dart';
 import '../services/open_party.dart';
+import '../services/scrobbler.dart';
 import '../services/series_cache.dart';
 import '../services/settings_store.dart';
 import '../services/updater.dart';
@@ -25,11 +26,14 @@ enum Conn { unknown, ok, failed, off }
 
 /// App-wide state: settings, the Plex and Seerr clients, and the live request list.
 class AppState extends ChangeNotifier {
-  AppState(this._store, {Updater? updater}) : updater = updater ?? Updater();
+  AppState(this._store, {Updater? updater, Scrobbler? scrobbler}) : updater = updater ?? Updater(), scrobbler = scrobbler ?? Scrobbler();
   final SettingsStore _store;
 
   /// Newer Liquiflux releases on GitHub (Settings > Advanced > Updates).
   final Updater updater;
+
+  /// Trakt and AniList (Settings > Tracking).
+  final Scrobbler scrobbler;
 
   Settings settings = const Settings(clientId: 'console');
   PlexClient? plex;
@@ -295,6 +299,8 @@ class AppState extends ChangeNotifier {
 
   Future<void> init() async {
     settings = await _store.load();
+    _makeTrakt();
+    unawaited(scrobbler.load());
     loaded = true;
     await connect();
   }
@@ -352,11 +358,21 @@ class AppState extends ChangeNotifier {
     await _store.save(settings);
   }
 
+  /// The Trakt app (Client ID and Secret) and AniList client to sign in with.
+  Future<void> setScrobbleApps({String? traktClientId, String? traktClientSecret, String? anilistClientId}) async {
+    settings = settings.copyWith(traktClientId: traktClientId, traktClientSecret: traktClientSecret, anilistClientId: anilistClientId);
+    rememberSecret(settings.traktClientSecret);
+    _makeTrakt();
+    notifyListeners();
+    await _store.save(settings);
+  }
+
   /// Trakt's live charts, when a client ID is set.
   TraktClient? trakt;
 
   /// A new Trakt client when the ID changed (the old one is closed).
   void _makeTrakt() {
+    scrobbler.configure(traktClientId: settings.traktClientId, traktClientSecret: settings.traktClientSecret, anilistClientId: settings.anilistClientId);
     final id = settings.traktClientId.trim();
     if (trakt?.clientId == id && id.isNotEmpty) return;
     trakt?.close();
@@ -388,7 +404,7 @@ class AppState extends ChangeNotifier {
     unawaited(openParty.leave());
     final s = settings;
     // Scrubbed from anything logged or shown from here on.
-    for (final secret in [s.plexToken, s.plexAccountToken, s.seerrApiKey, s.traktClientId]) {
+    for (final secret in [s.plexToken, s.plexAccountToken, s.seerrApiKey, s.traktClientId, s.traktClientSecret]) {
       rememberSecret(secret);
     }
 
@@ -624,6 +640,7 @@ class AppState extends ChangeNotifier {
     seerr?.close();
     trakt?.close();
     updater.dispose();
+    scrobbler.dispose();
     watchTogether.dispose();
     openParty.dispose();
     unawaited(readyEvents.close());

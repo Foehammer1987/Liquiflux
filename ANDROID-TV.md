@@ -157,6 +157,23 @@ a second or two as they switch; Liquiflux holds the start of the title until the
 The TV must offer the mode: on the Shield, the modes it lists depend on what the TV reports over
 HDMI. The Shield's own "match frame rate" options don't need to be on for this.
 
+## Trakt and AniList
+
+Settings > Tracking connects them.
+
+- **Trakt:** Connect Trakt shows a code and a QR code. Open trakt.tv/activate on your phone (or scan
+  the code), enter it, and approve. The first time, Add Keys from My Phone: scan the QR code, and the page that opens on your phone takes your Trakt app's Client ID
+  and Secret.
+- **AniList:** Connect AniList shows a QR code. On the page it opens, tap Sign in to AniList,
+  approve, copy the long token AniList shows, go back to the page and paste it. The phone must be
+  on the same Wi-Fi as the TV. The page is served by the TV itself, at a random address, only while
+  the QR code is on screen (15 minutes at most).
+
+Movies and episodes scrobble to Trakt as you play, pause and stop them, and count as watched past
+80%. Anime (Plex's "Anime" genre, or a library with anime in its name) also moves the AniList entry
+forward when you finish an episode, never backwards, and leaves finished shows alone. Titles you
+mark watched in Liquiflux go to both too.
+
 ## Using it with a remote
 
 - **D-pad** moves between buttons and posters; **Select/OK** opens or plays. Left and Right stay

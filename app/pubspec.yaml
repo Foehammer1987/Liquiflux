@@ -1,7 +1,7 @@
 name: console_app
 description: "Liquiflux, a Plex client with Seerr requests built in."
 publish_to: none
-version: 1.0.2+60
+version: 1.0.3+61
 
 environment:
   sdk: ^3.8.0
@@ -23,6 +23,8 @@ dependencies:
   flutter_local_notifications: ^22.3.2
   http: ^1.6.0
   crypto: ^3.0.6
+  # QR codes for the TV sign-ins (Trakt's activate page, the phone link). Pure Dart, pinned.
+  qr: 4.0.0
   # Open Watch Party rooms (see packages/console_core).
   openwatchparty: 1.1.0
 # Our copy of media_kit_video 2.0.1 with the Windows picture handed to Flutter without

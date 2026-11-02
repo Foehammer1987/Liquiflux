@@ -63,7 +63,7 @@ jobs:
         run: flutter pub get && flutter analyze && flutter test
       - name: App tests as a TV (remote-control focus)
         working-directory: app
-        run: CONSOLE_TV=1 flutter test test/tv_home_test.dart test/updates_focus_test.dart
+        run: CONSOLE_TV=1 flutter test test/tv_home_test.dart test/updates_focus_test.dart test/tracking_focus_test.dart
       - name: Read the version
         id: version
         run: |

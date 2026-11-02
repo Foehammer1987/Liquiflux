@@ -28,3 +28,6 @@ export 'src/together/syncplay.dart';
 export 'src/together/open_party.dart';
 export 'src/xray.dart';
 export 'src/xray_server.dart';
+export 'src/scrobble/external_ids.dart';
+export 'src/scrobble/trakt.dart';
+export 'src/scrobble/anilist.dart';
