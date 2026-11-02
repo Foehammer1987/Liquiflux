@@ -75,38 +75,64 @@ class _UpdatesPanelState extends State<UpdatesPanel> {
                 LinearProgressIndicator(value: _u.progress, minHeight: 4, color: c.primary, backgroundColor: c.border100),
               ],
               const SizedBox(height: Space.space3),
-              Wrap(
-                spacing: Space.space3,
-                runSpacing: Space.space2,
-                children: [
-                  if (info != null && _u.canInstall)
-                    ConsoleButton(label: 'Update to ${info.version}', icon: LucideIcons.download, kind: ButtonKind.primary, onPressed: _unless(busy, () => unawaited(_install()))),
-                  if (info != null)
-                    ConsoleButton(label: _u.canInstall ? 'What’s New' : 'Get It on GitHub', icon: LucideIcons.externalLink, onPressed: () => unawaited(openExternal(info.pageUrl))),
-                  ConsoleButton(label: 'Check Now', onPressed: _unless(busy, () => unawaited(_u.check()))),
-                ],
-              ),
+              _buttons([
+                if (info != null && _u.canInstall)
+                  ConsoleButton(label: 'Update to ${info.version}', icon: LucideIcons.download, kind: ButtonKind.primary, expand: isTv, onPressed: _unless(busy, () => unawaited(_install()))),
+                if (info != null)
+                  ConsoleButton(label: _u.canInstall ? 'What’s New' : 'Get It on GitHub', icon: LucideIcons.externalLink, expand: isTv, onPressed: () => unawaited(openExternal(info.pageUrl))),
+                ConsoleButton(label: 'Check Now', expand: isTv, onPressed: _unless(busy, () => unawaited(_u.check()))),
+              ]),
               const SizedBox(height: Space.space4),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Check at Launch', style: ConsoleText.bodyStrong.copyWith(color: c.text100)),
-                        Text(_help, style: ConsoleText.caption.copyWith(color: c.text300)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: Space.space4),
-                  ConsoleSwitch(value: _u.auto, onChanged: (v) => unawaited(_u.setAuto(v))),
-                ],
-              ),
+              _autoRow(c),
             ],
           ),
         );
       },
     );
+  }
+
+  /// On a TV the remote moves to whatever lies straight below, so the buttons share the
+  /// panel's full width (and Down from any tab lands on one) instead of sitting at the left,
+  /// where Down from the tabs went past them to the mpv box.
+  Widget _buttons(List<Widget> buttons) {
+    if (!isTv) return Wrap(spacing: Space.space3, runSpacing: Space.space2, children: buttons);
+    return Row(
+      children: [
+        for (final (i, b) in buttons.indexed) ...[if (i > 0) const SizedBox(width: Space.space3), Expanded(child: b)],
+      ],
+    );
+  }
+
+  /// Check at Launch. On a TV the whole row is one focusable control (full width, like the
+  /// buttons above), so it's reachable from any of them; the switch only shows the state.
+  Widget _autoRow(ConsoleColors c) {
+    Widget row(bool focused) => Container(
+      padding: isTv ? const EdgeInsets.symmetric(horizontal: Space.space3, vertical: Space.space2) : EdgeInsets.zero,
+      decoration: isTv
+          ? BoxDecoration(
+              borderRadius: BorderRadius.circular(Radii.radiusMd),
+              border: Border.all(color: focused ? c.primary : Colors.transparent, width: 2),
+              color: focused ? c.primary.withValues(alpha: 0.12) : null,
+            )
+          : null,
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Check at Launch', style: ConsoleText.bodyStrong.copyWith(color: c.text100)),
+                Text(_help, style: ConsoleText.caption.copyWith(color: c.text300)),
+              ],
+            ),
+          ),
+          const SizedBox(width: Space.space4),
+          isTv ? ExcludeFocus(child: ConsoleSwitch(value: _u.auto, onChanged: (v) => unawaited(_u.setAuto(v)))) : ConsoleSwitch(value: _u.auto, onChanged: (v) => unawaited(_u.setAuto(v))),
+        ],
+      ),
+    );
+    if (!isTv) return row(false);
+    return Focusable(onTap: () => unawaited(_u.setAuto(!_u.auto)), semanticLabel: 'Check at Launch', builder: (_, _, focused) => row(focused));
   }
 
   String get _help {
