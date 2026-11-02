@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.0
+
+The first public release. Liquiflux now lives on GitHub, and every version is built and published there, so nobody has to compile it to use it.
+
+- Releases come with a Windows installer (per-user, no admin rights), a portable Windows zip, and Android TV APKs for 32-bit (armeabi-v7a: 2019 Shield, Fire TV) and 64-bit (arm64-v8a: Google TV) devices, built by GitHub Actions from this repository.
+- The Windows builds carry the Visual C++ runtime, so they run on PCs without the redistributable.
+- tools/setup-dev.ps1 installs everything needed to build it yourself (Git, Flutter, the Visual Studio C++ build tools, Developer Mode and Java) with winget, in one command.
+- A new README with screenshots; the detailed guide moved to docs/GUIDE.md.
+- The X-Ray scanner and server are no longer copied into this repository: they have their own (liquiflux-xray-server and Liquiflux-xray-ML-PC).
+- No changes to the app itself since 0.9.49. Version 1.0.0+58 (Android versionCode 1058 for armeabi-v7a, 2058 for arm64-v8a).
+
 ## 0.9.49
 
 Security fixes 1-5 from the review of 0.9.47 (security/liquiflux-0.9.47-app-review.md). Sign in to Plex once more in Settings after installing, on every device, to get the https address and the server check.

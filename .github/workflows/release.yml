@@ -1,6 +1,6 @@
 # Builds Liquiflux for Windows and Android TV on every push and pull request.
 #
-# A push to main whose app version (app/pubspec.yaml) has no GitHub release yet publishes one,
+# A push to main (or Run workflow on main) whose app version (app/pubspec.yaml) has no GitHub release yet publishes one,
 # tagged v<version>, with the Windows installer, the Windows zip and both Android TV APKs.
 # To ship a new version: bump `version:` in app/pubspec.yaml and push to main.
 #
@@ -12,7 +12,8 @@
 #   ANDROID_KEY_PASSWORD
 # tools/export-signing-key.ps1 prints these from the key tools/build-android.ps1 made.
 # Without them, pull requests and branch builds use a throwaway debug key, and releases
-# leave the APKs out rather than ship ones that can't be updated later.
+# leave the APKs out rather than ship ones that can't be updated later; once the secrets are
+# added, Run workflow on main adds the signed APKs to that release.
 #
 # Third-party actions are pinned by commit.
 name: build-and-release
@@ -169,7 +170,7 @@ jobs:
       signed: ${{ env.HAS_KEY }}
 
   release:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: [test, windows, android]
     runs-on: ubuntu-latest
     permissions:
@@ -185,14 +186,21 @@ jobs:
       - name: Is this version released yet?
         id: check
         run: |
-          if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
-            echo "v$VERSION is already released; nothing to publish." | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "add_apks=false" >> "$GITHUB_OUTPUT"
+          if assets=$(gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>/dev/null); then
             echo "publish=false" >> "$GITHUB_OUTPUT"
+            # A release published before the signing secrets existed gets its APKs now.
+            if [ "$SIGNED" = "true" ] && ! printf '%s\n' "$assets" | grep -q '\.apk$'; then
+              echo "add_apks=true" >> "$GITHUB_OUTPUT"
+              echo "v$VERSION has no APKs yet; adding the signed ones." | tee -a "$GITHUB_STEP_SUMMARY"
+            else
+              echo "v$VERSION is already released; nothing to publish." | tee -a "$GITHUB_STEP_SUMMARY"
+            fi
           else
             echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        if: steps.check.outputs.publish == 'true'
+        if: steps.check.outputs.publish == 'true' || steps.check.outputs.add_apks == 'true'
         with:
           path: dist
           merge-multiple: true
@@ -212,3 +220,10 @@ jobs:
           cat .github/release-downloads.md >> notes.md
           gh release create "v$VERSION" dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "Liquiflux $VERSION" --notes-file notes.md
+      - name: Add the APKs to the existing release
+        if: steps.check.outputs.add_apks == 'true'
+        run: |
+          gh release download "v$VERSION" --repo "$GITHUB_REPOSITORY" --pattern SHA256SUMS.txt --dir old || true
+          (cd dist && sha256sum *.apk > apk-sums.txt)
+          cat old/SHA256SUMS.txt dist/apk-sums.txt > SHA256SUMS.txt 2>/dev/null || cp dist/apk-sums.txt SHA256SUMS.txt
+          gh release upload "v$VERSION" dist/*.apk SHA256SUMS.txt --clobber --repo "$GITHUB_REPOSITORY"
