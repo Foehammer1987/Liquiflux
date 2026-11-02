@@ -52,6 +52,9 @@ Future<void> _main() async {
   // Before anything goes out over https: trust only the app's own root list.
   await TrustedRoots.install();
   await Probe.init();
+  // Before anything asks whether this is a low-memory TV.
+  if (Probe.has('lowmem')) forceLowMemory = true;
+  if (Platform.isAndroid) debugPrint('memory: ${deviceRamMb ?? '?'} MB RAM, ${is32BitAndroid ? '32' : '64'}-bit, low-memory mode ${isLowMemoryTv ? 'on' : 'off'}');
   if (Probe.has('blank')) {
     // The engine alone, for measuring what it costs.
     runApp(const ColoredBox(color: Color(0xFF000000)));
@@ -62,7 +65,7 @@ Future<void> _main() async {
   // press (and hides it again after any touch): on a TV the first press moved focus you
   // couldn't see yet. A remote always shows where focus is.
   if (isTv) FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
-  // Flutter keeps up to 100 MB of decoded artwork by default; a 32-bit TV can't spare that.
+  // Flutter keeps up to 100 MB of decoded artwork by default; a low-memory TV can't spare that.
   if (isLowMemoryTv) {
     PaintingBinding.instance.imageCache
       ..maximumSizeBytes = 48 << 20

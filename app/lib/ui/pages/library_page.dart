@@ -1,9 +1,11 @@
 import 'package:console_core/console_core.dart';
 import 'package:console_ui/console_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../state/scope.dart';
 import '../common.dart';
+import '../tv_focus.dart';
 
 class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key, required this.sectionKey});
@@ -16,6 +18,25 @@ class _LibraryPageState extends State<LibraryPage> {
   static const _page = 120;
   static const _sorts = [('titleSort', 'Title'), ('addedAt:desc', 'Recently Added'), ('originallyAvailableAt:desc', 'Release Date'), ('audienceRating:desc', 'Rating')];
   String _sort = 'titleSort';
+
+  /// Around the first poster, for Down from the sort buttons to land there.
+  final _firstCell = FocusNode(debugLabel: 'first poster', canRequestFocus: false, skipTraversal: true);
+
+  @override
+  void dispose() {
+    _firstCell.dispose();
+    super.dispose();
+  }
+
+  /// Down from the sort buttons goes to the first poster. They sit at the right end of the
+  /// header, so the nearest poster below them was the last one in the row (seen on a Fire TV).
+  KeyEventResult _sortKey(FocusNode _, KeyEvent e) {
+    if (e is KeyUpEvent || e.logicalKey != LogicalKeyboardKey.arrowDown) return KeyEventResult.ignored;
+    final first = _firstCell.descendants.where((n) => n.canRequestFocus && !n.skipTraversal).firstOrNull;
+    if (first == null) return KeyEventResult.ignored;
+    glideTo(first);
+    return KeyEventResult.handled;
+  }
   final _items = <PlexItem>[];
   int _total = 0;
   bool _loading = false;
@@ -79,13 +100,18 @@ class _LibraryPageState extends State<LibraryPage> {
               child: ConsolePanel(
                 title: section?.title ?? 'Library',
                 meta: _total > 0 ? muted(context, '$_total $noun') : null,
-                trailing: ConsoleSegmented<String>(
-                  options: _sorts,
-                  value: _sort,
-                  onChanged: (v) {
-                    setState(() => _sort = v);
-                    _load(reset: true);
-                  },
+                trailing: Focus(
+                  canRequestFocus: false,
+                  skipTraversal: true,
+                  onKeyEvent: _sortKey,
+                  child: ConsoleSegmented<String>(
+                    options: _sorts,
+                    value: _sort,
+                    onChanged: (v) {
+                      setState(() => _sort = v);
+                      _load(reset: true);
+                    },
+                  ),
                 ),
                 padding: EdgeInsets.zero,
                 child: const SizedBox(height: Space.space4),
@@ -115,7 +141,10 @@ class _LibraryPageState extends State<LibraryPage> {
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: cols, crossAxisSpacing: Space.space3, mainAxisSpacing: Space.space4, mainAxisExtent: w * 1.5 + 50),
                     delegate: SliverChildBuilderDelegate(
                       childCount: _items.length,
-                      (context, i) => PlexPoster(key: ValueKey(_items[i].ratingKey), item: _items[i], autofocus: i == 0),
+                      (context, i) {
+                        final poster = PlexPoster(key: ValueKey(_items[i].ratingKey), item: _items[i], autofocus: i == 0);
+                        return i == 0 ? Focus(focusNode: _firstCell, child: poster) : poster;
+                      },
                     ),
                   );
                 },
