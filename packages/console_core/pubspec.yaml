@@ -1,0 +1,16 @@
+name: console_core
+description: Platform-agnostic Plex and Seerr clients, models and request state for the Console apps.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.8.0
+
+dependencies:
+  http: ^1.6.0
+  # Open Watch Party rooms, the ones Plezy uses. Pinned to an exact version, since it talks to strangers.
+  openwatchparty: 1.1.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0

@@ -1,1 +1,167 @@
-# Liquiflux
+<p align="center">
+  <img src="packages/console_ui/assets/logos/mark-blue.png" width="96" alt="Liquiflux logo">
+</p>
+
+<h1 align="center">Liquiflux</h1>
+
+<p align="center">
+  A clean, modern Plex client for Windows and Android TV, with requests built in.<br>
+  <a href="https://github.com/Foehammer1987/Liquiflux/releases/latest"><b>Download the latest release</b></a>
+  &nbsp;·&nbsp; <a href="docs/GUIDE.md">User guide</a>
+  &nbsp;·&nbsp; <a href="ANDROID-TV.md">Android TV setup</a>
+</p>
+
+Liquiflux is a Plex client written in Flutter. It aims to feel like the big streaming apps: a
+full-width spotlight with trailers, rows that change with your mood, and a player that gets out of
+the way. Underneath it plays your files directly through mpv, so almost anything in your library
+plays without the server converting it.
+
+It also brings [Seerr](https://github.com/seerr-team/seerr) (or Overseerr / Jellyseerr) into the
+same app. Search once: what you have plays, and what you don't gets a Request button with a live
+download bar.
+
+<p align="center">
+  <img src="docs/screenshots/home.jpg" alt="Home with the Spotlight playing a trailer">
+</p>
+
+| | |
+| --- | --- |
+| ![Title page](docs/screenshots/title.jpg) | ![Pause screen](docs/screenshots/pause.jpg) |
+| **Title pages** with ratings, cast, extras and file details | **The pause screen** with the story and who's starring |
+| ![X-Ray panel](docs/screenshots/xray.jpg) | ![Moods page](docs/screenshots/moods.jpg) |
+| **X-Ray** over a paused movie | **Moods** built from your own library |
+| ![Collections](docs/screenshots/collections.jpg) | ![Android TV layout](docs/screenshots/tv-home.jpg) |
+| **Collections** of every film series you own | **The Android TV layout**, made for the remote |
+
+<p align="center">
+  <img src="docs/screenshots/rows.jpg" alt="Because You Watched rows">
+</p>
+
+## What makes it different
+
+**X-Ray on pause.** Pause a movie and Liquiflux shows who is on screen in that scene, not just the
+cast list. Select a face to see everything else they're in. Scene data comes from the optional
+[X-Ray server](https://github.com/Foehammer1987/liquiflux-xray-server) (a Docker container that
+face-matches new movies against their own Plex cast) or from
+[X-Ray Desktop](https://github.com/Foehammer1987/Liquiflux-xray-ML-PC) for scanning a whole
+library on a PC. When a film has no scene data, you still get the top-billed cast.
+
+**Watch Together, two ways.** Share a six-character room code with anyone, including people using
+Plezy, and everyone plays their own copy in sync. Or invite your Plex friends to a Plex room they
+can join from Liquiflux or Plex Web. Play, pause and jumps stay in step, with a note saying who
+did what.
+
+**Audio and subtitles that remember each show.** Switch a show to the English dub with signs and
+songs subtitles once, and every episode after it follows. Anime can default to English dub on its
+own.
+
+**A sleep timer that turns the TV off.** 15 to 90 minutes, the end of this episode, or the next two
+or three. The volume fades in the last minute, any button keeps you watching, and on Android TV the
+TV goes to sleep when time is up.
+
+**Top 10 on your server.** A Home row of what everyone on your Plex server watched most this week,
+counted by person and day so one binge doesn't top the chart.
+
+**Mood rows.** Netflix-style rows such as Feel-Good Comedies, Dark Sci-Fi, Mind-Bending Mysteries
+and Waiting on Your Shelf, built from your own library, with a Moods page that lists them all. Home
+shows a different handful each visit.
+
+**Spotlight trailers.** Home opens on a full-width spotlight that fades a muted trailer in behind
+the artwork and moves on by itself. Point at any title and the spotlight switches to it.
+
+**4K inside the app, even on a 2019 Shield.** The Shield Tube runs 32-bit Android with about 2 GB
+of memory. Liquiflux plays 4K HDR there without handing off to another player, by putting the
+artwork behind the player away while the video runs.
+
+## Everything else
+
+- **Requests with live progress.** Request movies, whole series or single seasons through Seerr.
+  The bar shows percent done, time left and the finish time from Radarr and Sonarr.
+- **Trending.** Netflix's weekly Top 10, what's popular on each streaming service in your region,
+  and Trakt's live charts, mixing titles you own with ones you can request.
+- **Collections and marathons.** Every film series you own part of, with Start the Saga and
+  Marathon to play them in order.
+- **Because You Watched** rows from what you've played lately, with thumbs up and down.
+- **Shuffle Play** by type, genre and how much time you've got.
+- **Skip Intro, Skip Credits and Up Next** with a countdown, from Plex's own markers.
+- **Plays nearly everything directly**: HEVC, AV1, HDR, DTS, TrueHD, ASS and PGS subtitles.
+  Plex's transcoder only steps in when it has to.
+- **Full title pages** with IMDb, Rotten Tomatoes and TMDB ratings, cast and crew, extras and file
+  details.
+- **Subtitle search** through your Plex server, plus a full subtitle style editor with live preview.
+- **Spoiler protection** for episodes you haven't seen: blurred stills, hidden summaries and names.
+- **Made for the remote.** Android TV uses a 10-foot layout with D-pad focus throughout. On Windows,
+  mouse and keyboard both work, with player shortcuts for everything.
+- **Careful with your account.** The Plex token and API keys live in the system's credential store,
+  never in settings files or logs. The app checks TLS against its own bundled root list and
+  confirms it's talking to your server before sending the token.
+
+## Install
+
+Grab the files from the [latest release](https://github.com/Foehammer1987/Liquiflux/releases/latest).
+
+| Device | File |
+| --- | --- |
+| Windows 10 / 11 | `Liquiflux-Setup-x64.exe` (installer, no admin needed) or `Liquiflux-windows-x64.zip` (portable) |
+| 2019 Nvidia Shield, Fire TV, older Android TV boxes | `Liquiflux-android-tv-armeabi-v7a.apk` |
+| Chromecast with Google TV, most Google TV devices | `Liquiflux-android-tv-arm64-v8a.apk` |
+
+If you're not sure which APK your TV needs, use `armeabi-v7a`: it runs on every device.
+[ANDROID-TV.md](ANDROID-TV.md) walks through sideloading on the Shield, Google TV and Fire TV.
+
+### First run
+
+1. **Sign In with Plex.** Your browser opens to approve the app, and Liquiflux finds your server
+   and the fastest secure way to reach it.
+2. **Add Seerr** (optional) in Settings > Servers. It signs in with your Plex account, so requests
+   are filed under your own name.
+3. **Add an X-Ray server** (optional) in Settings to get the "who's in this scene" panel.
+
+The [user guide](docs/GUIDE.md) covers every page and setting.
+
+## Build it yourself
+
+You don't need to build Liquiflux to use it, but if you want to, one script sets up everything on
+Windows 10 or 11 (Git, Flutter, the Visual Studio C++ build tools and Java), using winget:
+
+```powershell
+git clone https://github.com/Foehammer1987/Liquiflux.git
+cd Liquiflux
+powershell -ExecutionPolicy Bypass -File tools\setup-dev.ps1
+```
+
+Add `-Windows` or `-Android` to set up just one of them. Then, in a new terminal:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\build-windows.ps1   # app\build\windows\x64\runner\Release\Liquiflux.exe
+powershell -ExecutionPolicy Bypass -File tools\build-android.ps1   # dist\Liquiflux-<version>-*.apk
+```
+
+The Android script fetches the Android SDK and makes a signing key in `%USERPROFILE%\.liquiflux` on
+its first run. Keep that folder: updates must be signed with the same key. Add
+`-Install <TV address>` to install straight onto a TV with network debugging turned on.
+
+### Releases
+
+Every push and pull request runs the tests and builds Windows and both APKs in GitHub Actions
+(`.github/workflows/release.yml`). Pushing a new `version:` in `app/pubspec.yaml` to `main`
+publishes a release with the installer, the zip and the APKs. Signing the APKs needs four
+repository secrets; `tools/export-signing-key.ps1` prints them from your local key.
+
+## Project layout
+
+| Path | What it is |
+| --- | --- |
+| `app` | The Flutter app: Windows, Android TV, and a Linux build for testing. |
+| `packages/console_core` | Pure Dart: Plex, Seerr and X-Ray clients, sign-in, moods, playback rules. |
+| `packages/console_ui` | The design system: theme, panels, posters, focus handling for the remote. |
+| `packages/media_kit_video` | A patched media_kit_video with tear-free video on Windows. |
+| `tools` | Setup and build scripts, the Windows installer script, and mock servers for development. |
+
+Developer notes, including how to run the app against mock servers, are in the
+[user guide](docs/GUIDE.md#develop). [CHANGELOG.md](CHANGELOG.md) lists every change.
+
+## License
+
+[MIT](LICENSE). Liquiflux is not affiliated with Plex, Inc. Inter and JetBrains Mono are under the
+SIL Open Font License; media_kit is under its own MIT license.

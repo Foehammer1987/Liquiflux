@@ -1,0 +1,29 @@
+/// Shared Plex + Seerr logic for every Console app.
+library;
+
+export 'src/http_json.dart';
+export 'src/plex/plex_models.dart';
+export 'src/plex/plex_client.dart';
+export 'src/plex/plex_auth.dart';
+export 'src/seerr/seerr_models.dart';
+export 'src/seerr/seerr_client.dart';
+export 'src/request_state.dart';
+export 'src/streaming_date.dart';
+export 'src/format.dart';
+export 'src/match.dart';
+export 'src/title_detail.dart';
+export 'src/spotlight.dart';
+export 'src/moods.dart';
+export 'src/library_index.dart';
+export 'src/discovery_sources.dart';
+export 'src/playback.dart';
+export 'src/franchise.dart';
+export 'src/taste.dart';
+export 'src/shuffle.dart';
+export 'src/security.dart';
+export 'src/server_url.dart';
+export 'src/together/together_client.dart';
+export 'src/together/syncplay.dart';
+export 'src/together/open_party.dart';
+export 'src/xray.dart';
+export 'src/xray_server.dart';

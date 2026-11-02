@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Plex servers on a home network are often plain http (http://192.168.x.x:32400), so
+     cleartext is allowed; everything else (plex.tv, TMDB, Trakt) is https anyway.
+     Only the system's own certificate authorities are trusted. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
