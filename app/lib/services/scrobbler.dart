@@ -371,12 +371,15 @@ class Scrobbler extends ChangeNotifier {
     try {
       final AniListPlace? place;
       if (item.type == 'movie') {
-        final id = await _entryFor(account, '$server movie ${item.ratingKey}', () async => pickMatch(await account.search(item.title, movie: true), item.title, item.year));
+        final id = await _entryFor(account, '$server movie ${item.ratingKey}', () async => pickMatch(await account.search(item.title, movie: true), item.title, item.year) ?? (foldAccents(item.title) == item.title ? null : pickMatch(await account.search(foldAccents(item.title), movie: true), item.title, item.year)));
         place = id == null ? null : AniListPlace(AniListMedia(id: id.first.id, format: 'MOVIE'), 1);
       } else {
         final chain = await _entryFor(account, '$server show ${item.grandparentRatingKey}', () async {
           final title = show?.title ?? item.grandparentTitle ?? '';
-          return pickMatch(await account.search(title), title, show?.year);
+          final found = pickMatch(await account.search(title), title, show?.year);
+          final plain = foldAccents(title);
+          // AniList's search can come back empty for an accented spelling (Shippūden).
+          return found ?? (plain == title ? null : pickMatch(await account.search(plain), title, show?.year));
         });
         place = chain == null ? null : placeEpisode(chain, item, await plex.episodes(item.grandparentRatingKey!));
       }

@@ -171,6 +171,9 @@ void main() {
       expect(pickMatch(results, 'Hunter x Hunter (2011)', null)!.id, 11061);
       expect(pickMatch(results, 'Hunter x Hunter', 1999)!.id, 2);
       expect(pickMatch([media(5, titles: ['Something Else'])], 'Hunter x Hunter', 2011), isNull);
+      // Accents and macrons don't stop a match.
+      expect(pickMatch([media(1735, titles: ['Naruto Shippuden', 'Naruto: Shippuuden'], start: DateTime.utc(2007, 2, 15))], 'Naruto Shippūden', 2007)!.id, 1735);
+      expect(foldAccents('Naruto Shippūden'), 'Naruto Shippuden');
       // Only a loose title match and the wrong year: no.
       expect(pickMatch([media(6, titles: ['Hunter x Hunter Movie'], start: DateTime.utc(2013, 1, 1))], 'Hunter x Hunter', 2011), isNull);
     });
@@ -214,6 +217,20 @@ void main() {
         final abs = [for (var i = 1; i <= 24; i++) ep(1, i, aired: i <= 12 ? '2020-01-${(4 + i).toString().padLeft(2, '0')}' : '2021-01-${(i - 2).toString().padLeft(2, '0')}')];
         final p = placeEpisode(chain, abs[13], abs)!; // episode 14
         expect((p.media.id, p.number), (2, 2));
+      });
+
+      test('an episode Plex has no date for does not shift the numbers after it', () {
+        // One Piece style: one open-ended AniList entry, absolute numbers across Plex seasons,
+        // and a gap in Plex's dates (the last of S1, and S2E6 itself).
+        final one = [media(21, start: DateTime.utc(1999, 10, 20))];
+        final eps = [
+          for (var i = 1; i <= 4; i++) ep(1, i, aired: i == 4 ? null : '2000-01-0$i'),
+          for (var i = 5; i <= 8; i++) ep(2, i, aired: i == 6 ? null : '2000-02-0$i'),
+        ];
+        final p = placeEpisode(one, eps[6], eps)!; // S2E7
+        expect((p.media.id, p.number), (21, 7));
+        final q = placeEpisode(one, eps[5], eps)!; // S2E6, undated
+        expect((q.media.id, q.number), (21, 6));
       });
 
       test('without air dates season N is the Nth entry', () {
