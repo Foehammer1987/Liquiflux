@@ -147,6 +147,16 @@ Each line has the TV's available memory, its graphics memory in use (`NvMapMemUs
 whole TV), Flutter's decoded images, and every few seconds the GPU buffers the app has mapped.
 Graphics memory the app held shows as the drop when it is force-stopped.
 
+## Match Frame Rate
+
+Settings > Video > Match Frame Rate switches the TV to the video's frame rate while it plays
+(23.976 Hz for most films, 25 or 50 for PAL, 29.97 or 59.94 for TV) and back when you leave the
+player. It's on by default. Rate and Resolution also plays 1080p titles at 1080p, for TVs that
+upscale better than the box does; SD and 720p still go to 1080p. Most TVs show a black screen for
+a second or two as they switch; Liquiflux holds the start of the title until the picture is back.
+The TV must offer the mode: on the Shield, the modes it lists depend on what the TV reports over
+HDMI. The Shield's own "match frame rate" options don't need to be on for this.
+
 ## Using it with a remote
 
 - **D-pad** moves between buttons and posters; **Select/OK** opens or plays. Left and Right stay

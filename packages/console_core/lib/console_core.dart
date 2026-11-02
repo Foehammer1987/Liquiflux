@@ -17,6 +17,7 @@ export 'src/moods.dart';
 export 'src/library_index.dart';
 export 'src/discovery_sources.dart';
 export 'src/playback.dart';
+export 'src/display_match.dart';
 export 'src/franchise.dart';
 export 'src/taste.dart';
 export 'src/shuffle.dart';

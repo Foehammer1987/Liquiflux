@@ -84,6 +84,9 @@ artwork behind the player away while the video runs.
 - **Because You Watched** rows from what you've played lately, with thumbs up and down.
 - **Shuffle Play** by type, genre and how much time you've got.
 - **Skip Intro, Skip Credits and Up Next** with a countdown, from Plex's own markers.
+- **Match Frame Rate.** The TV switches to the film's own 23.976 or 24 Hz (25 for PAL, 29.97 or
+  59.94 for TV) while it plays, so pans don't judder, and back afterwards. Optionally the
+  resolution too. Off by default on Windows, where it changes only the monitor's refresh rate.
 - **Plays nearly everything directly**: HEVC, AV1, HDR, DTS, TrueHD, ASS and PGS subtitles.
   Plex's transcoder only steps in when it has to.
 - **Full title pages** with IMDb, Rotten Tomatoes and TMDB ratings, cast and crew, extras and file

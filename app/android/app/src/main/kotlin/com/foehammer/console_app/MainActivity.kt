@@ -19,6 +19,7 @@ class MainActivity : FlutterActivity() {
     private var started = false
     private var reconnectPending = false
     private var updater: AppUpdater? = null
+    private var displayModes: DisplayModes? = null
 
     /**
      * Measuring switches for one launch, from adb (services/probe.dart):
@@ -98,6 +99,8 @@ class MainActivity : FlutterActivity() {
         MethodChannel(messenger, SleepService.CHANNEL).setMethodCallHandler(SleepService.Channel(this)::onMethodCall)
         val updateChannel = MethodChannel(messenger, AppUpdater.CHANNEL)
         updater = AppUpdater(this, updateChannel).also { updateChannel.setMethodCallHandler(it::onMethodCall) }
+        val displayChannel = MethodChannel(messenger, DisplayModes.CHANNEL)
+        displayModes = DisplayModes(this).also { displayChannel.setMethodCallHandler(it::onMethodCall) }
         MethodChannel(messenger, "liquiflux/probe").setMethodCallHandler { call, result ->
             if (call.method == "flags") result.success(probe) else result.notImplemented()
         }
@@ -111,6 +114,8 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         updater?.dispose()
         updater = null
+        displayModes?.dispose()
+        displayModes = null
         super.onDestroy()
     }
 

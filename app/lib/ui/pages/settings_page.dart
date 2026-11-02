@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../../app_info.dart';
 import '../../platform.dart';
+import '../../services/display_match.dart';
 import '../../services/links.dart';
 import '../../services/settings_store.dart';
 import '../../state/app_state.dart';
@@ -894,6 +895,22 @@ class _SettingsPageState extends State<SettingsPage> {
                 // Video Plane needs a 32-bit TV's window; elsewhere it runs as Direct.
                 value: !isLowMemoryTv && p.videoOutput == 'plane' ? 'direct' : p.videoOutput,
                 onChanged: (v) => _set(app, p.copyWith(videoOutput: v)),
+              ),
+            ),
+          if (DisplayMatch.supported)
+            _Row(
+              label: 'Match Frame Rate',
+              help: DisplayMatch.resolutionSupported
+                  ? 'Switches the TV to the video\'s frame rate while it plays, so films at 24 frames a second move smoothly instead of juddering, and back afterwards. With resolution, 1080p titles also play at 1080p for the TV to upscale. The screen goes dark for a moment as it switches.'
+                  : 'Switches this monitor to the video\'s frame rate while it plays (24 Hz for most films, if the monitor offers it), and back afterwards. The screen may go dark for a moment as it switches.',
+              control: ConsoleDropdown<String>(
+                width: 200,
+                options: [
+                  for (final m in DisplayMatchMode.values)
+                    if (m != DisplayMatchMode.rateAndResolution || DisplayMatch.resolutionSupported) (m.name, m.label),
+                ],
+                value: DisplayMatch.effective(p.displayMatch).name,
+                onChanged: (v) => _set(app, p.copyWith(displayMatch: v)),
               ),
             ),
           _Row(

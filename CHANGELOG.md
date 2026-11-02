@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.2
+
+Match Frame Rate: the display follows the video's frame rate while it plays.
+
+- Settings > Video > Match Frame Rate: Off, Frame Rate, or (Android TV) Rate and Resolution. On by default (Frame Rate) on Android TV, off by default on Windows.
+- Which mode: the frame rate comes from Plex's video stream (`frameRate`, e.g. 23.976), or from mpv's container-fps once the file opens if Plex didn't say. The display goes to the exact rate when it has it, else an even multiple (47.952, 50 for 25, 119.88), else 24 Hz for 23.976; 60 Hz is never picked for film. A display that already shows the rate evenly (59.94 for 29.97) isn't switched. With resolution, the picture's size picks the smallest mode that holds it, never below 1080p (packages/console_core/lib/src/display_match.dart, with tests).
+- Android TV: the window asks for the mode with preferredDisplayModeId (DisplayModes.kt, channel liquiflux/display), as Kodi and Plex's app do. Android puts the TV's own mode back when another app comes to the front or Liquiflux closes.
+- Windows: the monitor the window is on switches refresh rate only, never resolution, with CDS_FULLSCREEN, so nothing is saved and Windows restores it if the app closes or crashes (windows/runner/display_mode.cpp).
+- The first play of a title waits, paused, until the switch is done and the TV has had 2 seconds to show a picture again (0.8 s on Windows), so the opening isn't lost to the blank screen. If the rate only comes from mpv, the player pauses through the switch. Closing the player goes back to the display's own mode 3 seconds later, unless the next episode asks for the same mode first, which then plays with no second blank.
+- Version 1.0.2+60 (Android versionCode 1060 for armeabi-v7a, 2060 for arm64-v8a).
+
 ## 1.0.1
 
 Liquiflux updates itself, and the release workflow can publish it to WinGet.
