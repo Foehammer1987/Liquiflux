@@ -19,6 +19,13 @@ int? _pos(dynamic v) {
 
 /// A score out of ten.
 double? _score(dynamic v) => _dbl(v)?.clamp(0.0, 10.0);
+
+/// A frame rate between 1 and 300, from a number or Plex's string ("23.976").
+double? _fps(dynamic v) {
+  final d = _dbl(v);
+  return d != null && d >= 1 && d <= 300 ? d : null;
+}
+
 String? _str(dynamic v) => v is String ? v : null;
 List<Map<String, dynamic>> _list(dynamic v) => v is List ? v.whereType<Map<String, dynamic>>().toList() : const [];
 
@@ -51,6 +58,9 @@ class PlexStream {
     this.hearingImpaired = false,
     this.selected = false,
     this.isDefault = false,
+    this.frameRate,
+    this.width,
+    this.height,
   });
   factory PlexStream.fromJson(Map<String, dynamic> j) => PlexStream(
     streamType: _int(j['streamType']) ?? 0,
@@ -68,6 +78,9 @@ class PlexStream {
     hearingImpaired: j['hearingImpaired'] == true || j['hearingImpaired'] == 1 || j['hearingImpaired'] == '1',
     selected: j['selected'] == true || j['selected'] == 1,
     isDefault: j['default'] == true || j['default'] == 1,
+    frameRate: _fps(j['frameRate']),
+    width: _pos(j['width']),
+    height: _pos(j['height']),
   );
 
   /// 1 video, 2 audio, 3 subtitle.
@@ -98,6 +111,13 @@ class PlexStream {
   final bool hearingImpaired;
   final bool selected;
   final bool isDefault;
+
+  /// A video track's frames per second, e.g. 23.976 (Plex's `frameRate`).
+  final double? frameRate;
+
+  /// A video track's picture size in pixels.
+  final int? width;
+  final int? height;
 
   bool get isVideo => streamType == 1;
   bool get isAudio => streamType == 2;
@@ -199,7 +219,19 @@ class PlexReview {
 }
 
 class PlexMedia {
-  PlexMedia({required this.id, this.videoResolution, this.videoCodec, this.audioCodec, this.container, this.bitrate, this.audioChannels, required this.parts});
+  PlexMedia({
+    required this.id,
+    this.videoResolution,
+    this.videoCodec,
+    this.audioCodec,
+    this.container,
+    this.bitrate,
+    this.audioChannels,
+    this.videoFrameRate,
+    this.width,
+    this.height,
+    required this.parts,
+  });
   factory PlexMedia.fromJson(Map<String, dynamic> j) => PlexMedia(
     id: _int(j['id']) ?? 0,
     bitrate: _pos(j['bitrate']),
@@ -208,6 +240,9 @@ class PlexMedia {
     videoCodec: _str(j['videoCodec']),
     audioCodec: _str(j['audioCodec']),
     container: _str(j['container']),
+    videoFrameRate: _str(j['videoFrameRate']),
+    width: _pos(j['width']),
+    height: _pos(j['height']),
     parts: _list(j['Part']).map(PlexPart.fromJson).toList(),
   );
   final int id;
@@ -219,6 +254,13 @@ class PlexMedia {
   /// kbps
   final int? bitrate;
   final int? audioChannels;
+
+  /// Plex's rough frame rate label: 24p, PAL (25), NTSC (29.97), 50p, 60p.
+  final String? videoFrameRate;
+
+  /// The picture size in pixels.
+  final int? width;
+  final int? height;
   final List<PlexPart> parts;
 
   List<PlexStream> get streams => [for (final p in parts) ...p.streams];

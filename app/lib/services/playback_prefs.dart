@@ -47,6 +47,7 @@ class PlaybackPrefs {
     this.deinterlace = false,
     this.highQualityScaling = false,
     this.deband = false,
+    this.displayMatch = 'auto',
     this.volume = 100,
     this.mpvOptions = '',
   });
@@ -159,6 +160,10 @@ class PlaybackPrefs {
   final bool highQualityScaling;
   final bool deband;
 
+  /// Match Frame Rate: 'auto' (on for TVs, off on a PC; see DisplayMatch.effective) or a
+  /// [DisplayMatchMode] name.
+  final String displayMatch;
+
   /// Last volume, 0..100 (200 with boost).
   final double volume;
 
@@ -198,6 +203,7 @@ class PlaybackPrefs {
     bool? deinterlace,
     bool? highQualityScaling,
     bool? deband,
+    String? displayMatch,
     double? volume,
     String? mpvOptions,
   }) => PlaybackPrefs(
@@ -233,6 +239,7 @@ class PlaybackPrefs {
     deinterlace: deinterlace ?? this.deinterlace,
     highQualityScaling: highQualityScaling ?? this.highQualityScaling,
     deband: deband ?? this.deband,
+    displayMatch: displayMatch ?? this.displayMatch,
     volume: volume ?? this.volume,
     mpvOptions: mpvOptions ?? this.mpvOptions,
   );
@@ -270,6 +277,7 @@ class PlaybackPrefs {
     'deinterlace': deinterlace,
     'highQualityScaling': highQualityScaling,
     'deband': deband,
+    'displayMatch': displayMatch,
     'volume': volume,
     'mpvOptions': mpvOptions,
   };
@@ -320,6 +328,7 @@ class PlaybackPrefs {
       deinterlace: v('deinterlace', d.deinterlace),
       highQualityScaling: v('highQualityScaling', d.highQualityScaling),
       deband: v('deband', d.deband),
+      displayMatch: j['displayMatch'] == 'auto' || DisplayMatchMode.parse(j['displayMatch']) != null ? j['displayMatch'] as String : d.displayMatch,
       volume: volume is num && volume >= 0 && volume <= 200 ? volume.toDouble() : d.volume,
       mpvOptions: mpv.length > 20000 ? d.mpvOptions : mpv,
     );

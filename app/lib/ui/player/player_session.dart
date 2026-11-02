@@ -10,6 +10,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../app_info.dart';
 import '../../platform.dart';
+import '../../services/display_match.dart';
 import '../../services/gpu_memory.dart';
 import '../../services/live_players.dart';
 import '../../services/mpv_tls.dart';
@@ -86,6 +87,13 @@ class PlayerSession extends ChangeNotifier {
   }();
 
   Future<void>? _playerReleased;
+
+  /// Match Frame Rate's switch for this title, which the first play waits for (paused, so
+  /// the TV's blank moment while it changes mode doesn't eat the opening seconds).
+  Future<bool>? _displayReady;
+
+  /// The display was matched, or tried, for this title: once is enough.
+  bool _displayTried = false;
 
   /// Lets go of mpv, once: the decoder lets go of the plane's surface before the player goes.
   Future<void> _releasePlayer() =>
@@ -316,6 +324,7 @@ class PlayerSession extends ChangeNotifier {
     if (_disposed) return;
     await applyMpvPrefs();
     if (_disposed) return;
+    _displayReady = _matchDisplay(stream: _videoStream?.frameRate);
     final start = startPoint(viewOffsetMs: item.viewOffset, durationMs: item.duration, resume: resume, choose: choose, mode: prefs.resumeMode);
     if (start.ask) {
       resumeOffer = start.from;
@@ -382,6 +391,7 @@ class PlayerSession extends ChangeNotifier {
     unawaited(shutdown());
     unawaited(_releasePlayer());
     unawaited(GpuMemory.afterPlayback(_gpu));
+    DisplayMatch.release();
     super.dispose();
   }
 
@@ -412,6 +422,8 @@ class PlayerSession extends ChangeNotifier {
     final old = _session;
     if (old != null) unawaited(plex.stopTranscode(old));
     _session = null;
+    final waitFor = _displayReady;
+    _displayReady = null;
     final url = quality == 0 && prefs.allowDirectPlay && !_directFailed && !needsServer ? plex.directPlayUrl(item, mediaIndex: mediaIndex) : null;
     if (!MpvTls.canCheck(plex.baseUrl)) {
       error = MpvTls.bareIp;
@@ -425,7 +437,7 @@ class PlayerSession extends ChangeNotifier {
       offset = Duration.zero;
       notifyListeners();
       // The token's headers only go with a file on the server, not an online extra.
-      await player.open(Media(url, httpHeaders: plex.headersFor(url), start: from));
+      await player.open(Media(url, httpHeaders: plex.headersFor(url), start: from), play: waitFor == null);
       if (_disposed) return;
       await _applyTracks();
     } else {
@@ -451,9 +463,66 @@ class PlayerSession extends ChangeNotifier {
           ),
           httpHeaders: plex.headers,
         ),
+        play: waitFor == null,
       );
     }
+    if (waitFor != null) {
+      await waitFor;
+      if (_disposed) return;
+      await player.play();
+    }
     if (rate != 1 && !_disposed) await player.setRate(rate);
+    _matchDisplayFromMpv();
+  }
+
+  PlexStream? get _videoStream => streams.where((s) => s.isVideo).firstOrNull;
+
+  /// Match Frame Rate (Settings > Video): asks the display for a mode that suits this
+  /// title's frame rate, from Plex's [stream] rate before playing or mpv's once it has
+  /// opened the file. Completes with whether the display switched.
+  Future<bool> _matchDisplay({double? stream, double? mpv, String? label, Future<void> Function()? before}) {
+    final mode = DisplayMatch.effective(prefs.displayMatch);
+    final fps = contentFrameRate(stream: stream, mpv: mpv, label: label);
+    if (mode == DisplayMatchMode.off || fps == null || _displayTried) return Future.value(false);
+    _displayTried = true;
+    final v = _videoStream;
+    var (w, h) = (v?.width ?? media?.width, v?.height ?? media?.height);
+    // A transcode at a set quality comes at that size.
+    final box = !streamQuality.isOriginal ? RegExp(r'^(\d+)x(\d+)$').firstMatch(streamQuality.resolution ?? '') : null;
+    if (box != null && w != null && h != null && w > 0 && h > 0) {
+      final scale = [int.parse(box[1]!) / w, int.parse(box[2]!) / h, 1.0].reduce((a, b) => a < b ? a : b);
+      (w, h) = ((w * scale).round(), (h * scale).round());
+    }
+    return DisplayMatch.match(mode: mode, fps: fps, width: w, height: h, before: before);
+  }
+
+  /// Plex didn't say the frame rate: once mpv has the picture, its rate decides, and the
+  /// player pauses through the switch.
+  void _matchDisplayFromMpv() {
+    if (_displayTried || DisplayMatch.effective(prefs.displayMatch) == DisplayMatchMode.off) return;
+    final n = _native;
+    if (n == null) return;
+    _subs.add(
+      player.stream.videoParams.where((v) => (v.w ?? 0) > 0).take(1).listen((_) async {
+        if (_disposed || _displayTried) return;
+        double? fps;
+        try {
+          fps = double.tryParse(await n.getProperty('container-fps'));
+        } catch (_) {}
+        if (_disposed) return;
+        var resume = false;
+        final switched = await _matchDisplay(
+          mpv: fps,
+          label: media?.videoFrameRate,
+          before: () async {
+            resume = player.state.playing;
+            if (resume) await player.pause();
+          },
+        );
+        if (resume && !_disposed) await player.play();
+        if (switched) debugPrint('display matched from mpv\'s ${fps?.toStringAsFixed(3)} fps');
+      }),
+    );
   }
 
   Future<void> _reopen() => _open(_resumeAt);
