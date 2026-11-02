@@ -171,8 +171,20 @@ class AniListAccount {
   return (progress: media.episodes != null && number > media.episodes! ? media.episodes! : number, status: status);
 }
 
-/// Lower case letters and digits only, for comparing titles.
-String _norm(String s) => s.toLowerCase().replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), '');
+/// Lower case letters and digits only, accents folded (Shippūden = Shippuden), for comparing titles.
+String _norm(String s) => foldAccents(s).toLowerCase().replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), '');
+
+const _accents = {
+  'àáâãäåāăą': 'a', 'çćĉċč': 'c', 'ďđ': 'd', 'èéêëēĕėęě': 'e', 'ĝğġģ': 'g', 'ĥħ': 'h', 'ìíîïĩīĭįı': 'i', 'ĵ': 'j', 'ķ': 'k', 'ĺļľŀł': 'l',
+  'ñńņňŉ': 'n', 'òóôõöøōŏő': 'o', 'ŕŗř': 'r', 'śŝşš': 's', 'ţťŧ': 't', 'ùúûüũūŭůűų': 'u', 'ŵ': 'w', 'ýÿŷ': 'y', 'źżž': 'z',
+  'ÀÁÂÃÄÅĀĂĄ': 'A', 'ÇĆĈĊČ': 'C', 'ĎĐ': 'D', 'ÈÉÊËĒĔĖĘĚ': 'E', 'ĜĞĠĢ': 'G', 'ĤĦ': 'H', 'ÌÍÎÏĨĪĬĮİ': 'I', 'Ĵ': 'J', 'Ķ': 'K', 'ĹĻĽĿŁ': 'L',
+  'ÑŃŅŇ': 'N', 'ÒÓÔÕÖØŌŎŐ': 'O', 'ŔŖŘ': 'R', 'ŚŜŞŠ': 'S', 'ŢŤŦ': 'T', 'ÙÚÛÜŨŪŬŮŰŲ': 'U', 'Ŵ': 'W', 'ÝŸŶ': 'Y', 'ŹŻŽ': 'Z',
+};
+final _fold = {for (final e in _accents.entries) for (final ch in e.key.split('')) ch: e.value};
+
+/// [s] with Latin accents and macrons dropped ("Naruto Shippūden" → "Naruto Shippuden"):
+/// AniList's search finds nothing for some accented spellings Plex uses.
+String foldAccents(String s) => s.split('').map((c) => _fold[c] ?? c).join();
 
 /// "Hunter x Hunter (2011)" → ("Hunter x Hunter", 2011).
 (String, int?) splitTitleYear(String title) {
@@ -223,7 +235,35 @@ class AniListPlace {
 AniListPlace? placeEpisode(List<AniListMedia> chain, PlexItem episode, List<PlexItem> episodes) {
   final season = episode.parentIndex, index = episode.index;
   if (season == null || season < 1 || index == null || chain.isEmpty) return null;
-  DateTime? aired(PlexItem e) => DateTime.tryParse(e.originallyAvailableAt ?? '');
+  // An episode Plex has no date for takes the date of the one before it in its season
+  // (or after, at the start), so a gap doesn't shift every later number.
+  final guessed = <String, DateTime>{};
+  final bySeason = <int, List<PlexItem>>{};
+  for (final e in [...episodes.where((e) => e.ratingKey != episode.ratingKey), episode]) {
+    if ((e.parentIndex ?? 0) >= 1 && e.index != null) bySeason.putIfAbsent(e.parentIndex!, () => []).add(e);
+  }
+  for (final list in bySeason.values) {
+    list.sort((a, b) => a.index!.compareTo(b.index!));
+    DateTime? last;
+    final waiting = <PlexItem>[];
+    for (final e in list) {
+      final d = DateTime.tryParse(e.originallyAvailableAt ?? '');
+      if (d != null) {
+        for (final w in waiting) {
+          guessed[w.ratingKey] = d;
+        }
+        waiting.clear();
+        last = d;
+      }
+      final known = d ?? last;
+      if (known != null) {
+        guessed[e.ratingKey] = known;
+      } else {
+        waiting.add(e);
+      }
+    }
+  }
+  DateTime? aired(PlexItem e) => DateTime.tryParse(e.originallyAvailableAt ?? '') ?? guessed[e.ratingKey];
   final when = aired(episode);
   final dated = chain.where((m) => m.start != null).toList()..sort((a, b) => a.start!.compareTo(b.start!));
   const slack = Duration(days: 2);
