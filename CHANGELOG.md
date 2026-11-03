@@ -9,6 +9,7 @@ Fire TV fixes from a cloud Fire TV test (Fire OS 14, 64-bit): less memory while 
 - Player timeline: after a pause and resume a transcode could show nonsense times (26:30:43 elapsed, 23:18:09 left in a 3-hour film) until the next seek. Plex sends transcodes as MPEG-TS, whose clock wraps after 2^33 ticks of 90 kHz (26 h 30 min 44 s); mpv's clock had wrapped below zero. A wrapped clock is now unwrapped, and any other position past the end is ignored (the last good one stays), so it never reaches Plex's progress or Trakt either.
 - Paused, the controls put the focus on Play, so Left and Right move between the buttons. Before, the picture kept the focus while the big Play button looked selected, and Right seeked. Left or Right on the pause screen only brings the controls back.
 - Movies (and every library page): Down from the sort buttons goes to the first poster. They sit at the right end of the header, so Down landed on the last poster of the first row.
+- "Pick up where you left off?" focuses Resume when it appears. The player already held the focus, so the button's autofocus did nothing: on a TV neither button was focused and Select did nothing until an arrow was pressed (seen on the Shield).
 - Version 1.0.4+62 (Android versionCode 1062 for armeabi-v7a, 2062 for arm64-v8a).
 
 ## 1.0.3
