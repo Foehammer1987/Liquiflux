@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.3
+
+Trakt and AniList: what you watch is tracked as you watch it.
+
+- Settings > Tracking (new tab). Trakt signs in with its device code: a code to type at trakt.tv/activate and a QR code with the code filled in, the same way Plex's link code works on a TV. Tokens are refreshed before they run out and once more on a 401. Disconnect revokes them.
+- AniList has no code sign-in, so it uses AniList's own token page (implicit grant with the redirect `https://anilist.co/api/v2/oauth/pin`). On a TV, a QR code opens a page the TV serves on the home network (services/phone_link.dart: random 128-bit path, 15 minutes at most, closes after 20 wrong addresses, form posts only, a strict CSP, no caching); the phone signs in to AniList there and pastes the token. On Windows the token is pasted in Settings. The same phone page takes a Trakt app's Client ID and Secret, which are miserable to type with a remote.
+- Playing, pausing and leaving the player send Trakt's scrobble start, pause and stop with the progress; past 80% counts as watched (Trakt's rule). Movies go by their IMDb/TMDB ids, episodes by the show's ids and season/episode number, falling back to the episode's own ids. Calls go one at a time per play and the newest state wins. Marking a title watched by hand adds it to the Trakt history.
+- Anime (Plex genre "Anime", or a library named for it) also moves AniList forward when an episode or film passes 80% or is marked watched. The show is found by title (and year), and its AniList seasons are walked through prequels and sequels (films in between skipped). The episode's air date then picks the AniList entry, so split cours, TVDB seasons and absolute numbering all land on the right entry and number; without air dates, Plex season N is the Nth entry. Progress only goes up, finished entries are left alone, and an entry reaching its episode count becomes COMPLETED. Matches are cached a week (misses a day) in anilist-map.json; Match Shows Again forgets them.
+- Keys: Trakt's sign-in and refresh need the app's Client Secret, which can't stay secret in an open-source app, so none is in the repo or the release builds: each user makes a free Trakt app and an AniList API client and enters them once in Settings > Tracking (the phone page on a TV). Source builds can still bake keys in with `--dart-define` (`LIQUIFLUX_TRAKT_CLIENT_ID`, `LIQUIFLUX_TRAKT_CLIENT_SECRET`, `LIQUIFLUX_ANILIST_CLIENT_ID`). The Trakt secret and the sign-ins (Trakt tokens, AniList token) are kept in the OS credential store, never in settings.json, and are scrubbed from logs.
+- New dependency: `qr` 4.0.0 (pure Dart, pinned) for the QR codes.
+- Version 1.0.3+61 (Android versionCode 1061 for armeabi-v7a, 2061 for arm64-v8a).
+
 ## 1.0.2
 
 Match Frame Rate: the display follows the video's frame rate while it plays.

@@ -29,6 +29,8 @@ class Settings {
     this.homeTrailers = true,
     this.spotlightTrailers = false,
     this.traktClientId = '',
+    this.traktClientSecret = '',
+    this.anilistClientId = '',
     this.region = 'US',
     this.playback = const PlaybackPrefs(),
     this.taste = const Taste(),
@@ -74,6 +76,13 @@ class Settings {
   /// A Trakt app's client ID; turns on Trakt's live trending charts. Kept with the other
   /// credentials, since it's what Trakt counts your usage against.
   final String traktClientId;
+
+  /// That Trakt app's Client Secret: with the ID, lets Liquiflux sign in to Trakt for
+  /// scrobbling (Settings > Tracking). Empty uses one baked into the build, if any.
+  final String traktClientSecret;
+
+  /// An AniList API client of the user's own (empty uses one baked into the build, if any). Not a secret.
+  final String anilistClientId;
 
   /// Country for "Popular on Netflix" and friends, as a two-letter code.
   final String region;
@@ -127,6 +136,8 @@ class Settings {
     bool? homeTrailers,
     bool? spotlightTrailers,
     String? traktClientId,
+    String? traktClientSecret,
+    String? anilistClientId,
     String? region,
     PlaybackPrefs? playback,
     Taste? taste,
@@ -144,6 +155,8 @@ class Settings {
     watchName: watchName ?? this.watchName,
     xrayUrl: xrayUrl ?? this.xrayUrl,
     traktClientId: traktClientId ?? this.traktClientId,
+    traktClientSecret: traktClientSecret ?? this.traktClientSecret,
+    anilistClientId: anilistClientId ?? this.anilistClientId,
     region: region ?? this.region,
     plexUrl: plexUrl ?? this.plexUrl,
     plexToken: plexToken ?? this.plexToken,
@@ -202,7 +215,7 @@ class SettingsStore {
   final Future<Directory> Function() _folder;
 
   /// Credential store key for each secret setting.
-  static const _keys = {'plexToken': 'plex_token', 'plexAccountToken': 'plex_account_token', 'seerrApiKey': 'seerr_api_key', 'traktClientId': 'trakt_client_id'};
+  static const _keys = {'plexToken': 'plex_token', 'plexAccountToken': 'plex_account_token', 'seerrApiKey': 'seerr_api_key', 'traktClientId': 'trakt_client_id', 'traktClientSecret': 'trakt_client_secret'};
 
   /// Where older builds left each secret inside settings.json.
   static const _plain = {
@@ -210,6 +223,7 @@ class SettingsStore {
     'plexAccountToken': <String>[],
     'seerrApiKey': ['_seerrApiKey', 'seerrApiKey'],
     'traktClientId': ['traktClientId'],
+    'traktClientSecret': <String>[],
   };
 
   /// False while the credential store can't be read or written: sign-ins then aren't
@@ -296,6 +310,8 @@ class SettingsStore {
       homeTrailers: _bool(j, 'homeTrailers') ?? true,
       spotlightTrailers: _bool(j, 'spotlightTrailers') ?? false,
       traktClientId: env['CONSOLE_TRAKT_ID'] ?? secrets['traktClientId']!,
+      traktClientSecret: secrets['traktClientSecret']!,
+      anilistClientId: RegExp(r'^\d{1,10}$').hasMatch(_str(j, 'anilistClientId') ?? '') ? _str(j, 'anilistClientId')! : '',
       region: _str(j, 'region') ?? _localRegion(),
       playback: PlaybackPrefs.fromJson(j['playback'] is Map<String, dynamic> ? j['playback'] as Map<String, dynamic> : null),
       taste: Taste.fromJson(j['taste'] is Map<String, dynamic> ? j['taste'] as Map<String, dynamic> : null),
@@ -351,9 +367,10 @@ class SettingsStore {
       'spoilers': s.spoilers.toJson(),
       'watchName': s.watchName,
       'xrayUrl': s.xrayUrl,
+      'anilistClientId': s.anilistClientId,
       'clientId': s.clientId,
     };
-    final values = {'plexToken': s.plexToken, 'plexAccountToken': s.plexAccountToken, 'seerrApiKey': s.seerrApiKey, 'traktClientId': s.traktClientId};
+    final values = {'plexToken': s.plexToken, 'plexAccountToken': s.plexAccountToken, 'seerrApiKey': s.seerrApiKey, 'traktClientId': s.traktClientId, 'traktClientSecret': s.traktClientSecret};
     for (final e in values.entries) {
       if (_fromEnv[e.key] != e.value) await _write(_keys[e.key]!, e.value);
     }

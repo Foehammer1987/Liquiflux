@@ -122,6 +122,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
       onPrefs: app.setPlayback,
       covered: _covered,
       server: app.server?.machineIdentifier ?? '',
+      scrobbler: app.scrobbler,
     )..addListener(_changed);
     _xray = XRay(plex: app.plex!, server: app.settings.xrayUrl, token: app.settings.xraySignInToken)
       ..follow(widget.item)

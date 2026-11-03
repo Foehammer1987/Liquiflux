@@ -87,6 +87,10 @@ artwork behind the player away while the video runs.
 - **Match Frame Rate.** The TV switches to the film's own 23.976 or 24 Hz (25 for PAL, 29.97 or
   59.94 for TV) while it plays, so pans don't judder, and back afterwards. Optionally the
   resolution too. Off by default on Windows, where it changes only the monitor's refresh rate.
+- **Trakt and AniList.** What you watch is scrobbled to Trakt as it plays (and counts as watched
+  past 80%), and finished anime episodes move your AniList progress, matched by title and air
+  date so split seasons land in the right entry. Sign-in works with a TV remote: a code for Trakt,
+  and a QR code that opens a small page on your phone for AniList.
 - **Plays nearly everything directly**: HEVC, AV1, HDR, DTS, TrueHD, ASS and PGS subtitles.
   Plex's transcoder only steps in when it has to.
 - **Full title pages** with IMDb, Rotten Tomatoes and TMDB ratings, cast and crew, extras and file
@@ -156,6 +160,11 @@ Every push and pull request runs the tests and builds Windows and both APKs in G
 (`.github/workflows/release.yml`). Pushing a new `version:` in `app/pubspec.yaml` to `main`
 publishes a release with the installer, the zip and the APKs. Signing the APKs needs four
 repository secrets; `tools/export-signing-key.ps1` prints them from your local key.
+
+Trakt's sign-in needs an app Client ID and Client Secret, which can't stay secret in open source,
+so none is in the repo or the release builds. Make your own free Trakt app and enter its keys once
+in Settings > Tracking (on a TV, a QR code opens a page on your phone to type them). The same goes
+for an AniList API client id.
 
 ## Project layout
 

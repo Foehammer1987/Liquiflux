@@ -16,6 +16,7 @@ import '../common.dart';
 import '../settings/focus_handle.dart';
 import '../settings/plex_link_code.dart';
 import '../settings/settings_field.dart';
+import '../settings/tracking_panel.dart';
 import '../settings/updates_panel.dart';
 import '../shell.dart' show isWindows;
 
@@ -317,6 +318,7 @@ class _SettingsPageState extends State<SettingsPage> {
             _Tab.video => _video(app, s.playback),
             _Tab.appearance => _appearance(app, s),
             _Tab.notifications => _notifications(app, s),
+            _Tab.tracking => [TrackingPanels(app: app)],
             _Tab.advanced => _advanced(app, c, s.playback),
           },
       ],
@@ -1167,6 +1169,7 @@ enum _Tab {
   video('Video'),
   appearance('Appearance'),
   notifications('Notifications'),
+  tracking('Tracking'),
   advanced('Advanced');
 
   const _Tab(this.label);

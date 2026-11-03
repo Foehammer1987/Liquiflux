@@ -16,6 +16,7 @@ import '../../services/live_players.dart';
 import '../../services/mpv_tls.dart';
 import '../../services/playback_prefs.dart';
 import '../../services/probe.dart';
+import '../../services/scrobbler.dart';
 import '../../services/tv_sleep.dart';
 import 'sleep_timer.dart';
 import 'video_plane.dart';
@@ -36,6 +37,7 @@ class PlayerSession extends ChangeNotifier {
     required this.onPrefs,
     this.covered,
     this.server = '',
+    this.scrobbler,
     SleepTimer? sleep,
   }) : sleep = sleep ?? SleepTimer.instance,
        quality = local ? prefs.localQuality : prefs.remoteQuality,
@@ -62,6 +64,10 @@ class PlayerSession extends ChangeNotifier {
 
   /// The Plex server's machine id, so per-show track choices don't mix between servers.
   final String server;
+
+  /// Trakt and AniList, told what plays (nothing goes out unless one is signed in).
+  final Scrobbler? scrobbler;
+  ScrobblePlay? _scrobble;
   PlaybackPrefs prefs;
   PlexItem item;
 
@@ -266,6 +272,7 @@ class PlayerSession extends ChangeNotifier {
       ..add(
         player.stream.playing.listen((p) {
           _sendTimeline(p ? 'playing' : 'paused');
+          _scrobbleState(p);
           notifyListeners();
         }),
       )
@@ -280,6 +287,7 @@ class PlayerSession extends ChangeNotifier {
         player.stream.duration.listen((d) {
           if (d > Duration.zero && !ready) {
             ready = true;
+            _scrobbleState(player.state.playing);
             notifyListeners();
           }
         }),
@@ -403,7 +411,13 @@ class PlayerSession extends ChangeNotifier {
     _session = null;
     final report = !_stopped && ms > 0;
     _stopped = true;
-    await Future.wait([if (report) plex.timeline(item, state: 'stopped', timeMs: ms), if (s != null) plex.stopTranscode(s)]);
+    final scrobbled = _scrobbleStop(watched: _watched);
+    await Future.wait([
+      if (report) plex.timeline(item, state: 'stopped', timeMs: ms),
+      if (s != null) plex.stopTranscode(s),
+      // Trakt's stop (and AniList) gets a moment while the window closes; it carries on after.
+      if (scrobbled != null) scrobbled.timeout(const Duration(seconds: 3), onTimeout: () {}),
+    ]);
   }
 
   @override
@@ -581,6 +595,7 @@ class PlayerSession extends ChangeNotifier {
     _finished = true;
     _watched = true;
     unawaited(plex.markWatched(item));
+    unawaited(_scrobbleStop(watched: true));
     final n = next;
     final stop = sleep.finishedTitle();
     if (!stop && n != null && prefs.autoPlayNext && !upNextDismissed) {
@@ -594,6 +609,26 @@ class PlayerSession extends ChangeNotifier {
   void _sendTimeline(String state) {
     final ms = position.inMilliseconds;
     if (ms > 0 && !_finished && !_stopped) unawaited(plex.timeline(item, state: state, timeMs: ms));
+  }
+
+  /// How far in, in percent, for Trakt.
+  double get _percent {
+    final total = duration.inMilliseconds;
+    return total > 0 ? (position.inMilliseconds * 100 / total).clamp(0, 100).toDouble() : 0;
+  }
+
+  /// Playing or paused, once the title is open (a probe run with noscrobble sends nothing).
+  void _scrobbleState(bool playing) {
+    if (!ready || _finished || _stopped || _disposed || Probe.has('noscrobble')) return;
+    final s = _scrobble ??= scrobbler?.play(plex, item, server: server);
+    playing ? s?.playing(_percent) : s?.paused(_percent);
+  }
+
+  /// The play is over; [watched] counts it as finished.
+  Future<void>? _scrobbleStop({bool watched = false}) {
+    if (Probe.has('noscrobble')) return null;
+    final s = _scrobble ?? (watched ? _scrobble = scrobbler?.play(plex, item, server: server) : null);
+    return s?.stopped(_percent, watched: watched);
   }
 
   // ---------------------------------------------------------------- transport
@@ -1219,6 +1254,7 @@ class PlayerSession extends ChangeNotifier {
       sleep.finishedTitle();
       _watched = true;
       unawaited(plex.markWatched(item));
+      unawaited(_scrobbleStop(watched: true));
     }
     onPlay(to);
   }

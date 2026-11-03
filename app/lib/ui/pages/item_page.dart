@@ -148,8 +148,11 @@ class _ItemPageState extends State<ItemPage> {
   }
 
   Future<void> _toggleWatched(PlexItem item, bool watched) async {
-    final plex = AppScope.read(context).plex!;
+    final app = AppScope.read(context);
+    final plex = app.plex!;
     watched ? await plex.markUnwatched(item) : await plex.markWatched(item);
+    // Marked watched by hand: Trakt's history and AniList hear about it too.
+    if (!watched) unawaited(app.scrobbler.markedWatched(plex, item, server: app.server?.machineIdentifier ?? ''));
     if (mounted) unawaited(_load(refresh: true));
   }
 
