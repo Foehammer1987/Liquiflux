@@ -437,6 +437,11 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     });
   }
 
+  /// Paused with the controls showing and the picture focused: Play takes the focus.
+  void _focusPlayIfPaused() {
+    if (mounted && _chromeShown && !_s.player.state.playing && _focus.hasPrimaryFocus && _route?.isCurrent == true) _playFocus.requestFocus();
+  }
+
   /// The controls faded out: the D-pad goes back to seeking, unless it's on the Up Next card.
   void _focusPicture() {
     if (mounted && !_cardArea.hasFocus) _focus.requestFocus();
@@ -488,6 +493,8 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     }
   }
 
+  static final _arrowKeys = {LogicalKeyboardKey.arrowLeft, LogicalKeyboardKey.arrowRight};
+
   /// The remote's keys (see [remoteAction]); anything else falls through to the keyboard ones.
   KeyEventResult _onRemote(KeyEvent e) {
     final a = remoteAction(
@@ -503,6 +510,11 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     if (_keyOnPauseScreen && e.logicalKey == LogicalKeyboardKey.arrowDown && _xray.cast.isNotEmpty) {
       if (e is KeyUpEvent) _keyOnPauseScreen = false;
       if (e is KeyDownEvent) _openSheet(SheetTab.xray);
+      return KeyEventResult.handled;
+    }
+    // Left or Right on the pause screen only brings the controls back, with Play focused.
+    if (_keyOnPauseScreen && (a == RemoteAction.seekBack || a == RemoteAction.seekForward) && _arrowKeys.contains(e.logicalKey)) {
+      if (e is KeyDownEvent) _playFocus.requestFocus();
       return KeyEventResult.handled;
     }
     if (a == RemoteAction.focus) return KeyEventResult.ignored;
@@ -664,6 +676,10 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     final showChrome = (_visible || _keepVisible) && !_paused && !_dismissed && offer == null;
     _s.setControlsShown(showChrome);
     if (isTv && _chromeShown && !showChrome) WidgetsBinding.instance.addPostFrameCallback((_) => _focusPicture());
+    // Paused, the controls stay up, and the D-pad moves between them from Play. With the
+    // picture still focused, Right seeked while the big Play button looked selected (seen on
+    // a Fire TV after a pause and resume).
+    if (isTv && showChrome && !_s.player.state.playing && _focus.hasPrimaryFocus) WidgetsBinding.instance.addPostFrameCallback((_) => _focusPlayIfPaused());
     _chromeShown = showChrome;
     final it = _s.item;
     final body = Stack(

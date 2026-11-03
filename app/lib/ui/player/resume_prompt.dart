@@ -8,7 +8,7 @@ import 'player_session.dart';
 
 /// Shown before a title you stopped part-way through starts: carry on from where you were,
 /// or start again. The title's own artwork sits softened behind, in its colours.
-class ResumePrompt extends StatelessWidget {
+class ResumePrompt extends StatefulWidget {
   const ResumePrompt({super.key, required this.session, required this.at, required this.tint, required this.accent, required this.onBack});
   final PlayerSession session;
   final VoidCallback onBack;
@@ -17,7 +17,39 @@ class ResumePrompt extends StatelessWidget {
   final Color accent;
 
   @override
+  State<ResumePrompt> createState() => _ResumePromptState();
+}
+
+class _ResumePromptState extends State<ResumePrompt> {
+  /// Around the two buttons. The player already holds the focus when the prompt appears, so
+  /// the Resume button's autofocus did nothing: on a TV neither button was focused and Select
+  /// did nothing until an arrow was pressed (seen on the Shield). Resume takes it here.
+  final _buttons = FocusNode(debugLabel: 'resume buttons', canRequestFocus: false, skipTraversal: true);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final inside = FocusManager.instance.primaryFocus;
+      if (inside != null && inside.ancestors.contains(_buttons)) return;
+      _buttons.descendants.where((n) => n.canRequestFocus && !n.skipTraversal).firstOrNull?.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _buttons.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final session = widget.session;
+    final at = widget.at;
+    final tint = widget.tint;
+    final accent = widget.accent;
+    final onBack = widget.onBack;
     final it = session.item;
     final plex = session.plex;
     final art = plex.imageUrl(it.art ?? it.thumb, width: 1280, height: 720);
@@ -103,7 +135,9 @@ class ResumePrompt extends StatelessWidget {
                       style: ConsoleText.small.copyWith(color: Colors.white.withValues(alpha: 0.7)),
                     ),
                     const SizedBox(height: Space.space5),
-                    Wrap(
+                    Focus(
+                      focusNode: _buttons,
+                      child: Wrap(
                       spacing: Space.space3,
                       runSpacing: Space.space3,
                       children: [
@@ -122,6 +156,7 @@ class ResumePrompt extends StatelessWidget {
                           onPressed: () => session.chooseStart(resume: false),
                         ),
                       ],
+                    ),
                     ),
                   ],
                 ),

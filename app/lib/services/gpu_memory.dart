@@ -14,12 +14,12 @@ import 'probe.dart';
 class PlaybackHold {
   PlaybackHold._(this.art);
 
-  /// The pages behind the player let go of their artwork (a 4K file).
+  /// The pages behind the player let go of their artwork.
   final bool art;
   bool _ended = false;
 }
 
-/// Graphics memory on 32-bit TVs. Flutter's Skia renderer keeps a GPU cache of textures
+/// Graphics memory on low-memory TVs (see isLowMemoryTv). Flutter's Skia renderer keeps a GPU cache of textures
 /// sized from the screen (on Android, 12 full screens: hundreds of MB at the Shield's
 /// resolution). On the 2019 Shield that memory comes out of the same RAM the video decoder
 /// needs: with Liquiflux open the system's graphics memory sat at 400–650 MB and fell by
@@ -28,8 +28,8 @@ class PlaybackHold {
 ///
 /// Plezy, which plays the same 4K files on that Shield, started them with about 250 MB
 /// less graphics memory in use than Liquiflux 0.9.9. Decoded artwork is the rest of it:
-/// it is decoded no wider than [maxArtWidth] there, and for 4K the pages behind the player
-/// let go of theirs ([ArtMemory]).
+/// it is decoded no wider than [maxArtWidth] there, and the pages behind the player let go
+/// of theirs ([ArtMemory]): for 4K files from 0.9.13, for every video from 1.0.4.
 ///
 /// Letting go wasn't enough on its own: 0.9.11 measured about 235 MB still held with the
 /// player covering Home, against 60 MB with no artwork at all, and 0.9.12 the same with only
@@ -49,7 +49,7 @@ class GpuMemory {
   /// The cap while the player is open; only the controls are drawn.
   static const playbackBytes = 8 << 20;
 
-  /// The widest artwork is decoded on a 32-bit TV: a 1280x720 backdrop takes 3.5 MB, a
+  /// The widest artwork is decoded on a low-memory TV: a 1280x720 backdrop takes 3.5 MB, a
   /// 1920x1080 one 8 MB.
   static const maxArtWidth = 1280;
 
@@ -86,7 +86,7 @@ class GpuMemory {
   }
 
   /// A player's claim on graphics memory, given back by [afterPlayback]. With
-  /// [releaseArt] (a 4K file) the pages behind the player drop their artwork until then.
+  /// [releaseArt] the pages behind the player drop their artwork until then.
   static PlaybackHold? startPlayback({bool releaseArt = false}) {
     if (!isLowMemoryTv) return null;
     _players++;
@@ -98,7 +98,7 @@ class GpuMemory {
   }
 
   /// Before the video opens: drops decoded artwork nothing shows and empties the GPU cache
-  /// down to [playbackBytes]. For a 4K file it first waits until [covered] says the player
+  /// down to [playbackBytes]. With the artwork released it first waits until [covered] says the player
   /// hides the pages behind it, so they have let go of their artwork, then lets the engine
   /// free those textures before the decoder takes its memory.
   static Future<void> forPlayback(PlaybackHold? hold, {Future<void>? covered}) async {

@@ -37,10 +37,12 @@ The first run takes a while. It:
 
 If you're not sure, the `-Install` option below asks the TV and picks the right one. The 2019 Shield
 Tube has a 64-bit chip but runs 32-bit Android, so the arm64 APK won't install on it.
-On 32-bit Android the app turns Home trailers off (Spotlight Only, an experimental mode in
-Settings, plays one only while focus is on the spotlight's buttons), keeps a smaller artwork cache and decodes
-artwork at no more than 1280 pixels wide, to stay within the memory it gets there. While a 4K
-file plays, the pages behind the player also put their artwork away until you go back to them.
+On 32-bit Android, and on 64-bit TVs with less than about 3.3 GB of RAM (most Fire TV sticks), the
+app runs in low-memory mode: it turns Home trailers off (Spotlight Only, an experimental mode in
+Settings, plays one only while focus is on the spotlight's buttons), keeps a smaller artwork cache,
+decodes artwork at no more than 1280 pixels wide, reads less video ahead, and shows video through the
+TV's own video plane. While a video plays, the pages behind the player also put their artwork away
+until you go back to them. The log says at launch whether the mode is on.
 
 ## Install on the TV
 

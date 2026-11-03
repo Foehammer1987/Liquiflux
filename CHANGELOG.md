@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.4
+
+Fire TV fixes from a cloud Fire TV test (Fire OS 14, 64-bit): less memory while a video plays, and three remote and player bugs.
+
+- Low-memory mode now goes by RAM as well as by 32-bit Android: a 64-bit TV with less than 3.3 GB (MemTotal in /proc/meminfo; a "2 GB" Fire TV stick reports about 1.9 GB) gets everything the 2019 Shield gets. Before, the 64-bit Fire TV got none of it: Flutter's full 100 MB image cache, full-size artwork, Skia's uncapped GPU cache, 64 MB of read-ahead plus 64 MB of played video kept by mpv, and mpv copying every frame. It went from 450 MB browsing to 798 MB playing a 1080p film. Now it gets a 48 MB image cache, artwork decoded at most 1280 wide, Skia capped (64 MB browsing, 8 MB playing), 32 MB read-ahead and 8 MB kept behind, Video Plane output (the decoder draws on the TV's own surface), and no Home trailers. The log says at launch: "memory: N MB RAM, 64-bit, low-memory mode on". The probe switch `lowmem` turns it on for testing on a bigger device.
+- The pages behind the player put their artwork away for every video on a low-memory TV, not only for a 4K file at Original quality (the 0.9.13 fix). Going back to them loads it again.
+- Player timeline: after a pause and resume a transcode could show nonsense times (26:30:43 elapsed, 23:18:09 left in a 3-hour film) until the next seek. Plex sends transcodes as MPEG-TS, whose clock wraps after 2^33 ticks of 90 kHz (26 h 30 min 44 s); mpv's clock had wrapped below zero. A wrapped clock is now unwrapped, and any other position past the end is ignored (the last good one stays), so it never reaches Plex's progress or Trakt either.
+- Paused, the controls put the focus on Play, so Left and Right move between the buttons. Before, the picture kept the focus while the big Play button looked selected, and Right seeked. Left or Right on the pause screen only brings the controls back.
+- Movies (and every library page): Down from the sort buttons goes to the first poster. They sit at the right end of the header, so Down landed on the last poster of the first row.
+- "Pick up where you left off?" focuses Resume when it appears. The player already held the focus, so the button's autofocus did nothing: on a TV neither button was focused and Select did nothing until an arrow was pressed (seen on the Shield).
+- Version 1.0.4+62 (Android versionCode 1062 for armeabi-v7a, 2062 for arm64-v8a).
+
 ## 1.0.3
 
 Trakt and AniList: what you watch is tracked as you watch it.

@@ -54,6 +54,8 @@ import 'gpu_memory.dart';
 ///   jump 5 minutes on, then back 2 minutes, 15 s apart.
 /// With `room` or `join`, a "probe room" line every second says where the room and the player
 /// are.
+/// * `lowmem`: the low-memory behaviour of a small TV (see isLowMemoryTv) on any Android
+///   device, such as a 64-bit Fire TV with more RAM.
 /// * `sleep=S`: the first title played starts a sleep timer of S seconds (its last minute
 ///   warns and fades). Logs "probe sleep" lines every second.
 abstract final class Probe {

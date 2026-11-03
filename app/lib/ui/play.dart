@@ -5,7 +5,7 @@ import '../platform.dart';
 import '../state/scope.dart';
 import 'pages/player_page.dart';
 
-/// How the player opens over the app. On a 32-bit TV it fades in and leaves the app behind it
+/// How the player opens over the app. On a low-memory TV it fades in and leaves the app behind it
 /// as it was, instead of fading that out: the app stays drawable there, so for a 4K file the
 /// pages behind can be drawn again without their artwork (see GpuMemory).
 PageRoute<void> playerRoute(WidgetBuilder builder) => isLowMemoryTv

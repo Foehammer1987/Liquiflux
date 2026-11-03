@@ -84,7 +84,7 @@ class PlayerSession extends ChangeNotifier {
   late final Player player = () {
     final p = Player(
       // Streams may only pull in more over the web, never local files.
-      // A 32-bit TV gets half the read-ahead: Android kills the app outright when memory runs low.
+      // A low-memory TV gets half the read-ahead: Android kills the app outright when memory runs low.
       configuration: PlayerConfiguration(title: appName, bufferSize: (isLowMemoryTv ? 32 : 64) * 1024 * 1024, libass: !direct, protocolWhitelist: streamProtocols),
     );
     // Leaving the app lets it go first, if the page hasn't yet (see LivePlayers).
@@ -119,7 +119,7 @@ class PlayerSession extends ChangeNotifier {
 
   final _subs = <StreamSubscription<Object?>>[];
 
-  /// The graphics memory this player took from the rest of the app (32-bit TVs).
+  /// The graphics memory this player took from the rest of the app (low-memory TVs).
   PlaybackHold? _gpu;
   Timer? _report;
   Timer? _probeVideo;
@@ -206,7 +206,20 @@ class PlayerSession extends ChangeNotifier {
   /// The sleep timer's last minute is running out: the warning shows.
   bool get sleepWarning => sleep.warning;
 
-  Duration get position => _pendingSeek ?? player.state.position + offset;
+  Duration get position => _pendingSeek ?? _streamPosition() + offset;
+
+  /// The last position from mpv that made sense, held while it reports one that doesn't.
+  Duration _goodPosition = Duration.zero;
+
+  /// mpv's position in the stream, or the last sensible one while it reports nonsense (see
+  /// [sanePosition]).
+  Duration _streamPosition() {
+    final mpv = player.state.position;
+    if (!transcoding) return mpv;
+    final p = sanePosition(mpv, length: duration - offset);
+    if (p != null) _goodPosition = p;
+    return p ?? _goodPosition;
+  }
 
   /// Where a stream that hasn't started yet should pick up again.
   Duration get _resumeAt => _pendingSeek ?? (player.state.duration > Duration.zero ? position : _openedAt);
@@ -319,9 +332,10 @@ class PlayerSession extends ChangeNotifier {
     // A title the probe starts by itself plays silent.
     await player.setVolume(Probe.playing ? 0 : (volume > 0 ? volume : 100));
     if (_disposed) return;
-    // A 32-bit TV needs the graphics memory the app's artwork holds for the video decoder;
-    // for 4K, that includes the artwork on the pages behind the player.
-    _gpu = GpuMemory.startPlayback(releaseArt: media?.videoResolution?.toLowerCase() == '4k' && streamQuality.isOriginal);
+    // A low-memory TV needs the graphics memory the app's artwork holds for the video
+    // decoder, including the artwork on the pages behind the player. Until 1.0.4 that was
+    // only for a 4K file; a cloud Fire TV still grew by 350 MB playing a 1080p one.
+    _gpu = GpuMemory.startPlayback(releaseArt: true);
     if (_gpu != null) {
       // For the log: what the decoder had to fit in.
       _subs.add(player.stream.videoParams.where((v) => (v.w ?? 0) > 0).take(1).listen((_) => debugPrint('graphics memory as the video starts: ${GpuMemory.status()}')));
@@ -458,6 +472,7 @@ class PlayerSession extends ChangeNotifier {
       transcoding = true;
       _session = PlexClient.newSessionId();
       offset = Duration(seconds: from.inSeconds);
+      _goodPosition = Duration.zero;
       final q = streamQuality;
       notifyListeners();
       await player.open(
@@ -1000,7 +1015,7 @@ class PlayerSession extends ChangeNotifier {
     // Direct output only works with the hardware decoder it was set up with.
     if (!direct) await _set('hwdec', p.hwdec);
     // mpv keeps as much already-played video as it reads ahead; at 4K bitrates that is a lot
-    // of memory a 32-bit TV doesn't have, for little more than instant short skips back.
+    // of memory a low-memory TV doesn't have, for little more than instant short skips back.
     if (isLowMemoryTv) await _set('demuxer-max-back-bytes', '${8 * 1024 * 1024}');
     await _set('audio-spdif', p.passthrough ? 'ac3,eac3,dts,dts-hd,truehd' : '');
     await _set('audio-exclusive', p.passthrough ? 'yes' : 'no');
@@ -1437,4 +1452,21 @@ abstract interface class RoomControl {
   void pause();
   Future<void> seek(Duration to);
   Future<void> setRate(double rate);
+}
+
+/// MPEG-TS clocks count 2^33 ticks of 90 kHz and then wrap: about 26 h 30 min 44 s.
+const ptsWrap = Duration(microseconds: 95443717689);
+
+/// A transcode stream's position as mpv reports it ([mpv]), made sensible for a stream
+/// [length] long, or null when it can't be. Plex sends a transcode as MPEG-TS, and after a
+/// pause and resume a cloud Fire TV's mpv reported 26:30:43 into a 3-hour film (the clock had
+/// wrapped below zero) until the next seek; the player showed that, and would have told Plex
+/// and Trakt the same. A wrapped clock is unwrapped; anything else past the end is no use.
+Duration? sanePosition(Duration mpv, {required Duration length}) {
+  const slack = Duration(minutes: 1);
+  var p = mpv;
+  if (p > ptsWrap ~/ 2) p -= ptsWrap;
+  if (p < Duration.zero) return p > -slack ? Duration.zero : null;
+  if (length > Duration.zero && p > length + slack) return null;
+  return p;
 }
