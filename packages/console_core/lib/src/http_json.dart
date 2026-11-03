@@ -7,10 +7,13 @@ import 'package:http/http.dart' as http;
 import 'security.dart';
 
 class ApiException implements Exception {
-  ApiException(this.status, this.message, {this.uri});
+  ApiException(this.status, this.message, {this.uri, this.body});
   final int status;
   final String message;
   final Uri? uri;
+
+  /// The decoded error body, when the server sent JSON (plex.tv's error codes are in it).
+  final Object? body;
 
   /// The message, with any token or key a server echoed back scrubbed out.
   @override
@@ -95,7 +98,7 @@ class JsonHttp {
     }
     if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
       final msg = parsed is Map ? (parsed['message'] ?? parsed['error'] ?? '').toString() : '';
-      throw ApiException(streamed.statusCode, msg.isNotEmpty ? msg : _statusText(streamed.statusCode), uri: uri);
+      throw ApiException(streamed.statusCode, msg.isNotEmpty ? msg : _statusText(streamed.statusCode), uri: uri, body: parsed);
     }
     return (body: parsed, headers: streamed.headers);
   }

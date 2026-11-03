@@ -91,6 +91,9 @@ artwork behind the player away while the video runs.
   past 80%), and finished anime episodes move your AniList progress, matched by title and air
   date so split seasons land in the right entry. Sign-in works with a TV remote: a code for Trakt,
   and a QR code that opens a small page on your phone for AniList.
+- **Plex Home profiles.** Switch between the people in your Plex Home from the sidebar, with a
+  PIN pad for protected profiles. Each person gets their own Continue Watching, watched marks,
+  thumbs, spoiler settings and Trakt/AniList sign-ins, and Liquiflux can ask who's watching as it opens.
 - **Plays nearly everything directly**: HEVC, AV1, HDR, DTS, TrueHD, ASS and PGS subtitles.
   Plex's transcoder only steps in when it has to.
 - **Full title pages** with IMDb, Rotten Tomatoes and TMDB ratings, cast and crew, extras and file

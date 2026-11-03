@@ -19,6 +19,7 @@ import '../services/updater.dart';
 import '../state/app_state.dart';
 import '../state/scope.dart';
 import 'nav.dart';
+import 'profiles.dart';
 import 'play.dart';
 import 'notice_toast.dart';
 import 'shuffle/shuffle_dialog.dart';
@@ -77,6 +78,8 @@ class _ShellState extends State<Shell> {
       _updateCheck = Timer(const Duration(seconds: 20), () => unawaited(app.updater.checkInBackground()));
       Notifier.instance.onAction = _onNotification;
       unawaited(Probe.atHome(context, openTitle: (key) => push(ItemDest(key))));
+      // "Who's watching?" as Liquiflux opens, when asked for (it closes itself without a Home).
+      if (app.settings.plexReady && app.settings.askProfile) unawaited(_profiles(atStart: true));
     });
     if (isTv) FocusManager.instance.addListener(_focusMoved);
     playerHandoff.addListener(_fromPlayer);
@@ -363,6 +366,15 @@ class _ShellState extends State<Shell> {
 
   void push(Dest d) => _nav.currentState?.push(_route(d));
 
+  /// The Plex Home's profiles; after a switch every page starts again from Home, as the new
+  /// user's Continue Watching, watched marks and recommendations differ.
+  Future<void> _profiles({bool atStart = false}) async {
+    final switched = await showProfiles(context, atStart: atStart);
+    if (!mounted || !switched) return;
+    go(const HomeDest());
+    if (isTv) _claimFocus();
+  }
+
   void back() => _nav.currentState?.maybePop();
 
   /// Esc, the remote's Back button and Android's system back: leave search, then step back
@@ -595,7 +607,7 @@ class _ShellState extends State<Shell> {
                           left: 0,
                           top: 0,
                           bottom: 0,
-                          child: _Rail(key: _rail, app: app, current: _top.railId, go: go, leave: _toPage, toSearch: _toSearch),
+                          child: _Rail(key: _rail, app: app, current: _top.railId, go: go, leave: _toPage, toSearch: _toSearch, profiles: _profiles),
                         ),
                     ],
                   ),
@@ -921,8 +933,11 @@ const _railWidth = 64.0;
 /// The sidebar hides off the left edge and slides in when the pointer reaches the edge
 /// (or keyboard / remote focus moves into it), over the page rather than beside it.
 class _Rail extends StatefulWidget {
-  const _Rail({super.key, required this.app, required this.current, required this.go, required this.leave, required this.toSearch});
+  const _Rail({super.key, required this.app, required this.current, required this.go, required this.leave, required this.toSearch, required this.profiles});
   final AppState app;
+
+  /// Opens "Who's watching?".
+  final VoidCallback profiles;
   final String current;
   final void Function(Dest) go;
 
@@ -1021,6 +1036,48 @@ class _RailState extends State<_Rail> {
         ),
       ),
     );
+    // Who's watching: their avatar, which opens the Plex Home's profiles.
+    Widget profile() {
+      final who = app.profile;
+      final label = who == null ? 'Switch Profile' : 'Watching as ${who.name}. Switch Profile';
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: Space.space1),
+        child: Tooltip(
+          message: label,
+          preferBelow: false,
+          child: Focusable(
+            onTap: () {
+              _hideSoon();
+              widget.profiles();
+            },
+            focusNode: _node('profile'),
+            semanticLabel: label,
+            builder: (context, hover, focus) => ListenableBuilder(
+              listenable: _node('profile'),
+              builder: (context, _) {
+                final ring = focus || _node('profile').hasPrimaryFocus;
+                return SizedBox(
+                  width: _railWidth,
+                  height: 44,
+                  child: Center(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: ring ? c.primary : (hover ? c.border300 : Colors.transparent), width: 2),
+                      ),
+                      child: who == null ? const Icon(LucideIcons.usersRound, size: 24) : ProfileAvatar(user: who, size: 34),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+    }
+
     Widget rule() => Container(
       width: 24,
       height: 1,
@@ -1077,6 +1134,7 @@ class _RailState extends State<_Rail> {
           Expanded(
             child: Center(child: SingleChildScrollView(child: main)),
           ),
+          if ((app.homeList?.length ?? 0) > 1) profile(),
           item('settings', LucideIcons.settings, 'Settings', const SettingsDest(), alert: app.plexConn == Conn.failed),
         ],
       ),

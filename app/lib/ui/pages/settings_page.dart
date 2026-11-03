@@ -13,6 +13,8 @@ import '../../services/settings_store.dart';
 import '../../state/app_state.dart';
 import '../../state/scope.dart';
 import '../common.dart';
+import '../nav.dart';
+import '../profiles.dart';
 import '../settings/focus_handle.dart';
 import '../settings/plex_link_code.dart';
 import '../settings/settings_field.dart';
@@ -221,7 +223,9 @@ class _SettingsPageState extends State<SettingsPage> {
       return;
     }
     _plexUrl.text = url;
-    await app.update(app.settings.copyWith(plexUrl: url, plexToken: s.accessToken, plexAccountToken: _accountToken, plexServerName: s.name, plexMachineId: s.machineIdentifier));
+    // A new sign-in starts as the account that signed in, not whichever Home user was in use.
+    app.forgetHome();
+    await app.update(app.settings.backToOwner().copyWith(plexUrl: url, plexToken: s.accessToken, plexAccountToken: _accountToken, plexServerName: s.name, plexMachineId: s.machineIdentifier));
     if (!mounted) return;
     setState(() {
       _servers = null;
@@ -248,7 +252,8 @@ class _SettingsPageState extends State<SettingsPage> {
     final pasted = _plexToken.text.trim();
     // A new address or token is learned afresh: the server's id is kept on the first launch that reaches it.
     final fresh = pasted.isNotEmpty || url != app.settings.plexUrl;
-    await app.update(app.settings.copyWith(plexUrl: url, plexToken: pasted.isNotEmpty ? pasted : null, plexAccountToken: pasted.isNotEmpty ? '' : null, plexMachineId: fresh ? '' : null));
+    if (pasted.isNotEmpty) app.forgetHome();
+    await app.update((pasted.isNotEmpty ? app.settings.backToOwner() : app.settings).copyWith(plexUrl: url, plexToken: pasted.isNotEmpty ? pasted : null, plexAccountToken: pasted.isNotEmpty ? '' : null, plexMachineId: fresh ? '' : null));
     _plexToken.clear();
     if (!mounted) return;
     setState(() {
@@ -400,6 +405,42 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
     ),
+    if (!welcome && (app.homeList?.length ?? 0) > 1)
+      ConsolePanel(
+        title: 'Plex Home',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                if (app.profile != null) ...[ProfileAvatar(user: app.profile, size: 40), const SizedBox(width: Space.space3)],
+                Expanded(
+                  child: Text(
+                    app.profile == null ? 'Switch between the people in your Plex Home.' : 'Watching as ${app.profile!.name}. Each person has their own Continue Watching, watched marks, thumbs and Trakt/AniList sign-ins.',
+                    style: ConsoleText.body.copyWith(color: c.text200),
+                  ),
+                ),
+                const SizedBox(width: Space.space3),
+                ConsoleButton(
+                  label: 'Switch Profile',
+                  icon: LucideIcons.usersRound,
+                  onPressed: () async {
+                    final nav = ShellNav.of(context);
+                    if (await showProfiles(context)) nav.go(const HomeDest());
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: Space.space3),
+            _Row(
+              label: "Ask Who's Watching",
+              help: 'Show the profiles each time $appName opens.',
+              control: ConsoleSwitch(value: s.askProfile, onChanged: (v) => app.tweak((x) => x.copyWith(askProfile: v))),
+              last: true,
+            ),
+          ],
+        ),
+      ),
     ConsolePanel(
       title: 'Seerr',
       meta: app.seerrConn == Conn.ok ? StatusDot(app.seerrUser ?? 'Connected', tone: Tone.success, style: ConsoleText.small) : null,

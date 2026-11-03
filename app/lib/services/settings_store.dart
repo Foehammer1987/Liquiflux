@@ -39,6 +39,13 @@ class Settings {
     this.spoilers = const SpoilerPrefs(),
     this.watchName = '',
     this.xrayUrl = '',
+    this.plexHomeToken = '',
+    this.plexOwnerId = '',
+    this.plexUserId = '',
+    this.plexUserName = '',
+    this.plexUserThumb = '',
+    this.askProfile = false,
+    this.profiles = const {},
     required this.clientId,
   });
 
@@ -108,8 +115,96 @@ class Settings {
   /// Where the X-Ray scanner's who's-on-screen files are served from (empty = cast list only).
   final String xrayUrl;
 
+  /// The plex.tv token of the account that signed in, kept while another Plex Home user is
+  /// in use so the Home can be listed and switched again. Empty = [plexTvToken] (no switch yet).
+  final String plexHomeToken;
+
+  /// The plex.tv uuid of the account that signed in (learned the first time the Home is listed).
+  final String plexOwnerId;
+
+  /// The Plex Home user in use: uuid, name and avatar. Empty id = the account that signed in.
+  final String plexUserId;
+  final String plexUserName;
+  final String plexUserThumb;
+
+  /// Ask "Who's watching?" each time Liquiflux opens (when the Home has more than one user).
+  final bool askProfile;
+
+  /// The other Home users' own settings (thumbs, spoilers, Watch Together name, per-show
+  /// audio and subtitles), by uuid, kept while someone else is in use. See [profileData].
+  final Map<String, Map<String, dynamic>> profiles;
+
   /// Stable per-install id that Plex shows under Authorized Devices.
   final String clientId;
+
+  /// What lists and switches Plex Home users.
+  String get homeToken => plexHomeToken.isNotEmpty ? plexHomeToken : plexTvToken;
+
+  /// Which profile's things are in use: '' for the account that signed in.
+  String get profileKey => plexUserId.isEmpty || plexUserId == plexOwnerId ? '' : plexUserId;
+
+  /// The settings that belong to one person rather than to the device.
+  Map<String, dynamic> profileData() => {
+    'taste': taste.toJson(),
+    'spoilers': spoilers.toJson(),
+    'watchName': watchName,
+    'showTracks': playback.toJson()['showTracks'],
+  };
+
+  /// These settings with the profile [to] in use: what belongs to the person in use now is put
+  /// away under their key, and [to]'s comes out ('' = the account that signed in).
+  Settings swapProfile(String to) {
+    final from = profileKey;
+    if (from == to) return this;
+    final kept = {...profiles, from: profileData()};
+    final next = withProfileData(kept.remove(to));
+    return next.copyWith(profiles: kept);
+  }
+
+  /// Back to the account that signed in, forgetting which Home user was in use and the token
+  /// kept for switching (before signing out, or signing in again).
+  Settings backToOwner() {
+    final s = swapProfile('');
+    return Settings(
+      plexUrl: s.plexUrl,
+      plexToken: s.plexToken,
+      plexAccountToken: s.plexAccountToken,
+      plexServerName: s.plexServerName,
+      plexMachineId: s.plexMachineId,
+      seerrUrl: s.seerrUrl,
+      seerrApiKey: s.seerrApiKey,
+      seerrUsePlexLogin: s.seerrUsePlexLogin,
+      theme: s.theme,
+      glass: s.glass,
+      homeTrailers: s.homeTrailers,
+      spotlightTrailers: s.spotlightTrailers,
+      traktClientId: s.traktClientId,
+      traktClientSecret: s.traktClientSecret,
+      anilistClientId: s.anilistClientId,
+      region: s.region,
+      playback: s.playback,
+      taste: s.taste,
+      notifyReady: s.notifyReady,
+      pauseScreen: s.pauseScreen,
+      spoilers: s.spoilers,
+      watchName: s.watchName,
+      xrayUrl: s.xrayUrl,
+      askProfile: s.askProfile,
+      profiles: s.profiles,
+      clientId: s.clientId,
+    );
+  }
+
+  /// These settings with [j]'s per-person part (a profile never used here starts fresh).
+  Settings withProfileData(Map<String, dynamic>? j) {
+    final d = j ?? const <String, dynamic>{};
+    return copyWith(
+      taste: Taste.fromJson(d['taste'] is Map<String, dynamic> ? d['taste'] as Map<String, dynamic> : null),
+      spoilers: SpoilerPrefs.fromJson(d['spoilers']),
+      watchName: d['watchName'] is String ? d['watchName'] as String : '',
+      playback: playback.copyWith(showTracks: PlaybackPrefs.fromJson({'showTracks': d['showTracks']}).showTracks),
+    );
+  }
 
   bool get plexReady => plexUrl.isNotEmpty && plexToken.isNotEmpty;
 
@@ -146,7 +241,21 @@ class Settings {
     SpoilerPrefs? spoilers,
     String? watchName,
     String? xrayUrl,
+    String? plexHomeToken,
+    String? plexOwnerId,
+    String? plexUserId,
+    String? plexUserName,
+    String? plexUserThumb,
+    bool? askProfile,
+    Map<String, Map<String, dynamic>>? profiles,
   }) => Settings(
+    plexHomeToken: plexHomeToken ?? this.plexHomeToken,
+    plexOwnerId: plexOwnerId ?? this.plexOwnerId,
+    plexUserId: plexUserId ?? this.plexUserId,
+    plexUserName: plexUserName ?? this.plexUserName,
+    plexUserThumb: plexUserThumb ?? this.plexUserThumb,
+    askProfile: askProfile ?? this.askProfile,
+    profiles: profiles ?? this.profiles,
     playback: playback ?? this.playback,
     taste: taste ?? this.taste,
     notifyReady: notifyReady ?? this.notifyReady,
@@ -215,12 +324,13 @@ class SettingsStore {
   final Future<Directory> Function() _folder;
 
   /// Credential store key for each secret setting.
-  static const _keys = {'plexToken': 'plex_token', 'plexAccountToken': 'plex_account_token', 'seerrApiKey': 'seerr_api_key', 'traktClientId': 'trakt_client_id', 'traktClientSecret': 'trakt_client_secret'};
+  static const _keys = {'plexToken': 'plex_token', 'plexAccountToken': 'plex_account_token', 'plexHomeToken': 'plex_home_token', 'seerrApiKey': 'seerr_api_key', 'traktClientId': 'trakt_client_id', 'traktClientSecret': 'trakt_client_secret'};
 
   /// Where older builds left each secret inside settings.json.
   static const _plain = {
     'plexToken': ['_plexToken', 'plexToken'],
     'plexAccountToken': <String>[],
+    'plexHomeToken': <String>[],
     'seerrApiKey': ['_seerrApiKey', 'seerrApiKey'],
     'traktClientId': ['traktClientId'],
     'traktClientSecret': <String>[],
@@ -300,6 +410,17 @@ class SettingsStore {
       plexUrl: env['CONSOLE_PLEX_URL'] ?? _url(j, 'plexUrl'),
       plexToken: env['CONSOLE_PLEX_TOKEN'] ?? secrets['plexToken']!,
       plexAccountToken: secrets['plexAccountToken']!,
+      plexHomeToken: secrets['plexHomeToken']!,
+      plexOwnerId: _id(j, 'plexOwnerId'),
+      plexUserId: _id(j, 'plexUserId'),
+      plexUserName: _str(j, 'plexUserName') ?? '',
+      plexUserThumb: (_str(j, 'plexUserThumb') ?? '').startsWith('https://') ? _str(j, 'plexUserThumb')! : '',
+      askProfile: _bool(j, 'askProfile') ?? false,
+      profiles: {
+        if (j['profiles'] is Map)
+          for (final e in (j['profiles'] as Map).entries)
+            if (e.key is String && RegExp(r'^[A-Za-z0-9-]{0,64}$').hasMatch(e.key as String) && e.value is Map<String, dynamic>) e.key as String: e.value as Map<String, dynamic>,
+      },
       plexServerName: _str(j, 'plexServerName') ?? '',
       plexMachineId: env['CONSOLE_PLEX_URL'] != null ? '' : RegExp(r'^[\w.-]{1,128}$').hasMatch(_str(j, 'plexMachineId') ?? '') ? _str(j, 'plexMachineId')! : '',
       seerrUrl: env['CONSOLE_SEERR_URL'] ?? _url(j, 'seerrUrl'),
@@ -331,6 +452,12 @@ class SettingsStore {
 
   static String? _str(Map<String, dynamic> j, String k) => j[k] is String ? j[k] as String : null;
   static bool? _bool(Map<String, dynamic> j, String k) => j[k] is bool ? j[k] as bool : null;
+
+  /// A plex.tv uuid, or empty.
+  static String _id(Map<String, dynamic> j, String k) {
+    final v = _str(j, k) ?? '';
+    return RegExp(r'^[A-Za-z0-9-]{1,64}$').hasMatch(v) ? v : '';
+  }
 
   /// A saved server address, if it's a web address at all (never file: or the like).
   static String _url(Map<String, dynamic> j, String k) {
@@ -368,9 +495,15 @@ class SettingsStore {
       'watchName': s.watchName,
       'xrayUrl': s.xrayUrl,
       'anilistClientId': s.anilistClientId,
+      'plexOwnerId': s.plexOwnerId,
+      'plexUserId': s.plexUserId,
+      'plexUserName': s.plexUserName,
+      'plexUserThumb': s.plexUserThumb,
+      'askProfile': s.askProfile,
+      'profiles': s.profiles,
       'clientId': s.clientId,
     };
-    final values = {'plexToken': s.plexToken, 'plexAccountToken': s.plexAccountToken, 'seerrApiKey': s.seerrApiKey, 'traktClientId': s.traktClientId, 'traktClientSecret': s.traktClientSecret};
+    final values = {'plexToken': s.plexToken, 'plexAccountToken': s.plexAccountToken, 'plexHomeToken': s.plexHomeToken, 'seerrApiKey': s.seerrApiKey, 'traktClientId': s.traktClientId, 'traktClientSecret': s.traktClientSecret};
     for (final e in values.entries) {
       if (_fromEnv[e.key] != e.value) await _write(_keys[e.key]!, e.value);
     }
