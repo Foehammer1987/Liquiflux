@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:console_core/console_core.dart' show PlexItem, redactSecrets;
 import 'package:console_ui/console_ui.dart' show DrawProbe;
+import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
@@ -10,6 +11,7 @@ import 'package:window_manager/window_manager.dart';
 import '../state/app_state.dart';
 import '../state/scope.dart';
 import '../ui/play.dart';
+import '../ui/player/player_dock.dart';
 import 'gpu_memory.dart';
 
 /// Measuring switches for one launch on an Android TV, given from adb:
@@ -47,6 +49,9 @@ import 'gpu_memory.dart';
 /// * `full`: on Windows, `play` puts the window full screen first.
 /// * `at=T`: the title `play` starts plays from T seconds in.
 /// * `quit=T`: on Windows, the app closes T seconds after launch.
+/// * `mini=T`: on a desktop, T seconds after `play` starts the title, the player goes to the
+///   mini player, the app behind it scrolls down and back, the mini player moves to the
+///   top-left corner, then after 10 s more it goes back to full window. Logs "probe mini" lines.
 /// * `room=KEY`: at `playat` (30 s), opens a Watch Together room by code for Plex item KEY
 ///   (or the first movie with that word in its title, underscores for spaces) and logs its code ("probe room code K7M-Q2X"); the player opens through the room.
 /// * `join=CODE`: at `playat`, joins that room.
@@ -313,9 +318,35 @@ abstract final class Probe {
     _playing = true;
     if (Platform.isWindows && has('full')) await windowManager.setFullScreen(true);
     if (!context.mounted) return;
+    final mini = int.tryParse(value('mini') ?? '');
+    if (mini != null && PlayerDock.enabled) unawaited(_mini(mini));
     await playTitle(context, item, resume: false);
     _playing = false;
     _phase = 'home';
+  }
+
+  /// The mini player, driven: in its corner, the app scrolled behind it, moved, then back.
+  static Future<void> _mini(int after) async {
+    final dock = PlayerDock.instance;
+    void say(String what) => debugPrint('probe mini: $what (active ${dock.active}, mini ${dock.mini}, corner ${dock.corner})');
+    await Future<void>.delayed(Duration(seconds: after));
+    dock.minimize();
+    say('minimized');
+    await Future<void>.delayed(const Duration(seconds: 3));
+    // Scroll whatever page is behind it, the way a mouse wheel would.
+    final binding = WidgetsBinding.instance;
+    final view = binding.platformDispatcher.views.first;
+    final centre = Offset(view.physicalSize.width / view.devicePixelRatio / 2, view.physicalSize.height / view.devicePixelRatio / 2);
+    for (final dy in [600.0, -600.0]) {
+      binding.handlePointerEvent(PointerScrollEvent(position: centre, scrollDelta: Offset(0, dy)));
+      say('scrolled ${dy > 0 ? 'down' : 'up'}');
+      await Future<void>.delayed(const Duration(seconds: 3));
+    }
+    dock.moveTo(Alignment.topLeft);
+    say('moved');
+    await Future<void>.delayed(const Duration(seconds: 10));
+    dock.expand();
+    say('expanded');
   }
 
   static String _readMapped() {

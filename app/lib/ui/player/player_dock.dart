@@ -63,6 +63,12 @@ class PlayerDock extends ChangeNotifier {
     if (active) _setMini(true);
   }
 
+  /// Puts the mini player in [to], one of the four corners.
+  void moveTo(Alignment to) {
+    corner = to;
+    notifyListeners();
+  }
+
   /// Back to full window.
   void expand() => _setMini(false);
 
