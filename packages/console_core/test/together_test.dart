@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:console_core/console_core.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -188,6 +190,56 @@ void main() {
       now = now.add(const Duration(seconds: 5));
       s.heartbeat();
       expect(sent.single.keys.single, 'State');
+    });
+  });
+
+  group('TogetherClient.friends', () {
+    const usersXml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<MediaContainer friendlyName="myPlex" identifier="com.plexapp.plugins.myplex" size="3">\n'
+        '<User id="101" title="Zoë &amp; Co" username="zoe" email="z@example.com" thumb="https://plex.tv/users/a/avatar" home="0">\n'
+        '  <Server id="1" serverId="2" machineIdentifier="abc" name="Neotower" />\n'
+        '</User>\n'
+        '<User id="55" title="" username="bob" thumb="" home="1"/>\n'
+        '<User title="no id" username="x"/>\n'
+        '</MediaContainer>';
+
+    TogetherClient client(Future<http.Response> Function(http.Request) handler) =>
+        TogetherClient(token: 'tok', clientId: 'cid', http: JsonHttp(client: MockClient(handler)));
+
+    test('reads friends from /api/users, since /api/v2/friends is gone', () async {
+      final asked = <String>[];
+      final c = client((req) async {
+        asked.add(req.url.path);
+        expect(req.headers['X-Plex-Token'], 'tok');
+        if (req.url.path == '/api/users') return http.Response(usersXml, 200, headers: {'content-type': 'application/xml; charset=utf-8'});
+        return http.Response('{"error":"gone"}', 410);
+      });
+      final list = await c.friends();
+      expect(asked, ['/api/users']);
+      expect([for (final f in list) f.id], [55, 101]);
+      expect(list[0].title, 'bob');
+      expect(list[1].title, 'Zoë & Co');
+      expect(list[1].username, 'zoe');
+      expect(list[1].thumb, 'https://plex.tv/users/a/avatar');
+      expect(list[0].thumb, isNull);
+    });
+
+    test('falls back to /api/v2/friends when /api/users fails', () async {
+      final c = client((req) async {
+        if (req.url.path == '/api/users') return http.Response('', 500);
+        return http.Response(jsonEncode([{'id': 7, 'title': 'Ann', 'username': 'ann'}]), 200);
+      });
+      expect([for (final f in await c.friends()) f.title], ['Ann']);
+    });
+
+    test('reports the /api/users error when both fail', () async {
+      final c = client((req) async => http.Response('', req.url.path == '/api/users' ? 401 : 410));
+      expect(c.friends(), throwsA(isA<ApiException>().having((e) => e.status, 'status', 401)));
+    });
+
+    test('reads only User attributes and ignores odd entities', () {
+      final list = TogetherClient.parseUsersXml('<User id="9" title="A&#x42;&#67;&bogus;&#xD800;"/><User id="9" title="dupe"/><Users id="3"/>');
+      expect(list.single.title, 'ABC&bogus;');
     });
   });
 }

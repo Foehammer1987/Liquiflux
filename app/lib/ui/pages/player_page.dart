@@ -12,6 +12,7 @@ import '../../main.dart' show customTitleBar;
 import '../../platform.dart';
 import '../../state/scope.dart';
 import '../player/app_subtitles.dart';
+import '../player/player_dock.dart';
 import '../player/player_session.dart';
 import '../player/sleep_timer.dart';
 import '../player/pause_screen.dart';
@@ -147,6 +148,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
       HardwareKeyboard.instance.addHandler(_anyKey);
       FocusManager.instance.addListener(_keepFocus);
     }
+    if (PlayerDock.enabled) PlayerDock.instance.addListener(_dockChanged);
     _live.add(this);
     _poke();
   }
@@ -182,6 +184,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
   @override
   void dispose() {
     ArtMemory.releaseAll.removeListener(_changed);
+    if (PlayerDock.enabled) PlayerDock.instance.removeListener(_dockChanged);
     if (isDesktop) windowManager.removeListener(this);
     if (!_leaving) SleepTimer.instance.cancel();
     if (isTv) {
@@ -214,6 +217,44 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
   void _restoreWindow() {
     if (isDesktop && _fullscreen && _ownsFullscreen) unawaited(windowManager.setFullScreen(false));
     _ownsFullscreen = false;
+  }
+
+  // ------------------------------------------------------------ mini player
+
+  /// The player is in its corner of the window (see [PlayerDock]), with the library behind.
+  bool get _mini => PlayerDock.enabled && PlayerDock.instance.mini;
+  bool _wasMini = false;
+
+  /// Shrinks the player into its corner; it keeps playing while the app is used behind it.
+  void _minimize() {
+    if (!PlayerDock.enabled || _s.resumeOffer != null) return;
+    PlayerDock.instance.minimize();
+  }
+
+  void _dockChanged() {
+    if (!mounted) return;
+    final mini = _mini;
+    if (mini == _wasMini) return;
+    _wasMini = mini;
+    if (mini) {
+      // Panels, the info and the pause screen don't fit in the corner.
+      _pauseTimer?.cancel();
+      setState(() {
+        _sheet = null;
+        _together = false;
+        _opener = null;
+        _info = false;
+        _paused = false;
+        _pauseLive = false;
+      });
+    } else {
+      // Full window again: the keyboard comes back to the player.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_mini) _focus.requestFocus();
+      });
+      setState(() {});
+      _poke();
+    }
   }
 
   void _exit() {
@@ -288,7 +329,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     // count as leaving them and end the pause screen straight away.
     _pauseTimer = Timer(const Duration(seconds: 5), () {
       if (!mounted || !_s.ready || _s.error != null || _s.player.state.playing) return;
-      if (_sheet != null || _together || _overControls || _scrubbing || _info) return;
+      if (_sheet != null || _together || _overControls || _scrubbing || _info || _mini) return;
       setState(() {
         _paused = true;
         _pauseLive = true;
@@ -457,6 +498,12 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
       plexTagId: person.id,
       photoUrl: _s.plex.imageUrl(thumb, width: 240, height: 240),
     );
+    // On a desktop the title carries on in the corner while their page opens behind it.
+    if (PlayerDock.enabled) {
+      _minimize();
+      playerHandoff.value = dest;
+      return;
+    }
     final route = _route;
     _exit();
     if (route == null) return;
@@ -614,6 +661,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
       LogicalKeyboardKey.keyP: _s.playPrevious,
       LogicalKeyboardKey.mediaTrackPrevious: _s.playPrevious,
       LogicalKeyboardKey.keyI: () => setState(() => _info = !_info),
+      if (PlayerDock.enabled) LogicalKeyboardKey.keyB: _minimize,
       LogicalKeyboardKey.keyX: () => _xray.cast.isNotEmpty ? _openSheet(SheetTab.xray) : null,
       LogicalKeyboardKey.bracketLeft: () => _stepRate(-0.25),
       LogicalKeyboardKey.bracketRight: () => _stepRate(0.25),
@@ -673,7 +721,8 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
   Widget _build(BuildContext context, Color tint, Color accent) {
     final app = AppScope.of(context);
     final offer = _s.resumeOffer;
-    final showChrome = (_visible || _keepVisible) && !_paused && !_dismissed && offer == null;
+    final mini = _mini;
+    final showChrome = (_visible || _keepVisible) && !_paused && !_dismissed && offer == null && !mini;
     _s.setControlsShown(showChrome);
     if (isTv && _chromeShown && !showChrome) WidgetsBinding.instance.addPostFrameCallback((_) => _focusPicture());
     // Paused, the controls stay up, and the D-pad moves between them from Play. With the
@@ -682,27 +731,48 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     if (isTv && showChrome && !_s.player.state.playing && _focus.hasPrimaryFocus) WidgetsBinding.instance.addPostFrameCallback((_) => _focusPlayIfPaused());
     _chromeShown = showChrome;
     final it = _s.item;
-    final body = Stack(
+    // Picture. A click toggles play, a double click full screen; in the corner a click
+    // brings it back to full window. Keyed, so it stays the same picture either way.
+    final picture = Positioned.fill(
+      key: const ValueKey('picture'),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          if (mini) {
+            PlayerDock.instance.expand();
+          } else if (_sheet != null || _together) {
+            _closePanels();
+          } else {
+            _toggle();
+          }
+        },
+        onDoubleTap: isDesktop && !mini ? _toggleFullscreen : null,
+        child: switch (_s.video) {
+          final video? => Video(controller: video, controls: NoVideoControls, fill: Colors.black, fit: fitFor(_s.aspect), subtitleViewConfiguration: const SubtitleViewConfiguration(visible: false)),
+          // Video plane: the picture is on a surface behind the app, seen through here.
+          null => const SizedBox.expand(),
+        },
+      ),
+    );
+    final body = mini
+        ? Stack(
+            children: [
+              picture,
+              _MiniControls(
+                key: const ValueKey('mini'),
+                session: _s,
+                tint: tint,
+                accent: accent,
+                buffering: !_s.ready || _s.player.state.buffering,
+                onToggle: _s.togglePlay,
+                onExpand: PlayerDock.instance.expand,
+                onClose: _exit,
+              ),
+            ],
+          )
+        : Stack(
       children: [
-        // Picture. A click toggles play, a double click full screen.
-        Positioned.fill(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              if (_sheet != null || _together) {
-                _closePanels();
-              } else {
-                _toggle();
-              }
-            },
-            onDoubleTap: isDesktop ? _toggleFullscreen : null,
-            child: switch (_s.video) {
-              final video? => Video(controller: video, controls: NoVideoControls, fill: Colors.black, fit: fitFor(_s.aspect), subtitleViewConfiguration: const SubtitleViewConfiguration(visible: false)),
-              // Video plane: the picture is on a surface behind the app, seen through here.
-              null => const SizedBox.expand(),
-            },
-          ),
-        ),
+        picture,
         // Direct video output: mpv draws no subtitles, so text ones are drawn here.
         if (_s.direct) Positioned.fill(child: IgnorePointer(child: AppSubtitles(session: _s))),
         if (!_s.ready || _s.player.state.buffering)
@@ -790,6 +860,10 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
                         const SizedBox(width: Space.space2),
                         _RoundButton(icon: LucideIcons.info, label: 'Playback Info (I)', on: _info, tint: tint, onTap: () => setState(() => _info = !_info)),
                         const SizedBox(width: Space.space2),
+                        if (PlayerDock.enabled) ...[
+                          _RoundButton(icon: LucideIcons.pictureInPicture2, label: 'Mini Player (B)', tint: tint, onTap: offer == null ? _minimize : null),
+                          const SizedBox(width: Space.space2),
+                        ],
                         if (isDesktop && customTitleBar && !_fullscreen) const Padding(padding: EdgeInsets.only(top: 0), child: WindowButtons(height: 36)) else const SizedBox(width: Space.space4),
                       ],
                     ),
@@ -1043,7 +1117,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
             // from Mute landed on it (which then seeks). It is given focus, never moved to.
             skipTraversal: true,
             onKeyEvent: _onKey,
-            child: MouseRegion(cursor: showChrome ? SystemMouseCursors.basic : SystemMouseCursors.none, onHover: (_) => _poke(), child: body),
+            child: MouseRegion(cursor: showChrome || mini ? SystemMouseCursors.basic : SystemMouseCursors.none, onHover: (_) => _poke(), child: body),
           ),
         ),
       ),
@@ -1767,6 +1841,183 @@ class _TogetherButton extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// The mini player's own controls: Expand, Close and Play / Pause over the picture while the
+/// pointer is on it, and a thin line of progress along the bottom all the time.
+class _MiniControls extends StatefulWidget {
+  const _MiniControls({
+    super.key,
+    required this.session,
+    required this.tint,
+    required this.accent,
+    required this.buffering,
+    required this.onToggle,
+    required this.onExpand,
+    required this.onClose,
+  });
+  final PlayerSession session;
+  final Color tint;
+  final Color accent;
+  final bool buffering;
+  final VoidCallback onToggle;
+  final VoidCallback onExpand;
+  final VoidCallback onClose;
+
+  @override
+  State<_MiniControls> createState() => _MiniControlsState();
+}
+
+class _MiniControlsState extends State<_MiniControls> {
+  bool _hover = false;
+
+  /// Who or what is playing, short enough for the corner.
+  static String label(PlexItem it) => it.type == 'episode'
+      ? '${it.grandparentTitle ?? it.title} · S${it.parentIndex ?? 0} E${it.index ?? 0}'
+      : it.title;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.session;
+    return Positioned.fill(
+      child: StreamBuilder<bool>(
+        stream: s.player.stream.playing,
+        initialData: s.player.state.playing,
+        builder: (context, snap) => _build(s, snap.data ?? false),
+      ),
+    );
+  }
+
+  Widget _build(PlayerSession s, bool playing) {
+    // Paused, the controls stay up, so it's clear why the picture has stopped.
+    final show = _hover || !playing;
+    return MouseRegion(
+        // Clicks between the buttons go on to the picture, which expands it.
+        opaque: false,
+        hitTestBehavior: HitTestBehavior.translucent,
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedOpacity(
+                  opacity: show ? 1 : 0,
+                  duration: const Duration(milliseconds: 160),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.black.withValues(alpha: 0.55), Colors.black.withValues(alpha: 0.05), Colors.black.withValues(alpha: 0.05), Colors.black.withValues(alpha: 0.7)],
+                        stops: const [0, 0.4, 0.6, 1],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (widget.buffering)
+              Center(
+                child: SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(strokeWidth: 3, color: widget.tint, backgroundColor: widget.accent.withValues(alpha: 0.25)),
+                ),
+              ),
+            Positioned.fill(
+              child: IgnorePointer(
+                ignoring: !show,
+                child: AnimatedOpacity(
+                  opacity: show ? 1 : 0,
+                  duration: const Duration(milliseconds: 160),
+                  child: Stack(
+                    children: [
+                      Positioned(left: 8, top: 8, child: _MiniButton(icon: LucideIcons.maximize2, label: 'Expand (B)', onTap: widget.onExpand)),
+                      Positioned(right: 8, top: 8, child: _MiniButton(icon: LucideIcons.x, label: 'Close', onTap: widget.onClose)),
+                      if (!widget.buffering)
+                        Center(
+                          child: _MiniButton(icon: playing ? LucideIcons.pause : LucideIcons.play, label: playing ? 'Pause' : 'Play', big: true, tint: widget.tint, onTap: widget.onToggle),
+                        ),
+                      Positioned(
+                        left: 12,
+                        right: 12,
+                        bottom: 12,
+                        child: StreamBuilder<Duration>(
+                          stream: s.ticks,
+                          builder: (context, _) => Row(
+                            children: [
+                              Expanded(
+                                child: Text(label(s.item), maxLines: 1, overflow: TextOverflow.ellipsis, style: ConsoleText.bodyStrong.copyWith(color: Colors.white, fontSize: 13)),
+                              ),
+                              const SizedBox(width: Space.space2),
+                              Text('${clock(s.position)} / ${clock(s.duration)}', style: ConsoleText.caption.copyWith(color: Colors.white.withValues(alpha: 0.85), fontFeatures: const [FontFeature.tabularFigures()])),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Progress, always there.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 3,
+              child: IgnorePointer(
+                child: StreamBuilder<Duration>(
+                  stream: s.ticks,
+                  builder: (context, _) {
+                    final total = s.duration.inMilliseconds;
+                    final f = total <= 0 ? 0.0 : (s.position.inMilliseconds / total).clamp(0.0, 1.0);
+                    return ColoredBox(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      child: FractionallySizedBox(alignment: Alignment.centerLeft, widthFactor: f, child: ColoredBox(color: widget.tint)),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+    );
+  }
+}
+
+class _MiniButton extends StatelessWidget {
+  const _MiniButton({required this.icon, required this.label, required this.onTap, this.big = false, this.tint});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool big;
+  final Color? tint;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = big ? 48.0 : 32.0;
+    return Tooltip(
+      message: label,
+      waitDuration: const Duration(milliseconds: 600),
+      child: Focusable(
+        onTap: onTap,
+        semanticLabel: label,
+        builder: (context, hover, focus) => AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: big ? playerShade(tint ?? Colors.white, hover ? 0.85 : 0.7) : Colors.black.withValues(alpha: hover ? 0.7 : 0.45),
+            border: big ? Border.all(color: (tint ?? Colors.white).withValues(alpha: 0.85), width: 2) : null,
+          ),
+          child: Icon(icon, size: big ? 22 : 16, color: Colors.white),
+        ),
+      ),
     );
   }
 }

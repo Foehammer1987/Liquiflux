@@ -102,6 +102,8 @@ artwork behind the player away while the video runs.
 - **Spoiler protection** for episodes you haven't seen: blurred stills, hidden summaries and names.
 - **Made for the remote.** Android TV uses a 10-foot layout with D-pad focus throughout. On Windows,
   mouse and keyboard both work, with player shortcuts for everything.
+- **Mini player on Windows**: shrink what's playing into a corner and keep browsing the library
+  behind it; drag it to any corner and expand it again without missing a second.
 - **Careful with your account.** The Plex token and API keys live in the system's credential store,
   never in settings files or logs. The app checks TLS against its own bundled root list and
   confirms it's talking to your server before sending the token.

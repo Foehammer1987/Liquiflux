@@ -17,6 +17,7 @@ import 'services/settings_store.dart';
 import 'services/trusted_roots.dart';
 import 'state/app_state.dart';
 import 'ui/nav.dart' show rootRoutes, rootStack, showHidden;
+import 'ui/player/player_dock.dart';
 import 'state/scope.dart';
 import 'ui/back_key.dart';
 import 'ui/intro.dart';
@@ -120,7 +121,9 @@ class ConsoleApp extends StatelessWidget {
         navigatorObservers: [rootRoutes, rootStack],
         builder: (context, child) {
           // Left / Right stay in their row (see [TvTraversalPolicy]), on every platform.
-          final page = FocusTraversalGroup(policy: TvTraversalPolicy(), child: isTv ? TvCanvas(child: child!) : child!);
+          // On a desktop the player has a layer of its own over the app, to shrink into a
+          // corner of (see [PlayerDock]).
+          final page = FocusTraversalGroup(policy: TvTraversalPolicy(), child: isTv ? TvCanvas(child: child!) : (PlayerDock.enabled ? PlayerDockHost(child: child!) : child!));
           return IntroGate(enabled: _intro, child: Platform.isAndroid ? BackKeyGuard(child: page) : page);
         },
         home: const Shell(),

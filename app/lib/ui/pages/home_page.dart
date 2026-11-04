@@ -17,6 +17,7 @@ import '../home/taste_rows.dart';
 import '../nav.dart';
 import '../seerr_card.dart';
 import '../play.dart';
+import '../player/player_dock.dart';
 
 /// Netflix-style Home: a full-bleed spotlight of well-rated titles with trailer clips,
 /// then rows. Pointing at any title in a row previews it in the spotlight.
@@ -60,13 +61,29 @@ class _HomePageState extends State<HomePage> with RouteAware {
   ModalRoute<dynamic>? _rootRoute;
   final _rng = Random();
 
+  /// On a desktop the player has its own layer (see [PlayerDock]), so it doesn't cover Home
+  /// as a page would: no trailers while it's open, even when it's in its corner.
+  bool get _dockBusy => PlayerDock.enabled && PlayerDock.instance.active;
+  bool _wasDockFull = false;
+
+  void _dockChanged() {
+    if (!mounted) return;
+    final dock = PlayerDock.instance;
+    final full = dock.active && !dock.mini;
+    setState(() {});
+    // Back from a full-window player (closed or in its corner): progress has moved on.
+    if (_wasDockFull && !full) _loadRows();
+    _wasDockFull = full;
+  }
+
   @override
   void initState() {
     super.initState();
+    if (PlayerDock.enabled) PlayerDock.instance.addListener(_dockChanged);
     _scroll.addListener(_onScroll);
     // Not while covered: coming back reloads anyway.
     _refresh = Timer.periodic(const Duration(minutes: 2), (_) {
-      if (!_covered && !_rootCovered) _loadRows();
+      if (!_covered && !_rootCovered && !(_dockBusy && !PlayerDock.instance.mini)) _loadRows();
     });
   }
 
@@ -92,6 +109,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
   void dispose() {
     pageRoutes.unsubscribe(this);
     rootRoutes.unsubscribe(_rootCover);
+    if (PlayerDock.enabled) PlayerDock.instance.removeListener(_dockChanged);
     _refresh?.cancel();
     _scroll.dispose();
     _preview.dispose();
@@ -274,7 +292,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                 items: _spot,
                 preview: _preview,
                 height: heroH,
-                active: !_covered && !_rootCovered && _heroOnScreen,
+                active: !_covered && !_rootCovered && !_dockBusy && _heroOnScreen,
                 plex: plex,
                 trailers: _trailers!,
                 trailersOn: homeTrailersSupported ? app.settings.homeTrailers : app.settings.spotlightTrailers || Probe.has('trailers'),
