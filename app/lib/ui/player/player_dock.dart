@@ -147,9 +147,9 @@ class PlayerDockHost extends StatefulWidget {
   }
 
   /// Space between the mini player and the window's edges; more at the top, clear of the
-  /// title bar and the search box.
+  /// title bar, the search box and a title page's Back link.
   static const margin = 24.0;
-  static const topMargin = 64.0;
+  static const topMargin = 96.0;
 
   /// The mini player's place in [corner] of a window [area] big.
   static Rect miniRect(Size area, Alignment corner) {
