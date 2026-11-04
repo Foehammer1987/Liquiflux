@@ -14,6 +14,7 @@ import '../../state/app_state.dart';
 import '../../state/scope.dart';
 import '../common.dart';
 import '../nav.dart';
+import '../player/player_dock.dart';
 import '../profiles.dart';
 import '../settings/focus_handle.dart';
 import '../settings/plex_link_code.dart';
@@ -1164,7 +1165,7 @@ class _SettingsPageState extends State<SettingsPage> {
         title: 'Keyboard Shortcuts',
         child: Column(
           children: [
-            for (final (keys, what) in const [
+            for (final (keys, what) in [
               ('Space or K', 'Play or pause'),
               ('← → or J L', 'Skip back or forward'),
               ('↑ ↓', 'Volume'),
@@ -1177,6 +1178,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ('[  /  ]', 'Slower or faster'),
               ('0 to 9', 'Jump to 0% to 90%'),
               ('I', 'Playback info'),
+              if (PlayerDock.enabled) ('B', 'Mini player: keep playing in a corner while you browse'),
               ('Esc', 'Close panel, leave full screen, then exit'),
             ])
               Padding(

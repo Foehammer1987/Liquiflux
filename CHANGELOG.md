@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.7
+
+A mini player on Windows: keep watching while you browse.
+
+- The Mini Player button at the top of the player (or B) shrinks the title into a corner of the window, 16:9 and a quarter of the window wide (300 to 480 px). It keeps playing while you scroll the library, search and open pages behind it; nothing restarts, so audio, subtitles and position carry on.
+- Hover it for Play / Pause, Expand and Close, with the title and time; a thin progress line runs along its bottom. Paused, the controls stay up. Drag it anywhere and it glides into the nearest corner (a flick carries it). Click the picture, or Expand, to go back to full window, with the keyboard shortcuts back on the player.
+- Picking another title while it plays replaces it (its place is saved as when closing). Up Next carries on in the corner. An actor picked in X-Ray opens their page with the title still playing in the corner, instead of closing it. Switching profile closes it. Home's spotlight and its trailers hold still while a title plays.
+- How: on desktop the player now opens on a layer of its own over the app, with its own navigator (`app/lib/ui/player/player_dock.dart`), instead of on the app's navigator. The app under a full-window player is kept but not drawn (Offstage, tickers off, no keyboard focus), as a covered page was before; the keyboard goes back to where it was when the player shrinks or closes. Android and Fire TV are unchanged: the player still opens on the app's navigator there.
+- Version 1.0.7+65 (Android versionCode 1065 for armeabi-v7a, 2065 for arm64-v8a).
+
 ## 1.0.6
 
 Watch Together with Plex friends works again.

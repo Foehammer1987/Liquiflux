@@ -143,7 +143,7 @@ class _ItemPageState extends State<ItemPage> {
   }
 
   Future<void> _playItem(PlexItem full, {bool resume = true, bool choose = false}) async {
-    await Navigator.of(context, rootNavigator: true).push(playerRoute((_) => PlayerPage(item: full, resume: resume, choose: choose)));
+    await openPlayer(context, (_) => PlayerPage(item: full, resume: resume, choose: choose));
     if (mounted) unawaited(_load(refresh: true)); // refresh watch state
   }
 

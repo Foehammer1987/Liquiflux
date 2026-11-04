@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../platform.dart';
 import '../state/scope.dart';
 import 'pages/player_page.dart';
+import 'player/player_dock.dart';
 
 /// How the player opens over the app. On a low-memory TV it fades in and leaves the app behind it
 /// as it was, instead of fading that out: the app stays drawable there, so for a 4K file the
@@ -18,6 +19,14 @@ PageRoute<void> playerRoute(WidgetBuilder builder) => isLowMemoryTv
         ),
       )
     : MaterialPageRoute<void>(builder: builder);
+
+/// Opens a player page: on a desktop on the player's own layer (see [PlayerDock]), where it
+/// replaces any player already open, mini or not; on a TV over the whole app. Completes when
+/// it closes.
+Future<void> openPlayer(BuildContext context, WidgetBuilder builder) {
+  if (PlayerDock.enabled) return PlayerDock.instance.open(builder);
+  return Navigator.of(context, rootNavigator: true).push(playerRoute(builder));
+}
 
 /// Plays a movie or episode; a show plays its next unwatched episode. [queue] keeps going
 /// after it in order (a collection marathon), with Up Next between titles.
@@ -36,7 +45,7 @@ Future<void> playTitle(BuildContext context, PlexItem item, {bool resume = true,
     }
   }
   if (target == null || !context.mounted) return;
-  await Navigator.of(context, rootNavigator: true).push(playerRoute((_) => PlayerPage(item: target!, resume: resume, queue: queue)));
+  await openPlayer(context, (_) => PlayerPage(item: target!, resume: resume, queue: queue));
 }
 
 /// The episode to carry on with: the first unwatched one of the first unfinished season.

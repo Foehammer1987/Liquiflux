@@ -21,6 +21,7 @@ import '../state/scope.dart';
 import 'nav.dart';
 import 'profiles.dart';
 import 'play.dart';
+import 'player/player_dock.dart';
 import 'notice_toast.dart';
 import 'shuffle/shuffle_dialog.dart';
 import 'tv_focus.dart';
@@ -192,7 +193,7 @@ class _ShellState extends State<Shell> {
     if (!mounted) return;
     final playing = AppScope.read(context).openParty.session;
     if (playing != null) return playing.onPlay(item);
-    unawaited(Navigator.of(context, rootNavigator: true).push(playerRoute((_) => PlayerPage(item: item, resume: false, choose: false))));
+    unawaited(openPlayer(context, (_) => PlayerPage(item: item, resume: false, choose: false)));
   }
 
   Future<void> _join(_Invite invite) async {
@@ -371,6 +372,8 @@ class _ShellState extends State<Shell> {
   Future<void> _profiles({bool atStart = false}) async {
     final switched = await showProfiles(context, atStart: atStart);
     if (!mounted || !switched) return;
+    // A mini player was the last user's: it stops, saving their place.
+    PlayerDock.instance.close();
     go(const HomeDest());
     if (isTv) _claimFocus();
   }
