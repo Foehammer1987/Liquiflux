@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.6
+
+Watch Together with Plex friends works again.
+
+- Inviting Plex friends failed with "Request failed (410)": plex.tv retired the friends list Liquiflux read (`/api/v2/friends` now answers 410 Gone for everyone). The list now comes from plex.tv's `/api/users` (XML, the same one python-plexapi and other Plex tools read), with the old one tried only if that fails. Only the `<User>` attributes (id, name, username, picture) are read, at most 500 people.
+- If Plex ever answers 410 again, the panel says Plex has switched that part off and that room codes still work, instead of a bare status code.
+- Version 1.0.6+64 (Android versionCode 1064 for armeabi-v7a, 2064 for arm64-v8a).
+
 ## 1.0.5
 
 Plex Home profiles: a household can share the TV, each person with their own Plex.

@@ -61,6 +61,7 @@ class WatchTogether extends ChangeNotifier {
       return 'Plex turned this down. Watch Together needs Liquiflux signed in with your own Plex account (Settings, Servers, My Plex Account).';
     }
     if (e is ApiException && e.status == 400) return 'Plex only lets you invite friends and people in your Plex Home.';
+    if (e is ApiException && e.status == 410) return 'Plex has switched off this part of Watch Together. Room codes still work.';
     if (e is ApiException && e.status == 0) return 'Couldn’t reach Plex’s Watch Together service.';
     return 'Watch Together didn’t work: ${errorText(e)}';
   }

@@ -39,6 +39,31 @@ class JsonHttp {
   /// redirect leaves the server (an https upgrade on the same host is fine), [headers]
   /// stay behind, so credentials only ever reach the server they were meant for.
   Future<({dynamic body, Map<String, String> headers})> sendRaw(String method, Uri uri, {Map<String, String> headers = const {}, Object? body, Duration? timeout}) async {
+    final r = await _exchange(method, uri, headers: headers, body: body, timeout: timeout);
+    dynamic parsed;
+    if (r.bytes.isNotEmpty) {
+      try {
+        parsed = jsonDecode(utf8.decode(r.bytes));
+      } catch (_) {
+        parsed = null;
+      }
+    }
+    if (r.status < 200 || r.status >= 300) {
+      final msg = parsed is Map ? (parsed['message'] ?? parsed['error'] ?? '').toString() : '';
+      throw ApiException(r.status, msg.isNotEmpty ? msg : _statusText(r.status), uri: uri, body: parsed);
+    }
+    return (body: parsed, headers: r.headers);
+  }
+
+  /// A GET whose answer is text rather than JSON (plex.tv's older XML endpoints), with the
+  /// same redirect, header and time rules as [sendRaw]. [accept] is sent as the Accept header.
+  Future<String> getText(Uri uri, {Map<String, String> headers = const {}, String accept = 'application/xml', Duration? timeout}) async {
+    final r = await _exchange('GET', uri, headers: {...headers, 'accept': accept}, timeout: timeout);
+    if (r.status < 200 || r.status >= 300) throw ApiException(r.status, _statusText(r.status), uri: uri);
+    return utf8.decode(r.bytes, allowMalformed: true);
+  }
+
+  Future<({int status, Map<String, String> headers, Uint8List bytes})> _exchange(String method, Uri uri, {Map<String, String> headers = const {}, Object? body, Duration? timeout}) async {
     final limit = timeout ?? this.timeout;
     final clock = Stopwatch()..start();
     var at = uri;
@@ -88,19 +113,7 @@ class JsonHttp {
     } catch (_) {
       throw ApiException(0, 'Lost the connection to ${uri.origin}', uri: uri);
     }
-    dynamic parsed;
-    if (bytes.isNotEmpty) {
-      try {
-        parsed = jsonDecode(utf8.decode(bytes));
-      } catch (_) {
-        parsed = null;
-      }
-    }
-    if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
-      final msg = parsed is Map ? (parsed['message'] ?? parsed['error'] ?? '').toString() : '';
-      throw ApiException(streamed.statusCode, msg.isNotEmpty ? msg : _statusText(streamed.statusCode), uri: uri, body: parsed);
-    }
-    return (body: parsed, headers: streamed.headers);
+    return (status: streamed.statusCode, headers: streamed.headers, bytes: bytes);
   }
 
   /// Reads the whole body, giving up (and letting go of the connection) after [limit].
