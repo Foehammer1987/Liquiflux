@@ -185,7 +185,7 @@ class _NoSecrets implements SecretStore {
 /// The app as a TV lays it out (1920x1080 at 2x, drawn on the 1440-wide canvas), on Home with
 /// everything loaded. Run with CONSOLE_TV=1 for the TV's own behaviour too (focus on arrival,
 /// the rail hidden until Left); without it the shell behaves as on a desktop.
-Future<AppState> tvApp(WidgetTester t, {int settle = 60}) async {
+Future<AppState> tvApp(WidgetTester t, {int settle = 60, void Function(AppState)? before}) async {
   t.view.physicalSize = const Size(1920, 1080);
   t.view.devicePixelRatio = 2;
   addTearDown(t.view.reset);
@@ -198,6 +198,7 @@ Future<AppState> tvApp(WidgetTester t, {int settle = 60}) async {
     ..server = PlexServerInfo(name: 'Homeserver', version: '1.42', machineIdentifier: 'm')
     ..sections = [PlexSection(key: '1', title: 'Movies', type: 'movie'), PlexSection(key: '2', title: 'TV Shows', type: 'show')]
     ..loaded = true;
+  before?.call(state);
   await t.pumpWidget(
     AppScope(
       state: state,

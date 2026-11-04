@@ -5,6 +5,7 @@ export 'src/http_json.dart';
 export 'src/plex/plex_models.dart';
 export 'src/plex/plex_client.dart';
 export 'src/plex/plex_auth.dart';
+export 'src/plex/plex_home.dart';
 export 'src/seerr/seerr_models.dart';
 export 'src/seerr/seerr_client.dart';
 export 'src/request_state.dart';

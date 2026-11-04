@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.5
+
+Plex Home profiles: a household can share the TV, each person with their own Plex.
+
+- Who's watching: the people in your Plex Home (listed from plex.tv, `/api/v2/home/users`), each with their plex.tv picture or initials and a lock when they have a PIN. Open it from the avatar above Settings in the sidebar (shown once the Home has two or more people), from Settings > General > Plex Home, or as Liquiflux opens with Ask Who's Watching turned on (off by default; it closes itself when there's no Home or plex.tv can't be reached).
+- A PIN pad for protected profiles, made for the remote (the digits are buttons; on a PC the number keys and Backspace work too). A wrong PIN shakes the dots and clears them; Back leaves the pad for the profiles.
+- Switching asks plex.tv for that user's token (`/home/users/{uuid}/switch`), then for the server's token for them from plex.tv's resources, matched by the server's machine id. The server address stays; a user the server isn't shared with gets a clear message and nothing changes. Every page starts again from Home, so Continue Watching, Recently Added and watched marks are that person's.
+- Per-person things: thumbs up/down (Because You Watched), spoiler settings, the Watch Together name and remembered audio/subtitle choices per show are put away when someone else takes over and come back when they return (settings.json, `profiles`). Trakt and AniList sign-ins are per person too (credential store, `scrobble_accounts_<uuid>`); the account that signed in to Plex keeps the existing ones. Seerr's Plex sign-in, Watch Together and the X-Ray server all sign in as the person watching.
+- The signed-in account's plex.tv token is kept in the credential store (`plex_home_token`) while someone else is watching, so the Home can be listed and switched again; switching back to it asks for its PIN when it has one, as Plex's own apps do. Signing out or signing in again goes back to that account's own settings.
+- Version 1.0.5+63 (Android versionCode 1063 for armeabi-v7a, 2063 for arm64-v8a).
+
 ## 1.0.4
 
 Fire TV fixes from a cloud Fire TV test (Fire OS 14, 64-bit): less memory while a video plays, and three remote and player bugs.

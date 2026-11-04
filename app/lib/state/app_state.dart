@@ -300,7 +300,7 @@ class AppState extends ChangeNotifier {
   Future<void> init() async {
     settings = await _store.load();
     _makeTrakt();
-    unawaited(scrobbler.load());
+    unawaited(scrobbler.useProfile(settings.profileKey));
     loaded = true;
     await connect();
   }
@@ -346,7 +346,98 @@ class AppState extends ChangeNotifier {
   }
 
   /// Forgets the Plex sign-in (and a Seerr login that rides on it).
-  Future<void> signOut() => update(settings.copyWith(plexToken: '', plexAccountToken: '', plexServerName: '', plexMachineId: '', seerrApiKey: settings.seerrUsePlexLogin ? '' : null));
+  Future<void> signOut() {
+    forgetHome();
+    return update(settings.backToOwner().copyWith(plexToken: '', plexAccountToken: '', plexServerName: '', plexMachineId: '', seerrApiKey: settings.seerrUsePlexLogin ? '' : null));
+  }
+
+  // ---------------------------------------------------------------- Plex Home
+
+  /// Everyone in the Plex Home, once listed (null before, empty when there's no Home).
+  List<PlexHomeUser>? homeList;
+  Future<List<PlexHomeUser>>? _homeJob;
+
+  /// A new sign-in: the Home is listed afresh.
+  void forgetHome() {
+    homeList = null;
+    _homeJob = null;
+  }
+
+  /// The Home user in use, when [homeList] knows them.
+  PlexHomeUser? get profile {
+    final id = settings.plexUserId.isNotEmpty ? settings.plexUserId : settings.plexOwnerId;
+    return homeList?.where((u) => u.uuid == id).firstOrNull;
+  }
+
+  /// Lists the Plex Home (kept for the session unless [fresh]). The first time, it also
+  /// learns which uuid is the account that signed in.
+  Future<List<PlexHomeUser>> homeUsers({bool fresh = false}) {
+    if (!settings.plexReady) return Future.value(const []);
+    final had = _homeJob;
+    if (had != null && !fresh) return had;
+    final job = _listHome();
+    _homeJob = job;
+    job.then((_) {}, onError: (Object _) {
+      if (identical(_homeJob, job)) _homeJob = null;
+    });
+    return job;
+  }
+
+  Future<List<PlexHomeUser>> _listHome() async {
+    final s = settings;
+    final home = PlexHome(clientId: s.clientId, product: appName, base: Platform.environment['CONSOLE_PLEXHOME_URL'] ?? 'https://clients.plex.tv/api/v2');
+    try {
+      final token = s.homeToken;
+      final list = await home.users(token);
+      var owner = s.plexOwnerId;
+      if (owner.isEmpty) owner = (await home.me(token)).uuid;
+      // Signed in again meanwhile: this list is someone else's.
+      if (settings.homeToken != token) return list;
+      if (owner != settings.plexOwnerId) {
+        settings = settings.copyWith(plexOwnerId: owner);
+        unawaited(_store.save(settings));
+      }
+      homeList = list;
+      notifyListeners();
+      return list;
+    } finally {
+      home.close();
+    }
+  }
+
+  /// Switches to Home user [user] ([pin] when they have one): their plex.tv token, the
+  /// server's token for them, their own thumbs, spoilers and Trakt/AniList sign-ins. Throws
+  /// [PlexPinRejected] for a wrong PIN, or an [ApiException] the page can show.
+  Future<void> switchProfile(PlexHomeUser user, {String? pin}) async {
+    final s = settings;
+    final opts = (clientId: s.clientId, product: appName);
+    final home = PlexHome(clientId: opts.clientId, product: opts.product, base: Platform.environment['CONSOLE_PLEXHOME_URL'] ?? 'https://clients.plex.tv/api/v2');
+    final auth = PlexAuth(clientId: opts.clientId, product: opts.product);
+    try {
+      final userToken = await home.switchTo(s.homeToken, user, pin: pin);
+      rememberSecret(userToken);
+      final servers = await auth.servers(userToken);
+      final server = servers.where((x) => s.plexMachineId.isNotEmpty ? x.machineIdentifier == s.plexMachineId : x.name == s.plexServerName).firstOrNull;
+      final name = s.plexServerName.isNotEmpty ? s.plexServerName : 'this server';
+      if (server == null || server.accessToken.isEmpty) throw ApiException(0, "${user.name} doesn't have access to $name. Share it with them in Plex first.");
+      rememberSecret(server.accessToken);
+      final owner = s.plexOwnerId.isNotEmpty && user.uuid == s.plexOwnerId;
+      final next = settings
+          .swapProfile(owner ? '' : user.uuid)
+          .copyWith(
+            plexToken: server.accessToken,
+            plexAccountToken: userToken,
+            plexHomeToken: s.homeToken,
+            plexUserId: owner ? '' : user.uuid,
+            plexUserName: owner ? '' : user.name,
+            plexUserThumb: owner ? '' : user.thumb,
+          );
+      await update(next);
+    } finally {
+      home.close();
+      auth.close();
+    }
+  }
 
   /// True when the server is on this network, which picks the home or away streaming quality.
   bool get plexIsLocal => isLocalAddress(settings.plexUrl);
@@ -404,9 +495,11 @@ class AppState extends ChangeNotifier {
     unawaited(openParty.leave());
     final s = settings;
     // Scrubbed from anything logged or shown from here on.
-    for (final secret in [s.plexToken, s.plexAccountToken, s.seerrApiKey, s.traktClientId, s.traktClientSecret]) {
+    for (final secret in [s.plexToken, s.plexAccountToken, s.plexHomeToken, s.seerrApiKey, s.traktClientId, s.traktClientSecret]) {
       rememberSecret(secret);
     }
+    // Each Home user has their own Trakt and AniList sign-ins.
+    unawaited(scrobbler.useProfile(s.profileKey));
 
     final oldPlex = plex, oldSeerr = seerr;
     final keepPlex =
@@ -454,6 +547,8 @@ class AppState extends ChangeNotifier {
   void _afterPlex(int gen, Duration wait) {
     if (plexConn == Conn.ok) {
       watchTogether.watchInvites();
+      // Whether there's a Plex Home to switch in (the rail shows its profile button then).
+      if (homeList == null) unawaited(homeUsers().then((_) {}, onError: (Object e) => debugPrint('plex home: ${errorText(e)}')));
     } else if (plexConn == Conn.failed) {
       _plexRetry = Timer(wait, () async {
         if (gen != _gen) return;

@@ -39,7 +39,11 @@ class Scrobbler extends ChangeNotifier {
   final String _traktBase;
   final String _anilistEndpoint;
 
-  static const _key = 'scrobble_accounts';
+  /// Each Plex Home user keeps their own sign-ins; the account that signed in to Plex keeps
+  /// the original key (so sign-ins from before profiles stay where they were).
+  static String keyFor(String profile) => profile.isEmpty ? 'scrobble_accounts' : 'scrobble_accounts_$profile';
+  String _profile = '';
+  String get _key => keyFor(_profile);
   static const watchedAt = 80.0;
 
   /// The Trakt app in use: the user's own when Settings has both its Client ID and Secret,
@@ -69,6 +73,30 @@ class Scrobbler extends ChangeNotifier {
   Future<void>? _loading;
 
   Future<void> load() => _loading ??= _load();
+
+  /// Uses the Trakt and AniList sign-ins of Plex Home user [profile] ('' = the account that
+  /// signed in to Plex) from now on.
+  Future<void> useProfile(String profile) async {
+    if (profile == _profile && _loading != null) return load();
+    // Let a load under way finish before its answers are put away.
+    await _loading?.catchError((Object _) {});
+    _profile = profile;
+    _trakt?.close();
+    _trakt = null;
+    _tokens = null;
+    _traktFor = '';
+    traktUser = '';
+    traktAppChanged = false;
+    _anilist?.close();
+    _anilist = null;
+    anilistUser = '';
+    _anilistExpires = null;
+    lastTrakt = null;
+    lastAniList = null;
+    _loaded = false;
+    _loading = null;
+    return load();
+  }
 
   Future<void> _load() async {
     Map<String, dynamic> j = const {};
@@ -152,15 +180,16 @@ class Scrobbler extends ChangeNotifier {
   }
 
   Future<void> _save() async {
+    final key = _key;
     final j = {
       if (_tokens != null) 'trakt': {'clientId': _traktFor, 'user': traktUser, 'tokens': _tokens!.toJson()},
       if (_anilist != null) 'anilist': {'token': _anilist!.token, 'user': anilistUser, 'expires': ?_anilistExpires?.toUtc().toIso8601String()},
     };
     try {
       if (j.isEmpty) {
-        await _secrets.delete(_key);
+        await _secrets.delete(key);
       } else {
-        await _secrets.write(_key, jsonEncode(j));
+        await _secrets.write(key, jsonEncode(j));
       }
     } catch (e) {
       debugPrint('scrobble accounts save failed: ${errorText(e)}');
