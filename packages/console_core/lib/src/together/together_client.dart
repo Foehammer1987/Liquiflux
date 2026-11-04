@@ -99,12 +99,71 @@ class TogetherClient {
   }
 
   /// People you can ask in. Watch Together only invites friends and Home users.
+  ///
+  /// plex.tv retired `/api/v2/friends` (it answers 410 Gone), so the list comes from the
+  /// older `/api/users`, which is XML. The v2 call is only tried when that one fails, for a
+  /// plex.tv (or test double) that still has it.
   Future<List<PlexFriend>> friends() async {
+    List<PlexFriend> list;
+    try {
+      list = parseUsersXml(await _http.getText(Uri.parse('$plexTvUrl/api/users'), headers: _headers));
+    } on ApiException catch (first) {
+      try {
+        list = await _friendsV2();
+      } on ApiException {
+        throw first;
+      }
+    }
+    return list..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+  }
+
+  Future<List<PlexFriend>> _friendsV2() async {
     final j = await _send('GET', '$plexTvUrl/api/v2/friends');
     final container = j is Map ? j['MediaContainer'] : null;
     final list = _listOf(j is List ? j : (j is Map ? (j['friends'] ?? (container is Map ? container['User'] : null)) : null));
-    return [for (final f in list.whereType<Map<dynamic, dynamic>>()) PlexFriend.fromJson(f.cast<String, dynamic>())]..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+    return [for (final f in list.whereType<Map<dynamic, dynamic>>()) PlexFriend.fromJson(f.cast<String, dynamic>())];
   }
+
+  /// The `<User …>` entries of plex.tv's `/api/users` answer. Only the attributes are read
+  /// (no entities beyond XML's own, no DTDs), at most 500 people, and anyone without an id is
+  /// left out since they can't be invited.
+  static List<PlexFriend> parseUsersXml(String xml) {
+    final out = <PlexFriend>[];
+    final seen = <int>{};
+    for (final m in _userTag.allMatches(xml)) {
+      if (out.length >= 500) break;
+      final a = <String, String>{for (final x in _attr.allMatches(m.group(1)!)) x.group(1)!: _unescape(x.group(2)!)};
+      final f = PlexFriend.fromJson({
+        'id': a['id'],
+        'title': (a['title'] ?? '').isNotEmpty ? a['title'] : null,
+        'username': (a['username'] ?? '').isNotEmpty ? a['username'] : null,
+        'thumb': (a['thumb'] ?? '').isNotEmpty ? a['thumb'] : null,
+      });
+      if (f.id > 0 && seen.add(f.id)) out.add(f);
+    }
+    return out;
+  }
+
+  static final _userTag = RegExp(r'<User\b([^>]*)>');
+  static final _attr = RegExp(r'([A-Za-z_][\w.-]*)\s*=\s*"([^"]*)"');
+
+  static String _unescape(String v) => v.replaceAllMapped(RegExp(r'&(#x[0-9A-Fa-f]{1,6}|#[0-9]{1,7}|amp|lt|gt|quot|apos);'), (m) {
+    final e = m.group(1)!;
+    switch (e) {
+      case 'amp':
+        return '&';
+      case 'lt':
+        return '<';
+      case 'gt':
+        return '>';
+      case 'quot':
+        return '"';
+      case 'apos':
+        return "'";
+    }
+    final code = e.startsWith('#x') ? int.tryParse(e.substring(2), radix: 16) : int.tryParse(e.substring(1));
+    return code != null && code > 0 && code <= 0x10FFFF && (code < 0xD800 || code > 0xDFFF) ? String.fromCharCode(code) : '';
+  });
 
   /// Rooms you made or were asked into that haven't run out.
   Future<List<TogetherRoom>> rooms() async {
