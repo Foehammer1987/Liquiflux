@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.8
+
+A new, original Liquiflux logo, ready for app stores.
+
+- The old mark looked like the Starfleet insignia, a trademark that would get Liquiflux turned away from the Amazon Appstore and other stores. The new one is an LF made of two ribbons of liquid: the L flows up into the F's top arm, and an outer layer peels off into the middle arm, in the app's blue.
+- It's everywhere the old one was: the sidebar, Home's spotlight, the Settings welcome, the Android TV banner and launcher icons, the Windows icon (taskbar, Start, installer) and the README.
+- A new startup animation, "flow": the two ribbons fly in twisting from opposite edges of the screen and lay themselves down into the LF, a shine runs across it, then the name surfaces as before. 3.6 s; any key or click still skips it.
+- The Android launch screen is now plain dark grey (no faint logo), and the intro starts from that same empty screen.
+- How: the logo is drawn from one vector source; `packages/console_ui/assets/logos/` holds mark-blue/white/navy and the two ribbons the intro uses (ribbon-1/2.png). The intro's flying ribbons are short lines along a precomputed route; the landed part is the ribbon image seen through a stroke along its centre line, in a layer only as big as the logo.
+- Version 1.0.8+66 (Android versionCode 1066 for armeabi-v7a, 2066 for arm64-v8a).
+
 ## 1.0.7
 
 A mini player on Windows: keep watching while you browse.
