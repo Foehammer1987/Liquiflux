@@ -52,8 +52,9 @@ class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Flutter swaps the launch theme for NormalTheme (black) here, well before its first frame,
-        // which flashed black between the launch screen's logo and the intro's. Keep the logo
-        // until the intro is over; then lib/ui/intro.dart asks for black back ("plain") for video.
+        // which flashed black between the launch screen and the intro. Keep the launch screen's
+        // dark grey until the intro is over; then lib/ui/intro.dart asks for black back ("plain")
+        // for video.
         window.setBackgroundDrawableResource(R.drawable.launch_background)
     }
 

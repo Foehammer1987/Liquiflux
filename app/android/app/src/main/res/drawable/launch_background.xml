@@ -1,14 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Shown while the app starts: the logo on the app's dark background (was plain white).
-     The startup animation (lib/ui/intro.dart) begins from exactly this picture: the logo is
-     146 dp tall, 146/540 of a 1080p TV's height, centred. -->
+<!-- Shown while the app starts: just the app's dark background. The startup animation
+     (lib/ui/intro.dart) begins from this same empty screen, with the logo's ribbons flying in. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <color android:color="#FF0C0C0C" />
     </item>
-    <item
-        android:width="114dp"
-        android:height="146dp"
-        android:gravity="center"
-        android:drawable="@drawable/launch_logo" />
 </layer-list>

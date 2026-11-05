@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="packages/console_ui/assets/logos/mark-blue.png" width="96" alt="Liquiflux logo">
+  <img src="packages/console_ui/assets/logos/mark-blue.png" width="128" alt="Liquiflux logo">
 </p>
 
 <h1 align="center">Liquiflux</h1>

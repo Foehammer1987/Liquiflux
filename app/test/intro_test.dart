@@ -46,9 +46,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     // Handled means Android doesn't act on it either (web's key tables know a Back key).
     expect(await simulateKeyDownEvent(LogicalKeyboardKey.goBack, physicalKey: PhysicalKeyboardKey.browserBack, platform: 'web'), isTrue);
-    // The send-off alone (650 ms), not the rest of the 3.4 s.
+    // The send-off alone (700 ms), not the rest of the 3.6 s.
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pump(const Duration(milliseconds: 750));
     await tester.pump();
     expect(find.byType(Intro), findsNothing);
     // Released after the intro has gone: still swallowed, so Android sees no stray Back.
