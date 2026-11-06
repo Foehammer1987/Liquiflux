@@ -29,7 +29,7 @@ Map<String, int> countShows(Iterable<ChannelSlot> slots) {
 
 void main() {
   test('every show gets an equal turn by default, however many episodes it has', () {
-    const rule = ChannelRule(id: 'a', name: 'Adult Swim', source: src);
+    const rule = ChannelRule(id: 'a', name: 'Adult Swim', sources: [src]);
     final slots = ChannelPicker(rule, pool(), ChannelProgress(), random: Random(1)).next(3000);
     final c = countShows(slots);
     for (final n in c.values) {
@@ -39,18 +39,18 @@ void main() {
 
   test('a classic shuffle follows episode counts; weights change a show\'s share', () {
     final p = pool();
-    expect(channelShares(const ChannelRule(id: 'a', name: '', source: src, evenShows: false), p)['simpsons'], closeTo(800 / 900, 1e-9));
-    const weighted = ChannelRule(id: 'a', name: '', source: src, weights: {'simpsons': 3});
+    expect(channelShares(const ChannelRule(id: 'a', name: '', sources: [src], evenShows: false), p)['simpsons'], closeTo(800 / 900, 1e-9));
+    const weighted = ChannelRule(id: 'a', name: '', sources: [src], weights: {'simpsons': 3});
     expect(channelShares(weighted, p)['simpsons'], closeTo(0.6, 1e-9));
     final c = countShows(ChannelPicker(weighted, p, ChannelProgress(), random: Random(2)).next(3000));
     // The same show never plays twice running, which pulls a big share down a little.
     expect(c['simpsons']! / 3000, inInclusiveRange(0.42, 0.62));
-    const off = ChannelRule(id: 'a', name: '', source: src, weights: {'venture': 0});
+    const off = ChannelRule(id: 'a', name: '', sources: [src], weights: {'venture': 0});
     expect(countShows(ChannelPicker(off, p, ChannelProgress(), random: Random(3)).next(200)).containsKey('venture'), isFalse);
   });
 
   test('no repeats until a show runs out, and never the same show twice running', () {
-    const rule = ChannelRule(id: 'a', name: '', source: src);
+    const rule = ChannelRule(id: 'a', name: '', sources: [src]);
     final slots = ChannelPicker(rule, pool(big: 100, small: 100), ChannelProgress(), random: Random(4)).next(30);
     expect(slots.map((s) => s.item.ratingKey).toSet().length, 30);
     for (var i = 1; i < slots.length; i++) {
@@ -62,21 +62,21 @@ void main() {
   });
 
   test('bumpers go first and between every N episodes, without repeats', () {
-    const rule = ChannelRule(id: 'a', name: '', source: src, bumpers: bumps, bumperEvery: 2);
+    const rule = ChannelRule(id: 'a', name: '', sources: [src], bumpers: bumps, bumperEvery: 2);
     final picker = ChannelPicker(rule, pool(bumpers: 3), ChannelProgress(), random: Random(6));
     final slots = picker.next(6);
     expect(slots.map((s) => s.bumper), [true, false, false, true, false, false, true, false, false]);
     expect(slots.where((s) => s.bumper).map((s) => s.item.ratingKey).toSet().length, 3);
     // The next block carries on the count.
     expect(picker.next(2).map((s) => s.bumper), [true, false, false]);
-    const none = ChannelRule(id: 'b', name: '', source: src, bumpers: bumps, bumperFirst: false);
+    const none = ChannelRule(id: 'b', name: '', sources: [src], bumpers: bumps, bumperFirst: false);
     expect(ChannelPicker(none, pool(), ChannelProgress(), random: Random(7)).next(2).map((s) => s.bumper), [false, true, false]);
     // No bumpers found: just episodes.
     expect(ChannelPicker(rule, pool(bumpers: 0), ChannelProgress()).next(3).every((s) => !s.bumper), isTrue);
   });
 
   test('carries on from the episode it was left on, and remembers what played', () {
-    const rule = ChannelRule(id: 'a', name: '', source: src, bumpers: bumps);
+    const rule = ChannelRule(id: 'a', name: '', sources: [src], bumpers: bumps);
     final p = pool(big: 3, small: 3);
     final progress = ChannelProgress();
     final first = ChannelPicker(rule, p, progress, random: Random(8)).next(4);
@@ -93,12 +93,19 @@ void main() {
   });
 
   test('rules and progress survive a round trip; bad files are ignored', () {
-    const rule = ChannelRule(id: 'r1', name: 'Adult Swim', source: src, bumpers: bumps, bumperEvery: 3, bumperFirst: false, evenShows: false, weights: {'simpsons': 0.5});
+    const rule = ChannelRule(id: 'r1', name: 'Adult Swim', sources: [src], bumpers: bumps, bumperEvery: 3, bumperFirst: false, evenShows: false, weights: {'simpsons': 0.5});
     final back = ChannelRule.fromJson(rule.toJson())!;
+    expect(back.sources, [src]);
     expect((back.name, back.source, back.bumpers, back.bumperEvery, back.bumperFirst, back.evenShows), (rule.name, src, bumps, 3, false, false));
     expect(back.weights, {'simpsons': 0.5});
     expect(ChannelRule.fromJson({'id': 'x', 'source': {'kind': 'nope', 'key': '1'}}), isNull);
-    expect(ChannelRule.fromJson({'id': 'x', 'source': src.toJson(), 'bumperEvery': 999, 'weights': {'a': 1e9, 'b': 'x'}})!.bumperEvery, 10);
+    // A rule saved by 1.0.9 had one source.
+    expect(ChannelRule.fromJson({'id': 'x', 'source': src.toJson()})!.sources, [src]);
+    // Several, with a repeat and a broken one dropped.
+    const show = ChannelSource(kind: 'show', key: '7', title: 'Squidbillies');
+    expect(ChannelRule.fromJson({'id': 'x', 'sources': [src.toJson(), show.toJson(), src.toJson(), 'junk']})!.sources, [src, show]);
+    expect(ChannelRule.fromJson({'id': 'x', 'sources': []}), isNull);
+    expect(ChannelRule.fromJson({'id': 'x', 'sources': [src.toJson()], 'bumperEvery': 999, 'weights': {'a': 1e9, 'b': 'x'}})!.bumperEvery, 10);
     final pr = ChannelProgress(played: {'s': {'1', '2'}}, bumpersPlayed: {'b'}, current: '2', lastShow: 's');
     final pb = ChannelProgress.fromJson(pr.toJson());
     expect(pb.played['s'], {'1', '2'});

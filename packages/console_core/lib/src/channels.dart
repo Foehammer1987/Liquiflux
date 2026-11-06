@@ -38,13 +38,13 @@ class ChannelSource {
 
 String _clip(String s, int n) => s.length <= n ? s : s.substring(0, n);
 
-/// A saved shuffle rule: a "channel" that plays random episodes from [source], with
+/// A saved shuffle rule: a "channel" that plays random episodes from [sources], with
 /// optional bumpers from [bumpers] between them.
 class ChannelRule {
   const ChannelRule({
     required this.id,
     required this.name,
-    required this.source,
+    required this.sources,
     this.bumpers,
     this.bumperEvery = 1,
     this.bumperFirst = true,
@@ -54,7 +54,15 @@ class ChannelRule {
 
   final String id;
   final String name;
-  final ChannelSource source;
+
+  /// Where the episodes come from: one or more shows, collections, labels or libraries,
+  /// played as one pool. Never empty.
+  final List<ChannelSource> sources;
+
+  /// The first source (what the channel is named after when it has no name).
+  ChannelSource get source => sources.first;
+
+  static const maxSources = 200;
 
   /// Short clips played between episodes (null = none).
   final ChannelSource? bumpers;
@@ -80,10 +88,10 @@ class ChannelRule {
 
   double weightOf(String show) => weights[show] ?? 1;
 
-  ChannelRule copyWith({String? name, ChannelSource? source, ChannelSource? Function()? bumpers, int? bumperEvery, bool? bumperFirst, bool? evenShows, Map<String, double>? weights}) => ChannelRule(
+  ChannelRule copyWith({String? name, List<ChannelSource>? sources, ChannelSource? Function()? bumpers, int? bumperEvery, bool? bumperFirst, bool? evenShows, Map<String, double>? weights}) => ChannelRule(
     id: id,
     name: name ?? this.name,
-    source: source ?? this.source,
+    sources: sources ?? this.sources,
     bumpers: bumpers != null ? bumpers() : this.bumpers,
     bumperEvery: bumperEvery ?? this.bumperEvery,
     bumperFirst: bumperFirst ?? this.bumperFirst,
@@ -94,6 +102,8 @@ class ChannelRule {
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
+    'sources': [for (final s in sources) s.toJson()],
+    // 1.0.9 reads only this, so going back to it keeps the channel (with its first source).
     'source': source.toJson(),
     if (bumpers != null) 'bumpers': bumpers!.toJson(),
     'bumperEvery': bumperEvery,
@@ -106,14 +116,21 @@ class ChannelRule {
   static ChannelRule? fromJson(Object? j) {
     if (j is! Map) return null;
     final id = j['id'], name = j['name'];
-    final source = ChannelSource.fromJson(j['source']);
-    if (id is! String || id.isEmpty || id.length > 64 || source == null) return null;
+    // Before 1.0.10 a rule had one source.
+    final list = j['sources'];
+    final sources = [for (final x in list is List ? list.take(maxSources) : [j['source']]) ?ChannelSource.fromJson(x)];
+    final unique = <ChannelSource>[];
+    for (final s in sources) {
+      if (!unique.contains(s)) unique.add(s);
+    }
+    if (id is! String || id.isEmpty || id.length > 64 || unique.isEmpty) return null;
+    final source = unique.first;
     final every = j['bumperEvery'];
     final w = j['weights'];
     return ChannelRule(
       id: id,
       name: name is String && name.trim().isNotEmpty ? _clip(name.trim(), 80) : source.title,
-      source: source,
+      sources: unique,
       bumpers: ChannelSource.fromJson(j['bumpers']),
       bumperEvery: every is int ? every.clamp(1, 10) : 1,
       bumperFirst: j['bumperFirst'] != false,
@@ -375,10 +392,24 @@ Future<Map<String, List<PlexItem>>> loadChannelSource(PlexClient plex, ChannelSo
   return out;
 }
 
+/// What all of [sources] hold, as one set of shows: a show that's in two of them counts once.
+Future<Map<String, List<PlexItem>>> loadChannelSources(PlexClient plex, List<ChannelSource> sources, {Map<String, String>? titles}) async {
+  final out = <String, List<PlexItem>>{};
+  final each = await Future.wait([for (final s in sources) loadChannelSource(plex, s, titles: titles)]);
+  for (final m in each) {
+    for (final e in m.entries) {
+      final list = out.putIfAbsent(e.key, () => []);
+      final have = {for (final i in list) i.ratingKey};
+      list.addAll(e.value.where((i) => have.add(i.ratingKey)));
+    }
+  }
+  return out;
+}
+
 /// Everything [rule] can play.
 Future<ChannelPool> loadChannelPool(PlexClient plex, ChannelRule rule) async {
   final titles = <String, String>{};
-  final shows = loadChannelSource(plex, rule.source, titles: titles);
+  final shows = loadChannelSources(plex, rule.sources, titles: titles);
   // Bumpers keep their specials: a "show" of clips often files them as season 0.
   final bumpers = rule.bumpers == null ? Future.value(<String, List<PlexItem>>{}) : loadChannelSource(plex, rule.bumpers!, specials: true);
   final b = await bumpers;

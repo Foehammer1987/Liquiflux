@@ -3,12 +3,14 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:console_core/console_core.dart';
 import 'package:console_ui/console_ui.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
 import '../../services/channels.dart';
 import '../../state/app_state.dart';
 import '../../state/scope.dart';
 import '../settings/settings_field.dart';
+import 'source_picker.dart';
 
 /// What the editor closed with: a rule to save, or one to delete.
 typedef ChannelEdit = ({ChannelRule rule, bool deleted});
@@ -30,8 +32,6 @@ Future<ChannelEdit?> showChannelEditor(BuildContext context, {ChannelRule? rule}
   );
 }
 
-/// Something in Plex a channel can draw from, as a choice in a list.
-typedef _Choice = ({ChannelSource source, String label});
 
 class ChannelEditor extends StatefulWidget {
   const ChannelEditor({super.key, required this.app, this.rule});
@@ -43,34 +43,36 @@ class ChannelEditor extends StatefulWidget {
 
 class _ChannelEditorState extends State<ChannelEditor> {
   late final _name = TextEditingController(text: widget.rule?.name ?? '');
-  late String _kind = widget.rule?.source.kind ?? 'collection';
-  late ChannelSource? _source = widget.rule?.source;
-  late String _bumperKind = widget.rule?.bumpers?.kind ?? 'none';
+  late List<ChannelSource> _sources = [...?widget.rule?.sources];
+  final _addButton = FocusNode();
   late ChannelSource? _bumpers = widget.rule?.bumpers;
+  final _bumperButton = FocusNode();
   late int _every = widget.rule?.bumperEvery ?? 1;
   late bool _first = widget.rule?.bumperFirst ?? true;
   late bool _even = widget.rule?.evenShows ?? true;
-  late Map<String, double> _weights = {...?widget.rule?.weights};
+  late final Map<String, double> _weights = {...?widget.rule?.weights};
 
   /// Everything in Plex to pick from, by kind.
-  final _choices = <String, List<_Choice>>{};
+  final _choices = <String, List<SourceChoice>>{};
   bool _loadingChoices = true;
   String? _error;
 
   /// The source's shows, for their shares and weights.
   ChannelPool? _pool;
-  ChannelSource? _poolFor;
+  List<ChannelSource>? _poolFor;
   bool _loadingPool = false;
 
   @override
   void initState() {
     super.initState();
     unawaited(_loadChoices());
-    if (_source != null) unawaited(_loadPool());
+    if (_sources.isNotEmpty) unawaited(_loadPool());
   }
 
   @override
   void dispose() {
+    _addButton.dispose();
+    _bumperButton.dispose();
     _name.dispose();
     super.dispose();
   }
@@ -99,7 +101,7 @@ class _ChannelEditorState extends State<ChannelEditor> {
       final lib = await app.library().then<List<PlexItem>>((l) => [for (final x in l.bySection) ...x], onError: (Object _) => const <PlexItem>[]);
       final shows = lib.where((i) => i.type == 'show').toList()..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
       if (!mounted) return;
-      int byLabel(_Choice a, _Choice b) => a.label.toLowerCase().compareTo(b.label.toLowerCase());
+      int byLabel(SourceChoice a, SourceChoice b) => a.label.toLowerCase().compareTo(b.label.toLowerCase());
       setState(() {
         _choices['collection'] = [
           for (final p in per)
@@ -124,24 +126,31 @@ class _ChannelEditorState extends State<ChannelEditor> {
   }
 
   Future<void> _loadPool() async {
-    final source = _source;
+    final sources = _sources;
     final plex = widget.app.plex;
-    if (source == null || plex == null) return;
+    if (sources.isEmpty || plex == null) {
+      setState(() {
+        _pool = null;
+        _poolFor = null;
+        _loadingPool = false;
+      });
+      return;
+    }
     setState(() {
       _loadingPool = true;
-      _poolFor = source;
+      _poolFor = sources;
     });
     try {
       final titles = <String, String>{};
-      final shows = await loadChannelSource(plex, source, titles: titles);
-      if (!mounted || _poolFor != source) return;
+      final shows = await loadChannelSources(plex, sources, titles: titles);
+      if (!mounted || !identical(_poolFor, sources)) return;
       setState(() {
         _pool = ChannelPool(shows: shows, titles: titles);
         _loadingPool = false;
       });
     } catch (e) {
       debugPrint('channel shows: $e');
-      if (mounted && _poolFor == source) {
+      if (mounted && identical(_poolFor, sources)) {
         setState(() {
           _pool = null;
           _loadingPool = false;
@@ -151,29 +160,41 @@ class _ChannelEditorState extends State<ChannelEditor> {
   }
 
   ChannelRule? get _rule {
-    final source = _source;
-    if (source == null) return null;
+    if (_sources.isEmpty) return null;
     final name = _name.text.trim();
     return ChannelRule(
-      id: widget.rule?.id ?? ChannelStore.newId(),
-      name: name.isEmpty ? source.title : name,
-      source: source,
-      bumpers: _bumperKind == 'none' ? null : _bumpers,
+      id: _id,
+      name: name.isEmpty ? _sources.first.title : name,
+      sources: _sources,
+      bumpers: _bumpers,
       bumperEvery: _every,
       bumperFirst: _first,
       evenShows: _even,
-      weights: {for (final e in _weights.entries) if (e.value != 1) e.key: e.value},
+      // Only shows still in the channel keep a weight (once its shows are known).
+      weights: {for (final e in _weights.entries) if (e.value != 1 && (_pool?.shows.containsKey(e.key) ?? true)) e.key: e.value},
     );
   }
 
-  void _pickSource(ChannelSource? s) {
-    if (s == _source) return;
-    setState(() {
-      _source = s;
-      _weights = {};
-      _pool = null;
-    });
-    if (s != null) unawaited(_loadPool());
+  late final String _id = widget.rule?.id ?? ChannelStore.newId();
+
+  void _setSources(List<ChannelSource> next) {
+    if (listEquals(next, _sources)) return;
+    setState(() => _sources = next);
+    unawaited(_loadPool());
+  }
+
+  /// Opens the picker; focus comes back to the Add button after.
+  Future<void> _add() async {
+    final picked = await showSourcePicker(context, choices: _choices, chosen: _sources);
+    if (!mounted) return;
+    if (picked != null) _setSources(picked);
+    _addButton.requestFocus();
+  }
+
+  void _remove(ChannelSource s) {
+    _setSources([for (final x in _sources) if (x != s) x]);
+    // The Remove button pressed has gone: focus goes to Add rather than nowhere.
+    _addButton.requestFocus();
   }
 
   void _step(String show, int by) {
@@ -193,33 +214,23 @@ class _ChannelEditorState extends State<ChannelEditor> {
     ),
   );
 
-  Widget _picker(String kind, ChannelSource? value, ValueChanged<ChannelSource?> onPick) {
-    final list = _choices[kind] ?? const [];
-    if (_loadingChoices) return const LoadingNote(label: 'Reading Plex');
-    if (list.isEmpty) {
-      return Text(
-        switch (kind) {
-          'collection' => 'No collections in your Plex libraries yet.',
-          'label' => 'No labels in your Plex libraries yet.',
-          _ => 'Nothing to pick from.',
-        },
-        style: ConsoleText.small.copyWith(color: context.c.text300),
-      );
-    }
-    final keyOf = {for (final (i, c) in list.indexed) i: c.source};
-    final at = list.indexWhere((c) => c.source == value);
-    return ConsoleDropdown<int>(
-      width: 420,
-      options: [if (at < 0) (-1, 'Pick one'), for (final (i, c) in list.indexed) (i, c.label)],
-      value: at,
-      onChanged: (i) => onPick(keyOf[i]),
+  Future<void> _chooseBumpers() async {
+    final picked = await showSourcePicker(
+      context,
+      choices: _choices,
+      chosen: [?_bumpers],
+      single: true,
+      kinds: const ['show', 'collection', 'label'],
+      title: 'Choose Bumpers',
     );
+    if (!mounted) return;
+    if (picked != null && picked.isNotEmpty) setState(() => _bumpers = picked.first);
+    _bumperButton.requestFocus();
   }
 
   @override
   Widget build(BuildContext context) {
     final app = widget.app;
-    final kinds = const [('collection', 'Collection'), ('label', 'Label'), ('show', 'Show'), ('section', 'Library')];
     return Theme(
       data: ConsoleTheme.dark(glass: app.settings.glass),
       child: Builder(
@@ -257,28 +268,38 @@ class _ChannelEditorState extends State<ChannelEditor> {
                         ),
                         if (_error != null) Padding(padding: const EdgeInsets.only(top: Space.space3), child: ErrorNote('Couldn’t read Plex: $_error')),
                         _label('Episodes from'),
-                        ConsoleSegmented<String>(
-                          options: kinds,
-                          value: _kind,
-                          autofocus: true,
-                          onChanged: (k) => setState(() => _kind = k),
+                        for (final src in _sources) _sourceRow(context, src),
+                        if (_sources.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: Space.space2),
+                            child: Text('Pick as many shows, collections, labels or libraries as you like. They play as one channel.', style: ConsoleText.small.copyWith(color: c.text300)),
+                          ),
+                        const SizedBox(height: Space.space1),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: _loadingChoices
+                              ? const LoadingNote(label: 'Reading Plex')
+                              : ConsoleButton(focusNode: _addButton, autofocus: true, label: _sources.isEmpty ? 'Add Shows and Collections' : 'Add or Remove', icon: LucideIcons.plus, onPressed: _add),
                         ),
-                        const SizedBox(height: Space.space2),
-                        _picker(_kind, _source?.kind == _kind ? _source : null, _pickSource),
                         _label('Name'),
                         SizedBox(
                           width: 420,
-                          child: SettingsField(label: 'Channel name', controller: _name, hint: _source?.title ?? 'Adult Swim'),
+                          child: SettingsField(label: 'Channel name', controller: _name, hint: _sources.firstOrNull?.title ?? 'Adult Swim'),
                         ),
                         _label('Bumpers between episodes'),
-                        ConsoleSegmented<String>(
-                          options: const [('none', 'None'), ('show', 'Show'), ('collection', 'Collection'), ('label', 'Label')],
-                          value: _bumperKind,
-                          onChanged: (k) => setState(() => _bumperKind = k),
+                        if (_bumpers case final b?) _bumperRow(context, b),
+                        if (_bumpers == null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: Space.space2),
+                            child: Text('None. Pick a show, collection or label that holds short clips.', style: ConsoleText.small.copyWith(color: c.text300)),
+                          ),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: _loadingChoices
+                              ? const SizedBox()
+                              : ConsoleButton(focusNode: _bumperButton, label: _bumpers == null ? 'Choose Bumpers' : 'Change Bumpers', icon: LucideIcons.clapperboard, onPressed: _chooseBumpers),
                         ),
-                        if (_bumperKind != 'none') ...[
-                          const SizedBox(height: Space.space2),
-                          _picker(_bumperKind, _bumpers?.kind == _bumperKind ? _bumpers : null, (s) => setState(() => _bumpers = s)),
+                        if (_bumpers != null) ...[
                           const SizedBox(height: Space.space3),
                           ConsoleSegmented<int>(
                             options: const [(1, 'After every episode'), (2, 'Every 2'), (3, 'Every 3'), (4, 'Every 4')],
@@ -326,7 +347,7 @@ class _ChannelEditorState extends State<ChannelEditor> {
                           label: 'Save',
                           icon: LucideIcons.check,
                           kind: ButtonKind.primary,
-                          onPressed: rule == null || _source?.kind != _kind || (_bumperKind != 'none' && _bumpers?.kind != _bumperKind) ? null : () => Navigator.of(context).pop((rule: rule, deleted: false)),
+                          onPressed: rule == null ? null : () => Navigator.of(context).pop((rule: rule, deleted: false)),
                         ),
                       ],
                     ),
@@ -336,6 +357,70 @@ class _ChannelEditorState extends State<ChannelEditor> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _bumperRow(BuildContext context, ChannelSource b) {
+    final c = context.c;
+    final (icon, kind) = sourceKind(b.kind);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Space.space2),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: c.text300),
+          const SizedBox(width: Space.space2),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: b.title, style: ConsoleText.body.copyWith(color: c.text100)),
+                  TextSpan(text: '  $kind', style: ConsoleText.small.copyWith(color: c.text300)),
+                ],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          ConsoleButton(
+            label: 'No Bumpers',
+            icon: LucideIcons.x,
+            iconOnly: true,
+            size: ButtonSize.sm,
+            kind: ButtonKind.tertiary,
+            onPressed: () {
+              setState(() => _bumpers = null);
+              _bumperButton.requestFocus();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sourceRow(BuildContext context, ChannelSource src) {
+    final c = context.c;
+    final (icon, kind) = sourceKind(src.kind);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: c.text300),
+          const SizedBox(width: Space.space2),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: src.title, style: ConsoleText.body.copyWith(color: c.text100)),
+                  TextSpan(text: '  $kind', style: ConsoleText.small.copyWith(color: c.text300)),
+                ],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          ConsoleButton(label: 'Remove ${src.title}', icon: LucideIcons.x, iconOnly: true, size: ButtonSize.sm, kind: ButtonKind.tertiary, onPressed: () => _remove(src)),
+        ],
       ),
     );
   }

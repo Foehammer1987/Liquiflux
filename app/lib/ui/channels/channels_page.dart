@@ -62,7 +62,7 @@ class _ChannelsPageState extends State<ChannelsPage> {
       if (!mounted) return;
       setState(() => _starting = null);
       if (run == null) {
-        ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text('Nothing to play in ${rule.source.title}.')));
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text('Nothing to play in ${rule.name}.')));
         return;
       }
       await playChannel(context, run, resume: resume);
@@ -156,7 +156,7 @@ class _ChannelCard extends StatelessWidget {
     final c = context.c;
     final b = rule.bumpers;
     final facts = [
-      'From ${rule.source.title}',
+      'From ${_list([for (final s in rule.sources) s.title])}',
       rule.evenShows ? 'Every show gets a fair turn' : 'Classic shuffle',
       if (b != null) rule.bumperEvery == 1 ? 'Bumpers from ${b.title} between episodes' : 'Bumpers from ${b.title} every ${rule.bumperEvery} episodes',
       if (rule.weights.values.any((w) => w != 1)) 'Custom show weights',
@@ -201,4 +201,12 @@ class _ChannelCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "A", "A and B", "A, B and C", "A, B, C and 4 more".
+String _list(List<String> names) {
+  if (names.length <= 1) return names.firstOrNull ?? '';
+  final shown = names.length > 4 ? names.take(3).toList() : names.sublist(0, names.length - 1);
+  final last = names.length > 4 ? '${names.length - 3} more' : names.last;
+  return '${shown.join(', ')} and $last';
 }

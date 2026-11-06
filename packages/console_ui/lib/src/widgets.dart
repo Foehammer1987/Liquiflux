@@ -61,8 +61,12 @@ class ConsoleButton extends StatelessWidget {
     this.autofocus = false,
     this.expand = false,
     this.iconOnly = false,
+    this.focusNode,
   });
   final String label;
+
+  /// To move focus to this button from code (back to it after a dialog closes).
+  final FocusNode? focusNode;
 
   /// Square button showing only [icon]; [label] becomes its tooltip.
   final bool iconOnly;
@@ -90,6 +94,7 @@ class ConsoleButton extends StatelessWidget {
     return Focusable(
       onTap: onPressed,
       autofocus: autofocus,
+      focusNode: focusNode,
       semanticLabel: label,
       builder: (context, hover, focus) {
         Color bg, fg, border = Colors.transparent;
