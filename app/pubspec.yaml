@@ -1,7 +1,7 @@
 name: console_app
 description: "Liquiflux, a Plex client with Seerr requests built in."
 publish_to: none
-version: 1.0.10+68
+version: 1.0.11+69
 
 environment:
   sdk: ^3.8.0
@@ -42,3 +42,5 @@ flutter:
   assets:
     # Trusted roots for mpv's https checks (lib/services/mpv_tls.dart).
     - assets/tls/cacert.pem
+    # TV networks and programming blocks (tools/collection-pack builds it).
+    - assets/collections/tv-pack.json

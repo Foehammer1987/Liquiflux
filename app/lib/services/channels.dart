@@ -182,8 +182,8 @@ class ChannelRun {
 
   /// Reads [rule]'s shows and bumpers from Plex and lines up the first titles; on [resume]
   /// the episode it was left on comes first. Null when the source has nothing to play.
-  static Future<ChannelRun?> start(PlexClient plex, ChannelStore store, ChannelRule rule, {bool resume = true}) async {
-    final pool = await loadChannelPool(plex, rule);
+  static Future<ChannelRun?> start(PlexClient plex, ChannelStore store, ChannelRule rule, {bool resume = true, PackShows? packShows}) async {
+    final pool = await loadChannelPool(plex, rule, packShows: packShows);
     if (pool.shows.isEmpty) return null;
     final progress = store.progressOf(rule.id);
     final key = resume ? progress.current : null;

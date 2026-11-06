@@ -54,11 +54,12 @@ class _ChannelsPageState extends State<ChannelsPage> {
 
   Future<void> _play(ChannelRule rule, {bool resume = true}) async {
     final store = _store;
-    final plex = AppScope.read(context).plex;
+    final app = AppScope.read(context);
+    final plex = app.plex;
     if (store == null || plex == null || _starting != null) return;
     setState(() => _starting = rule.id);
     try {
-      final run = await ChannelRun.start(plex, store, rule, resume: resume);
+      final run = await ChannelRun.start(plex, store, rule, resume: resume, packShows: app.packShows);
       if (!mounted) return;
       setState(() => _starting = null);
       if (run == null) {

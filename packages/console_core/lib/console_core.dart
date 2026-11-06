@@ -23,6 +23,7 @@ export 'src/franchise.dart';
 export 'src/taste.dart';
 export 'src/shuffle.dart';
 export 'src/channels.dart';
+export 'src/tv_collections.dart';
 export 'src/security.dart';
 export 'src/server_url.dart';
 export 'src/together/together_client.dart';

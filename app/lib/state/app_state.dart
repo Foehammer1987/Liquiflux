@@ -11,6 +11,7 @@ import '../services/open_party.dart';
 import '../services/scrobbler.dart';
 import '../services/series_cache.dart';
 import '../services/settings_store.dart';
+import '../services/tv_pack.dart';
 import '../services/updater.dart';
 import '../services/watch_together.dart';
 
@@ -27,8 +28,15 @@ enum Conn { unknown, ok, failed, off }
 
 /// App-wide state: settings, the Plex and Seerr clients, and the live request list.
 class AppState extends ChangeNotifier {
-  AppState(this._store, {Updater? updater, Scrobbler? scrobbler, ChannelStore? channels}) : updater = updater ?? Updater(), scrobbler = scrobbler ?? Scrobbler(), channels = channels ?? ChannelStore();
+  AppState(this._store, {Updater? updater, Scrobbler? scrobbler, ChannelStore? channels, TvPackStore? tvPack})
+    : updater = updater ?? Updater(),
+      scrobbler = scrobbler ?? Scrobbler(),
+      channels = channels ?? ChannelStore(),
+      tvPack = tvPack ?? TvPackStore();
   final SettingsStore _store;
+
+  /// TV networks and programming blocks (TV Collections page, Channels).
+  final TvPackStore tvPack;
 
   /// Newer Liquiflux releases on GitHub (Settings > Advanced > Updates).
   final Updater updater;
@@ -104,6 +112,27 @@ class AppState extends ChangeNotifier {
   Future<ChannelStore> channelList() async {
     await channels.load(server?.machineIdentifier ?? settings.plexMachineId);
     return channels;
+  }
+
+  ShowMatcher? _showMatcher;
+  Object? _showMatcherFor;
+
+  /// The collection pack and the library's shows, ready to match.
+  Future<({CollectionPack pack, ShowMatcher shows})> tvCollections() async {
+    final pack = tvPack.load();
+    final lib = await library();
+    if (!identical(_showMatcherFor, lib.bySection)) {
+      _showMatcher = ShowMatcher([for (final l in lib.bySection) ...l]);
+      _showMatcherFor = lib.bySection;
+    }
+    return (pack: await pack, shows: _showMatcher!);
+  }
+
+  /// The shows you own from a TV network or block of the pack (a channel's "pack" source).
+  Future<List<PlexItem>> packShows(String collectionId) async {
+    final t = await tvCollections();
+    final c = t.pack.byId(collectionId);
+    return c == null ? const [] : TvShelf.build(c, t.shows).owned;
   }
 
   /// The series already in hand, without waiting.

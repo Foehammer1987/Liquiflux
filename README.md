@@ -81,6 +81,13 @@ artwork behind the player away while the video runs.
   and Trakt's live charts, mixing titles you own with ones you can request.
 - **Collections and marathons.** Every film series you own part of, with Start the Saga and
   Marathon to play them in order.
+- **TV Networks.** Shows grouped by the channel or programming block they aired on: Toonami,
+  Adult Swim, Nick at Nite, SNICK, Fox Kids, Kids' WB and more, plus networks and streaming
+  services from Cartoon Network to HBO and Netflix. Every show of a block you have shows up, and
+  while that's fewer than ten, the best-rated ones you're missing fill the row, ready to request
+  through Seerr. The show lists ship with the app and refresh from this repository monthly, and
+  they match any Plex library (new and legacy agents, by TVDB, TMDB or IMDb id). Any block or
+  network can also be a Channels source.
 - **Because You Watched** rows from what you've played lately, with thumbs up and down.
 - **Shuffle Play** by type, genre and how much time you've got.
 - **Channels.** Make your own TV channel from any mix of Plex shows, collections, labels and libraries.

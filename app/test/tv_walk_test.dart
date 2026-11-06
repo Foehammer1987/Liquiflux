@@ -22,6 +22,8 @@ void main() {
     ('trending', const TrendingDest()),
     ('moods', const MoodsDest()),
     ('channels', const ChannelsDest()),
+    ('tv networks', const TvCollectionsDest()),
+    ('tv network', const TvCollectionDest('saturday')),
     ('requests', const RequestsDest()),
     ('settings', const SettingsDest()),
     ('search', const SearchDest('film')),

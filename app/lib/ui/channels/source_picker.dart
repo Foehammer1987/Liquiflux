@@ -14,6 +14,7 @@ typedef SourceChoice = ({ChannelSource source, String label});
   'show' => (LucideIcons.tv, 'Show'),
   'collection' => (LucideIcons.layers, 'Collection'),
   'label' => (LucideIcons.tag, 'Label'),
+  'pack' => (LucideIcons.radioTower, 'TV Network or Block'),
   _ => (LucideIcons.library, 'Library'),
 };
 
@@ -24,7 +25,7 @@ Future<List<ChannelSource>?> showSourcePicker(
   required Map<String, List<SourceChoice>> choices,
   required List<ChannelSource> chosen,
   bool single = false,
-  List<String> kinds = const ['show', 'collection', 'label', 'section'],
+  List<String> kinds = const ['show', 'collection', 'pack', 'label', 'section'],
   String title = 'Choose What Plays',
 }) => showGeneralDialog<List<ChannelSource>>(
   context: context,
@@ -42,7 +43,7 @@ Future<List<ChannelSource>?> showSourcePicker(
 );
 
 class SourcePicker extends StatefulWidget {
-  const SourcePicker({super.key, required this.choices, required this.chosen, this.single = false, this.kinds = const ['show', 'collection', 'label', 'section'], this.title = 'Choose What Plays'});
+  const SourcePicker({super.key, required this.choices, required this.chosen, this.single = false, this.kinds = const ['show', 'collection', 'pack', 'label', 'section'], this.title = 'Choose What Plays'});
   final Map<String, List<SourceChoice>> choices;
   final List<ChannelSource> chosen;
   final bool single;
@@ -102,6 +103,7 @@ class _SourcePickerState extends State<SourcePicker> {
         'show' => 'Shows',
         'collection' => 'Collections',
         'label' => 'Labels',
+        'pack' => 'Networks & Blocks',
         _ => 'Libraries',
       };
       return '$name ($n)';
@@ -152,6 +154,7 @@ class _SourcePickerState extends State<SourcePicker> {
                             : switch (_kind) {
                                 'collection' => 'No collections in your Plex libraries yet.',
                                 'label' => 'No labels in your Plex libraries yet.',
+                                'pack' => 'You don’t have shows from any TV network or block yet.',
                                 _ => 'Nothing to pick from.',
                               },
                         style: ConsoleText.body.copyWith(color: c.text300),
