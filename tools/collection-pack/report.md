@@ -1,6 +1,6 @@
 # Collection pack report (2026-11-06)
 
-51 collections, 9428 shows, 2182 without a TMDB id, 959 KB.
+50 collections, 9413 shows, 2182 without a TMDB id, 957 KB.
 
 ## Blocks
 
@@ -216,48 +216,6 @@
   - 48 rows, 40 shows, 2 series-like rows not on TVmaze
     - not matched: American Broadcasting Company (Programming)
     - not matched: Toon Disney (Programming)
-- **TGIF** (TGIF (TV programming block)): headings: History, ABC Friday-night legacy: 1950s to 1970s, Jim Janicek, First run (1989–2000), Brand debuts, Explosive success in the 1990s, Summer months, Spin-off concepts, The Hump (1991), MCTV: More Cool TV (1991–93), I Love Saturday Night (1992), Special events, Change/end of first run (1996–2000), Post-TGIF (2000–2002), Second run (2003–2005), Post-2005, Return of comedy to Friday nights (2012–2017), TGIT (2014–2018), Third and final run (2018–2019), Lineup history, Steve Urkel crossovers, References, Notes, External links
-  - 89 rows, 34 shows, 40 series-like rows not on TVmaze
-    - not matched: 1985 in television (Lineup history)
-    - not matched: 1986 in television (Lineup history)
-    - not matched: 1987 in television (Lineup history)
-    - not matched: 1988 in television (Lineup history)
-    - not matched: 1989 in television (Lineup history)
-    - not matched: 1990 in television (Lineup history)
-    - not matched: 1991 in television (Lineup history)
-    - not matched: 1992 in television (Lineup history)
-    - not matched: 1993 in television (Lineup history)
-    - not matched: 1994 in television (Lineup history)
-    - not matched: 1995 in television (Lineup history)
-    - not matched: 1996 in television (Lineup history)
-    - not matched: 1997 in television (Lineup history)
-    - not matched: 1998 in television (Lineup history)
-    - not matched: 1999 in television (Lineup history)
-    - not matched: 2000 in American television (Lineup history)
-    - not matched: 2001 in American television (Lineup history)
-    - not matched: 2002 in American television (Lineup history)
-    - not matched: 2003 in television (Lineup history)
-    - not matched: 2004 in television (Lineup history)
-    - not matched: 2005 in American television (Lineup history)
-    - not matched: 2006 in American television (Lineup history)
-    - not matched: 2007 in American television (Lineup history)
-    - not matched: 2008 in American television (Lineup history)
-    - not matched: 2009 in American television (Lineup history)
-    - not matched: 2010 in American television (Lineup history)
-    - not matched: 2011 in American television (Lineup history)
-    - not matched: 2012 in American television (Lineup history)
-    - not matched: 2013 in American television (Lineup history)
-    - not matched: 2014 in American television (Lineup history)
-    - not matched: 2015 in American television (Lineup history)
-    - not matched: 2016 in American television (Lineup history)
-    - not matched: 2017 in American television (Lineup history)
-    - not matched: 2018 in American television (Lineup history)
-    - not matched: 2019 in American television (Lineup history)
-    - not matched: 2020 in American television (Lineup history)
-    - not matched: 2021 in American television (Lineup history)
-    - not matched: 2022 in American television (Lineup history)
-    - not matched: 2023 in American television (Lineup history)
-    - not matched: 2024 in American television (Lineup history)
 - **Animation Domination** (Animation Domination): headings: History, First run, Return, Programming, Current programming, Former programming, Upcoming programming, Previous lineups, 2004/05, 2005/06, 2006/07, 2007/08, 2008/09, 2009/10, 2010/11, 2011/12, 2012/13, 2013/14, 2019/20, 2020/21, 2021/22, 2022/23, 2023/24, 2024/25, 2025/26, Current lineup, Animation Domination High-Def, See also, References, External links
   - 92 rows, 19 shows, 1 series-like rows not on TVmaze
     - not matched: League Championship Series (Current lineup)
