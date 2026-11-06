@@ -313,10 +313,13 @@ class StatusDot extends StatelessWidget {
 
 /// Pill segmented control (All / Download / Upload style).
 class ConsoleSegmented<T> extends StatelessWidget {
-  const ConsoleSegmented({super.key, required this.options, required this.value, required this.onChanged});
+  const ConsoleSegmented({super.key, required this.options, required this.value, required this.onChanged, this.autofocus = false});
   final List<(T, String)> options;
   final T value;
   final ValueChanged<T> onChanged;
+
+  /// The chosen option takes focus when it first shows (a dialog's first control on a TV).
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
@@ -329,6 +332,7 @@ class ConsoleSegmented<T> extends StatelessWidget {
           Focusable(
             onTap: () => onChanged(v),
             semanticLabel: label,
+            autofocus: autofocus && v == value,
             builder: (context, hover, focus) {
               final on = v == value;
               return withFocusRing(

@@ -10,6 +10,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../app_info.dart';
 import '../../platform.dart';
+import '../../services/channels.dart';
 import '../../services/display_match.dart';
 import '../../services/gpu_memory.dart';
 import '../../services/live_players.dart';
@@ -30,6 +31,8 @@ class PlayerSession extends ChangeNotifier {
     required this.local,
     required this.item,
     this.queue = const [],
+    this.at,
+    this.channel,
     required this.resume,
     this.choose = true,
     required this.onExit,
@@ -73,6 +76,24 @@ class PlayerSession extends ChangeNotifier {
 
   /// A run of titles to play in order; next and previous come from here when it's set.
   final List<PlexItem> queue;
+
+  /// Where this title is in [queue], when known (a title can be in a channel's line-up
+  /// more than once).
+  final int? at;
+
+  /// The shuffle channel playing, if any; it says which titles are bumpers.
+  final ChannelRun? channel;
+
+  /// A bumper: a short clip between a channel's episodes. Plex, Trakt and AniList never
+  /// hear about it, it has no Skip Intro or Up Next, and it always plays from the start.
+  late final bool bumper = channel?.isBumperAt(at) ?? false;
+
+  /// Where [next] and [previous] are in [queue].
+  int? nextAt;
+  int? previousAt;
+
+  /// The next title is a bumper, so no Up Next card: the episode plays out into it.
+  bool get nextIsBumper => channel?.isBumperAt(nextAt) ?? false;
 
   /// The TV's hardware decoder draws straight onto the picture's surface instead of mpv
   /// copying every frame out and rendering it again (see [PlaybackPrefs.videoOutput]). On
@@ -347,7 +368,7 @@ class PlayerSession extends ChangeNotifier {
     await applyMpvPrefs();
     if (_disposed) return;
     _displayReady = _matchDisplay(stream: _videoStream?.frameRate);
-    final start = startPoint(viewOffsetMs: item.viewOffset, durationMs: item.duration, resume: resume, choose: choose, mode: prefs.resumeMode);
+    final start = startPoint(viewOffsetMs: item.viewOffset, durationMs: item.duration, resume: resume && !bumper, choose: choose && !bumper, mode: prefs.resumeMode);
     if (start.ask) {
       resumeOffer = start.from;
       notifyListeners();
@@ -371,8 +392,11 @@ class PlayerSession extends ChangeNotifier {
   }
 
   Future<void> _findNeighbours() async {
-    final at = queue.indexWhere((q) => q.ratingKey == item.ratingKey);
+    final given = this.at;
+    final at = given != null && given >= 0 && given < queue.length && queue[given].ratingKey == item.ratingKey ? given : queue.indexWhere((q) => q.ratingKey == item.ratingKey);
     if (at >= 0) {
+      previousAt = at > 0 ? at - 1 : null;
+      nextAt = at + 1 < queue.length ? at + 1 : null;
       previous = at > 0 ? queue[at - 1] : null;
       next = at + 1 < queue.length ? queue[at + 1] : null;
       if (!_disposed) notifyListeners();
@@ -423,7 +447,7 @@ class PlayerSession extends ChangeNotifier {
     final ms = _watched ? duration.inMilliseconds : position.inMilliseconds;
     final s = _session;
     _session = null;
-    final report = !_stopped && ms > 0;
+    final report = !_stopped && ms > 0 && !bumper;
     _stopped = true;
     final scrobbled = _scrobbleStop(watched: _watched);
     await Future.wait([
@@ -608,12 +632,18 @@ class PlayerSession extends ChangeNotifier {
   void _onCompleted(bool done) {
     if (!done || _finished || !ready) return;
     _finished = true;
+    final n = next;
+    if (bumper) {
+      // A bumper isn't a title: nothing is marked, and the sleep timer doesn't count it.
+      n != null ? onPlay(n) : onExit();
+      return;
+    }
     _watched = true;
     unawaited(plex.markWatched(item));
     unawaited(_scrobbleStop(watched: true));
-    final n = next;
     final stop = sleep.finishedTitle();
-    if (!stop && n != null && prefs.autoPlayNext && !upNextDismissed) {
+    // A channel keeps going, like TV does.
+    if (!stop && n != null && (channel != null || (prefs.autoPlayNext && !upNextDismissed))) {
       onPlay(n);
     } else {
       onExit();
@@ -622,6 +652,7 @@ class PlayerSession extends ChangeNotifier {
   }
 
   void _sendTimeline(String state) {
+    if (bumper) return;
     final ms = position.inMilliseconds;
     if (ms > 0 && !_finished && !_stopped) unawaited(plex.timeline(item, state: state, timeMs: ms));
   }
@@ -634,14 +665,14 @@ class PlayerSession extends ChangeNotifier {
 
   /// Playing or paused, once the title is open (a probe run with noscrobble sends nothing).
   void _scrobbleState(bool playing) {
-    if (!ready || _finished || _stopped || _disposed || Probe.has('noscrobble')) return;
+    if (!ready || _finished || _stopped || _disposed || bumper || Probe.has('noscrobble')) return;
     final s = _scrobble ??= scrobbler?.play(plex, item, server: server);
     playing ? s?.playing(_percent) : s?.paused(_percent);
   }
 
   /// The play is over; [watched] counts it as finished.
   Future<void>? _scrobbleStop({bool watched = false}) {
-    if (Probe.has('noscrobble')) return null;
+    if (bumper || Probe.has('noscrobble')) return null;
     final s = _scrobble ?? (watched ? _scrobble = scrobbler?.play(plex, item, server: server) : null);
     return s?.stopped(_percent, watched: watched);
   }
@@ -1172,7 +1203,9 @@ class PlayerSession extends ChangeNotifier {
   bool _inUpNextZone = false;
 
   void _tick(Duration _) {
-    if (!ready) return;
+    if (!ready || bumper) return;
+    // Up Next only offers a real title; before a bumper the episode just plays out into it.
+    final next = nextIsBumper ? null : this.next;
     final ms = position.inMilliseconds;
     final total = duration.inMilliseconds;
     PlexMarker? prompt;
@@ -1220,7 +1253,7 @@ class PlayerSession extends ChangeNotifier {
   }
 
   void _showUpNext() {
-    if (upNextVisible || upNextDismissed || next == null) return;
+    if (upNextVisible || upNextDismissed || next == null || bumper || nextIsBumper) return;
     upNextVisible = true;
     countdown = prefs.countdown;
     _startCountdown();
@@ -1263,7 +1296,7 @@ class PlayerSession extends ChangeNotifier {
     if (to == null || _finished) return;
     _countdownTimer?.cancel();
     _finished = true;
-    if (watched) {
+    if (watched && !bumper) {
       // Going on to the next title counts as finishing this one. Pressed on the last one
       // the timer allowed, someone's awake: it just ends the timer.
       sleep.finishedTitle();

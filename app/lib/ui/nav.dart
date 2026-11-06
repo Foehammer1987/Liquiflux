@@ -40,6 +40,13 @@ class MoodsDest extends Dest {
   String get railId => 'moods';
 }
 
+/// Shuffle channels: saved rules with bumpers.
+class ChannelsDest extends Dest {
+  const ChannelsDest();
+  @override
+  String get railId => 'channels';
+}
+
 class RequestsDest extends Dest {
   const RequestsDest();
   @override

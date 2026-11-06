@@ -219,6 +219,22 @@ class PlexClient {
   /// Everything in a section featuring the actor with Plex tag [tagId].
   Future<List<PlexItem>> withActor(String sectionKey, int tagId) async => _items(await _get('/library/sections/$sectionKey/all', {'actor': tagId, 'includeGuids': 1}));
 
+  /// A library's labels (Plex's tags you set yourself), as id and name.
+  Future<List<({String key, String title})>> labels(String sectionKey) async {
+    try {
+      final c = await _get('/library/sections/$sectionKey/label');
+      return [
+        for (final d in _list(c['Directory']).whereType<Map<String, dynamic>>())
+          if (d['key'] != null && '${d['title'] ?? ''}'.isNotEmpty) (key: '${d['key']}', title: '${d['title']}'),
+      ];
+    } on ApiException {
+      return const [];
+    }
+  }
+
+  /// Everything in a library with label [labelKey].
+  Future<List<PlexItem>> labelled(String sectionKey, String labelKey) async => _items(await _get('/library/sections/$sectionKey/all', {'label': labelKey}));
+
   Future<List<PlexItem>> children(String ratingKey) async => _items(await _get('/library/metadata/$ratingKey/children'));
 
   /// Movies and shows matching [query]. Matching episodes count as their show, listed once

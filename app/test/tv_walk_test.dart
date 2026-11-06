@@ -21,6 +21,7 @@ void main() {
     ('library', LibraryDest('1')),
     ('trending', const TrendingDest()),
     ('moods', const MoodsDest()),
+    ('channels', const ChannelsDest()),
     ('requests', const RequestsDest()),
     ('settings', const SettingsDest()),
     ('search', const SearchDest('film')),

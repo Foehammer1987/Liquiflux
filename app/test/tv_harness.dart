@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:console_app/main.dart' show TvCanvas;
+import 'package:console_app/services/channels.dart';
 import 'package:console_app/services/settings_store.dart';
 import 'package:console_app/state/app_state.dart';
 import 'package:console_app/state/scope.dart';
@@ -189,7 +190,7 @@ Future<AppState> tvApp(WidgetTester t, {int settle = 60, void Function(AppState)
   t.view.physicalSize = const Size(1920, 1080);
   t.view.devicePixelRatio = 2;
   addTearDown(t.view.reset);
-  final state = AppState(SettingsStore(secrets: _NoSecrets()))
+  final state = AppState(SettingsStore(secrets: _NoSecrets()), channels: ChannelStore(disk: false))
     ..settings = const Settings(clientId: 'c', plexUrl: 'http://plex.test:32400', plexToken: 'tok', seerrUrl: 'http://seerr.test', seerrApiKey: 'key')
     ..plex = PlexClient(baseUrl: 'http://plex.test:32400', token: 'tok', clientId: 'c', http: JsonHttp(client: fakeServers()))
     ..seerr = SeerrClient(baseUrl: 'http://seerr.test', apiKey: 'key', http: JsonHttp(client: fakeServers()))

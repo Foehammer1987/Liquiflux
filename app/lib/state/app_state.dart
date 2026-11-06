@@ -5,6 +5,7 @@ import 'package:console_core/console_core.dart';
 import 'package:flutter/foundation.dart';
 
 import '../app_info.dart';
+import '../services/channels.dart';
 import '../services/collections_cache.dart';
 import '../services/open_party.dart';
 import '../services/scrobbler.dart';
@@ -26,7 +27,7 @@ enum Conn { unknown, ok, failed, off }
 
 /// App-wide state: settings, the Plex and Seerr clients, and the live request list.
 class AppState extends ChangeNotifier {
-  AppState(this._store, {Updater? updater, Scrobbler? scrobbler}) : updater = updater ?? Updater(), scrobbler = scrobbler ?? Scrobbler();
+  AppState(this._store, {Updater? updater, Scrobbler? scrobbler, ChannelStore? channels}) : updater = updater ?? Updater(), scrobbler = scrobbler ?? Scrobbler(), channels = channels ?? ChannelStore();
   final SettingsStore _store;
 
   /// Newer Liquiflux releases on GitHub (Settings > Advanced > Updates).
@@ -95,6 +96,15 @@ class AppState extends ChangeNotifier {
   Future<List<Franchise>>? _franchiseJob;
   final franchiseVersion = ValueNotifier<int>(0);
   final _collections = CollectionsCache();
+
+  /// Saved shuffle channels (Channels page).
+  final ChannelStore channels;
+
+  /// The channels for the server in use, read from disk the first time.
+  Future<ChannelStore> channelList() async {
+    await channels.load(server?.machineIdentifier ?? settings.plexMachineId);
+    return channels;
+  }
 
   /// The series already in hand, without waiting.
   List<Franchise>? get franchisesNow => _franchiseList;

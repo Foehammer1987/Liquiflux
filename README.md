@@ -83,6 +83,12 @@ artwork behind the player away while the video runs.
   Marathon to play them in order.
 - **Because You Watched** rows from what you've played lately, with thumbs up and down.
 - **Shuffle Play** by type, genre and how much time you've got.
+- **Channels.** Make your own TV channel from a Plex collection, label, show or whole library.
+  Every show gets a fair turn (pick a show, then an episode), so 800 episodes of one show don't
+  drown out a 50-episode one, and you can set any show higher or lower. Nothing repeats until a
+  show runs out, and a channel carries on where you left it. Add bumpers (short clips kept in
+  Plex as their own show or collection) between episodes for that late-night block feel; they
+  never show Skip Intro or Up Next and are never marked watched or scrobbled.
 - **Skip Intro, Skip Credits and Up Next** with a countdown, from Plex's own markers.
 - **Match Frame Rate.** The TV switches to the film's own 23.976 or 24 Hz (25 for PAL, 29.97 or
   59.94 for TV) while it plays, so pans don't judder, and back afterwards. Optionally the
