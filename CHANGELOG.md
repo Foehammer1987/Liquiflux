@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.9
+
+Channels: shuffle rules that play like your own TV channel, bumpers and all.
+
+- A new Channels page in the sidebar (the radio tower, under Shuffle Play). A channel plays random episodes from a Plex collection, a label, one show or a whole library, and keeps going like TV.
+- Every show gets a fair turn by default: a channel picks a show, then one of its episodes, so The Simpsons' 800 episodes don't drown out a show with 50. Turn that off for a classic shuffle where every episode is equally likely. Each show can also be set higher or lower (from off to 12 times as often), and the editor shows each show's share as a percentage, so "Simpsons at 60%" is a few presses of +.
+- Nothing repeats until that show has played every episode, and the same show never plays twice running while there's another to pick. Continue picks up on the episode you left, mid-episode; Start Fresh deals a new line-up but still remembers what's played.
+- Bumpers: pick a show, collection or label of short clips (Adult Swim bumpers, say) and the channel plays one before the first episode and after every episode (or every 2, 3 or 4). Bumpers always play from the start, never show Skip Intro or Up Next, aren't counted by the sleep timer's "after N episodes", and are never reported to Plex (no watched marks, no Continue Watching), Trakt or AniList. An episode followed by a bumper plays out into it with no Up Next card. Clips filed as specials (season 0) are included for bumpers; a channel's own shows leave their specials out.
+- Channels are kept per Plex server on this device (channels.json in the app's data folder), with what each has played.
+- Everything works with the remote: the editor opens on its first choice and every control is reachable with the D-pad (`app/test/channels_tv_test.dart`, run with CONSOLE_TV=1).
+- How: the shuffle is in `packages/console_core/lib/src/channels.dart` (rules, picker, progress, reading collections, labels, shows and libraries from Plex); the player gets the channel's line-up as its queue, which grows a few episodes ahead as it plays, and knows which places in it are bumpers (`app/lib/services/channels.dart`).
+- Version 1.0.9+67 (Android versionCode 1067 for armeabi-v7a, 2067 for arm64-v8a).
+
 ## 1.0.8
 
 A new, original Liquiflux logo, ready for app stores.

@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../main.dart' show customTitleBar;
 import '../../platform.dart';
+import '../../services/channels.dart';
 import '../../state/scope.dart';
 import '../player/app_subtitles.dart';
 import '../player/player_dock.dart';
@@ -31,7 +32,7 @@ import '../window_buttons.dart';
 /// Plays a Plex item with mpv: direct play first, Plex's transcoder when it has to or when
 /// you pick a lower quality. Frosted controls tinted from the title's own artwork.
 class PlayerPage extends StatefulWidget {
-  const PlayerPage({super.key, required this.item, this.resume = true, this.choose = true, this.queue = const [], this.tookFullscreen = false});
+  const PlayerPage({super.key, required this.item, this.resume = true, this.choose = true, this.queue = const [], this.at, this.channel, this.tookFullscreen = false});
   final PlexItem item;
   final bool resume;
 
@@ -43,6 +44,12 @@ class PlayerPage extends StatefulWidget {
 
   /// Titles to play one after another (a collection marathon); empty for a single title.
   final List<PlexItem> queue;
+
+  /// Where [item] is in [queue], when known.
+  final int? at;
+
+  /// The shuffle channel this title is part of (its line-up is [queue]).
+  final ChannelRun? channel;
   @override
   State<PlayerPage> createState() => _PlayerPageState();
 }
@@ -115,6 +122,8 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
       local: app.plexIsLocal,
       item: widget.item,
       queue: widget.queue,
+      at: widget.at,
+      channel: widget.channel,
       resume: widget.resume,
       // In a Watch Together room the room decides where everyone is.
       choose: widget.choose && !app.watchTogether.inRoomFor(widget.item.ratingKey) && !app.openParty.inRoom,
@@ -129,6 +138,8 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
       ..follow(widget.item)
       ..addListener(_changed);
     ArtMemory.releaseAll.addListener(_changed);
+    final at = widget.at;
+    if (at != null) widget.channel?.started(at);
     unawaited(_s.start());
     _link = TogetherLink(_s, app.watchTogether);
     _party = app.openParty..attach(_s);
@@ -312,7 +323,16 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     Navigator.of(context).pushReplacement(
       PageRouteBuilder<void>(
         transitionDuration: const Duration(milliseconds: 350),
-        pageBuilder: (_, _, _) => PlayerPage(item: next, queue: widget.queue, choose: false, tookFullscreen: _ownsFullscreen),
+        pageBuilder: (_, _, _) => PlayerPage(
+          item: next,
+          queue: widget.queue,
+          at: identical(next, _s.next) ? _s.nextAt : (identical(next, _s.previous) ? _s.previousAt : null),
+          channel: widget.channel,
+          // A channel's episodes start from the top, like on TV.
+          resume: widget.channel == null,
+          choose: false,
+          tookFullscreen: _ownsFullscreen,
+        ),
         transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
       ),
     );

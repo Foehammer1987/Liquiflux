@@ -2,6 +2,7 @@ import 'package:console_core/console_core.dart';
 import 'package:flutter/material.dart';
 
 import '../platform.dart';
+import '../services/channels.dart';
 import '../state/scope.dart';
 import 'pages/player_page.dart';
 import 'player/player_dock.dart';
@@ -47,6 +48,11 @@ Future<void> playTitle(BuildContext context, PlexItem item, {bool resume = true,
   if (target == null || !context.mounted) return;
   await openPlayer(context, (_) => PlayerPage(item: target!, resume: resume, queue: queue));
 }
+
+/// Plays a shuffle channel's line-up from the top. On [resume] the first episode carries on
+/// from where it was left; otherwise each starts from the beginning, like on TV.
+Future<void> playChannel(BuildContext context, ChannelRun run, {bool resume = true}) =>
+    openPlayer(context, (_) => PlayerPage(item: run.queue.first, queue: run.queue, at: 0, channel: run, resume: resume, choose: false));
 
 /// The episode to carry on with: the first unwatched one of the first unfinished season.
 Future<PlexItem?> nextEpisode(PlexClient plex, PlexItem show) async {

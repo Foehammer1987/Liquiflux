@@ -26,6 +26,7 @@ import 'notice_toast.dart';
 import 'shuffle/shuffle_dialog.dart';
 import 'tv_focus.dart';
 import 'window_buttons.dart';
+import 'channels/channels_page.dart';
 import 'collections/collection_page.dart';
 import 'collections/collections_page.dart';
 import 'pages/home_page.dart';
@@ -330,7 +331,7 @@ class _ShellState extends State<Shell> {
   Widget _pageFor(Dest d) => d is HomeDest || d is CollectionDest
       ? _page(d)
       : Padding(
-          padding: EdgeInsets.only(top: _chromeHeight + Space.space2, left: d is TrendingDest || d is MoodsDest || d is CollectionsDest ? 0 : Space.space4),
+          padding: EdgeInsets.only(top: _chromeHeight + Space.space2, left: d is TrendingDest || d is MoodsDest || d is CollectionsDest || d is ChannelsDest ? 0 : Space.space4),
           child: _page(d),
         );
 
@@ -338,6 +339,7 @@ class _ShellState extends State<Shell> {
     HomeDest() => const HomePage(),
     TrendingDest() => const TrendingPage(),
     MoodsDest() => const MoodsPage(),
+    ChannelsDest() => const ChannelsPage(),
     CollectionsDest() => const CollectionsPage(),
     CollectionDest(:final franchise) => CollectionPage(key: ValueKey(franchise.key), franchise: franchise),
     LibraryDest(:final sectionKey) => LibraryPage(key: ValueKey(sectionKey), sectionKey: sectionKey),
@@ -1098,6 +1100,7 @@ class _RailState extends State<_Rail> {
         item('collections', LucideIcons.layers, 'Collections', const CollectionsDest()),
         item('moods', LucideIcons.sparkles, 'Moods', const MoodsDest()),
         action('shuffle', LucideIcons.shuffle, 'Shuffle Play', () => showShuffle(context)),
+        item('channels', LucideIcons.radioTower, 'Channels', const ChannelsDest()),
         if (app.sections.isNotEmpty) rule(),
         for (final s in app.sections) item('library:${s.key}', s.type == 'show' ? LucideIcons.tv : LucideIcons.clapperboard, s.title, LibraryDest(s.key)),
         rule(),
