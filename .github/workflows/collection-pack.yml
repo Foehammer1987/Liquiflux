@@ -1,0 +1,57 @@
+# Rebuilds the TV collection pack (app/assets/collections/tv-pack.json) from Wikipedia,
+# Wikidata and TVmaze, then commits it and tools/collection-pack/report.md back to the
+# branch it ran on. Runs when the builder or its source list changes, by hand (Run
+# workflow), and on the 1st of each month so new shows join their networks.
+name: Collection pack
+
+on:
+  push:
+    branches-ignore: [main]
+    paths:
+      - tools/collection-pack/build_pack.py
+      - tools/collection-pack/sources.json
+  workflow_dispatch:
+    inputs:
+      only:
+        description: Only these collection ids (comma-separated); empty = all
+        required: false
+  schedule:
+    - cron: "17 6 1 * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collection-pack-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # API answers are cached for a month so a rebuild after a sources.json edit is quick.
+      - uses: actions/cache@v4
+        with:
+          path: tools/collection-pack/.cache
+          key: collection-pack-${{ github.run_id }}
+          restore-keys: collection-pack-
+      - name: Expire the cache monthly
+        run: |
+          stamp=tools/collection-pack/.cache/month
+          if [ -f "$stamp" ] && [ "$(cat $stamp)" != "$(date +%Y-%m)" ]; then rm -rf tools/collection-pack/.cache; fi
+          mkdir -p tools/collection-pack/.cache && date +%Y-%m > $stamp
+      - name: Build the pack
+        run: python3 tools/collection-pack/build_pack.py ${{ inputs.only && format('--only {0}', inputs.only) || '' }}
+      - name: Commit the pack
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/assets/collections/tv-pack.json tools/collection-pack/report.md
+          if git diff --cached --quiet; then echo "No change."; exit 0; fi
+          git commit -m "Collection pack: rebuild ($(date -u +%Y-%m-%d))"
+          git push
