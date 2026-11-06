@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:console_app/platform.dart';
 import 'package:console_app/ui/collections/tv_collections_page.dart';
 import 'package:console_app/ui/nav.dart';
 import 'package:console_app/ui/pages/home_page.dart';
+import 'package:console_core/console_core.dart';
 import 'package:console_ui/console_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,6 +25,16 @@ List<String> shelfTitles(WidgetTester t, String title) {
 }
 
 void main() {
+  test('the pack that ships with the app reads, with its blocks and networks', () {
+    final pack = CollectionPack.parse(File('assets/collections/tv-pack.json').readAsStringSync());
+    final toonami = pack.byId('toonami')!;
+    expect(toonami.isBlock, isTrue);
+    expect(toonami.shows.length, greaterThan(50));
+    expect(toonami.shows.any((s) => s.title == 'Dragon Ball Z' && s.tvdb != null), isTrue);
+    expect(pack.collections.where((c) => !c.isBlock).length, greaterThan(20));
+    expect(pack.collections.expand((c) => c.shows).where((s) => s.poster != null), isNotEmpty);
+  });
+
   testWidgets('blocks show your shows first, then the best-rated missing ones up to ten', (t) async {
     await tvApp(t);
     ShellNav.of(t.element(find.byType(HomePage))).go(const TvCollectionsDest());
