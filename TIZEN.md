@@ -70,7 +70,7 @@ certificate.
 To build on a PC instead, install the [Tizen SDK](https://samsungtizenos.com/tools-download/) and
 flutter-tizen (`git clone https://github.com/flutter-tizen/flutter-tizen`, add its `bin` to PATH),
 the native packages for the groups you want (`IOT-Headed-6.0-NativeAppDevelopment-CLI`,
-`IOT-Headed-6.5-NativeAppDevelopment-CLI`, `Tizen-10.0-NativeAppDevelopment-CLI`, and
+`IOT-Headed-6.5-NativeAppDevelopment-CLI`, `TIZEN-10.0-NativeAppDevelopment-CLI`, and
 `NativeToolchain-Gcc-9.2`), then run `tools/build-tizen.sh` (Git Bash or WSL on Windows). The
 packages land in `dist/`.
 
