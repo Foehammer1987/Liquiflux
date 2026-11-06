@@ -10,6 +10,8 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../main.dart' show customTitleBar;
 import '../../platform.dart';
+import '../../services/avplay_player.dart';
+import '../../services/network_watch.dart';
 import '../../services/channels.dart';
 import '../../state/scope.dart';
 import '../player/app_subtitles.dart';
@@ -160,8 +162,21 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
       FocusManager.instance.addListener(_keepFocus);
     }
     if (PlayerDock.enabled) PlayerDock.instance.addListener(_dockChanged);
+    if (isTizen) NetworkWatch.instance.online.addListener(_networkChanged);
     _live.add(this);
     _poke();
+  }
+
+  /// Samsung TVs: with the network gone, network playback stops and the app goes back a page
+  /// (Samsung's multitasking guide); the shell then shows the network popup. The place is
+  /// saved as when leaving with Back, so Resume picks it up later.
+  void _networkChanged() {
+    if (NetworkWatch.instance.online.value || !mounted) return;
+    unawaited(_s.player.pause());
+    final r = _route;
+    if (r == null || !r.isActive) return;
+    final nav = Navigator.of(context);
+    r.isCurrent ? nav.pop() : nav.removeRoute(r);
   }
 
   @override
@@ -195,6 +210,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
   @override
   void dispose() {
     ArtMemory.releaseAll.removeListener(_changed);
+    NetworkWatch.instance.online.removeListener(_networkChanged);
     if (PlayerDock.enabled) PlayerDock.instance.removeListener(_dockChanged);
     if (isDesktop) windowManager.removeListener(this);
     if (!_leaving) SleepTimer.instance.cancel();
@@ -770,7 +786,11 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
         child: switch (_s.video) {
           final video? => Video(controller: video, controls: NoVideoControls, fill: Colors.black, fit: fitFor(_s.aspect), subtitleViewConfiguration: const SubtitleViewConfiguration(visible: false)),
           // Video plane: the picture is on a surface behind the app, seen through here.
-          null => const SizedBox.expand(),
+          null => switch (_s.player.platform) {
+            // Samsung's player: a hole in the app over the TV's video plane.
+            final AvPlayPlayer av => AvPlayView(player: av),
+            _ => const SizedBox.expand(),
+          },
         },
       ),
     );
@@ -1129,7 +1149,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
         child: Scaffold(
           // With the video plane, the picture and its black bars are behind the app. Black
           // while the pages behind are drawn again for 4K (see GpuMemory), so they don't show.
-          backgroundColor: _s.plane && !ArtMemory.releaseAll.value ? Colors.transparent : Colors.black,
+          backgroundColor: (_s.plane || isTizen) && !ArtMemory.releaseAll.value ? Colors.transparent : Colors.black,
           body: Focus(
             focusNode: _focus,
             autofocus: true,

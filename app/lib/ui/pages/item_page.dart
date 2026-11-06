@@ -211,7 +211,7 @@ class _ItemPageState extends State<ItemPage> {
           },
         ),
       if (trailer != null) ConsoleButton(label: 'Play Trailer', icon: LucideIcons.clapperboard, size: ButtonSize.lg, iconOnly: true, onPressed: () => _playItem(trailer, resume: false)),
-      if (webTrailer != null) ConsoleButton(label: 'Watch Trailer', icon: LucideIcons.clapperboard, size: ButtonSize.lg, iconOnly: true, onPressed: () => openExternal(webTrailer.url)),
+      if (webTrailer != null && canOpenLinks) ConsoleButton(label: 'Watch Trailer', icon: LucideIcons.clapperboard, size: ButtonSize.lg, iconOnly: true, onPressed: () => openExternal(webTrailer.url)),
       ConsoleButton(
         label: watched ? 'Mark as Unwatched' : 'Mark as Watched',
         icon: watched ? LucideIcons.checkCheck : LucideIcons.check,
@@ -219,7 +219,7 @@ class _ItemPageState extends State<ItemPage> {
         iconOnly: true,
         onPressed: () => _toggleWatched(item, watched),
       ),
-      if (app.server != null)
+      if (app.server != null && canOpenLinks)
         ConsoleButton(
           label: 'Open in Plex',
           icon: LucideIcons.externalLink,

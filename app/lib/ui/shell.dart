@@ -13,6 +13,7 @@ import '../platform.dart';
 import '../app_info.dart';
 import '../services/links.dart';
 import '../services/live_players.dart';
+import '../services/network_watch.dart';
 import '../services/notifier.dart';
 import '../services/probe.dart';
 import '../services/updater.dart';
@@ -25,6 +26,7 @@ import 'player/player_dock.dart';
 import 'notice_toast.dart';
 import 'shuffle/shuffle_dialog.dart';
 import 'tv_focus.dart';
+import 'tv_popups.dart';
 import 'window_buttons.dart';
 import 'channels/channels_page.dart';
 import 'collections/collection_page.dart';
@@ -77,8 +79,9 @@ class _ShellState extends State<Shell> {
       _inviteSub = app.watchTogether.invites.stream.listen(_invited);
       _roomSub = app.openParty.opens.stream.listen(_roomTitle);
       _updateSub = app.updater.found.stream.listen(_updateFound);
-      // Once things have settled after launch: is there a newer Liquiflux on GitHub?
-      _updateCheck = Timer(const Duration(seconds: 20), () => unawaited(app.updater.checkInBackground()));
+      // Once things have settled after launch: is there a newer Liquiflux on GitHub? Not in a
+      // store build: the store updates the app, and Samsung's TVs install nothing else.
+      if (storeBuild.isEmpty) _updateCheck = Timer(const Duration(seconds: 20), () => unawaited(app.updater.checkInBackground()));
       Notifier.instance.onAction = _onNotification;
       unawaited(Probe.atHome(context, openTitle: (key) => push(ItemDest(key))));
       // "Who's watching?" as Liquiflux opens, when asked for (it closes itself without a Home).
@@ -86,6 +89,35 @@ class _ShellState extends State<Shell> {
     });
     if (isTv) FocusManager.instance.addListener(_focusMoved);
     playerHandoff.addListener(_fromPlayer);
+    if (isTizen) {
+      NetworkWatch.instance.online.addListener(_networkChanged);
+      NetworkWatch.instance.start();
+    }
+  }
+
+  bool _networkPopup = false;
+
+  /// Samsung TVs: the network went or came back. While it's gone a popup says so (the player
+  /// closes itself first, see PlayerPage); once it's back the popup closes and Plex and Seerr
+  /// are asked again straight away instead of at their next retry.
+  void _networkChanged() {
+    if (!mounted) return;
+    final app = AppScope.read(context);
+    if (NetworkWatch.instance.online.value) {
+      app.networkBack();
+      return;
+    }
+    if (_networkPopup) return;
+    _networkPopup = true;
+    // After the player's own route has gone, so the popup isn't what it pops.
+    Timer(const Duration(milliseconds: 400), () async {
+      if (!mounted || NetworkWatch.instance.online.value) {
+        _networkPopup = false;
+        return;
+      }
+      await showNetworkLost(context);
+      _networkPopup = false;
+    });
   }
 
   void _fromPlayer() {
@@ -119,6 +151,7 @@ class _ShellState extends State<Shell> {
   void dispose() {
     if (isTv) FocusManager.instance.removeListener(_focusMoved);
     playerHandoff.removeListener(_fromPlayer);
+    NetworkWatch.instance.online.removeListener(_networkChanged);
     _refocus?.cancel();
     _readySub?.cancel();
     _inviteSub?.cancel();
@@ -139,7 +172,7 @@ class _ShellState extends State<Shell> {
         ..removeWhere((t) => t is RequestRow && t.request.id == r.request.id)
         ..add(r),
     );
-    final focused = !(Platform.isWindows || Platform.isLinux || Platform.isMacOS) || await windowManager.isFocused();
+    final focused = !isDesktop || await windowManager.isFocused();
     if (focused || !mounted) return;
     final key = await AppScope.read(context).ratingKeyFor(r);
     final m = r.request.media;
@@ -177,7 +210,7 @@ class _ShellState extends State<Shell> {
         ..removeWhere((t) => t is _Invite && t.room.id == room.id)
         ..add(invite),
     );
-    final focused = !(Platform.isWindows || Platform.isLinux || Platform.isMacOS) || await windowManager.isFocused();
+    final focused = !isDesktop || await windowManager.isFocused();
     if (focused || !mounted) return;
     final thumb = item?.thumb;
     await Notifier.instance.ready(
@@ -238,7 +271,7 @@ class _ShellState extends State<Shell> {
 
   /// Play (or a click) on a system toast: bring the window forward and do it.
   Future<void> _onNotification(String payload) async {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    if (isDesktop) {
       await windowManager.show();
       await windowManager.focus();
     }
@@ -476,15 +509,28 @@ class _ShellState extends State<Shell> {
   /// Up from the top of a page or the rail: the search pill.
   void _toSearch() => (isTv ? _searchButton : _searchFocus).requestFocus();
 
-  /// Back from the top of Home leaves the app on Android, like any TV app.
+  /// Back from the top of Home leaves the app on Android, like any TV app. A Samsung TV asks
+  /// first (Samsung's Return key policy): only Yes closes the app.
   void _back() {
-    if (!_backPressed() && Platform.isAndroid) unawaited(_leaveApp());
+    if (_backPressed()) return;
+    if (Platform.isAndroid) unawaited(_leaveApp());
+    if (isTizen) unawaited(_askToLeave());
   }
 
   bool _leaving = false;
+  bool _asking = false;
+
+  Future<void> _askToLeave() async {
+    if (_asking || _leaving) return;
+    _asking = true;
+    final yes = await confirmExit(context);
+    _asking = false;
+    if (yes && mounted) await _leaveApp();
+  }
 
   /// Lets go of every mpv player (a Spotlight trailer, a player still closing) before the
-  /// activity finishes: one left open crashed natively in libmpv once Dart was gone.
+  /// activity finishes: one left open crashed natively in libmpv once Dart was gone. On a
+  /// Samsung TV, SystemNavigator.pop is the app's exit() (ui_app_exit in flutter-tizen).
   Future<void> _leaveApp() async {
     if (_leaving) return;
     _leaving = true;

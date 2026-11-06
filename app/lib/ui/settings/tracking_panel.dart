@@ -328,7 +328,7 @@ class _TrackingPanelsState extends State<TrackingPanels> {
             await _saveTraktKeys(_id.text, _secret.text);
             _traktStatus = ('Saved', Tone.success);
           }),
-          ConsoleButton(label: 'Make a Trakt App', icon: LucideIcons.externalLink, onPressed: () => unawaited(openExternal('https://trakt.tv/oauth/applications/new'))),
+          if (canOpenLinks) ConsoleButton(label: 'Make a Trakt App', icon: LucideIcons.externalLink, onPressed: () => unawaited(openExternal('https://trakt.tv/oauth/applications/new'))),
         ]),
       ]);
     }
@@ -376,7 +376,7 @@ class _TrackingPanelsState extends State<TrackingPanels> {
                 await _app.setScrobbleApps(anilistClientId: id);
                 if (mounted) setState(() {});
               }),
-              ConsoleButton(label: 'AniList Developer Settings', icon: LucideIcons.externalLink, onPressed: () => unawaited(openExternal('https://anilist.co/settings/developer'))),
+              if (canOpenLinks) ConsoleButton(label: 'AniList Developer Settings', icon: LucideIcons.externalLink, onPressed: () => unawaited(openExternal('https://anilist.co/settings/developer'))),
             ]),
           ]);
         } else {

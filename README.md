@@ -9,6 +9,7 @@
   <a href="https://github.com/Foehammer1987/Liquiflux/releases/latest"><b>Download the latest release</b></a>
   &nbsp;·&nbsp; <a href="docs/GUIDE.md">User guide</a>
   &nbsp;·&nbsp; <a href="ANDROID-TV.md">Android TV setup</a>
+  &nbsp;·&nbsp; <a href="TIZEN.md">Samsung TV (preview)</a>
 </p>
 
 Liquiflux is a Plex client written in Flutter. It aims to feel like the big streaming apps: a
@@ -199,5 +200,5 @@ Developer notes, including how to run the app against mock servers, are in the
 
 ## License
 
-[MIT](LICENSE). Liquiflux is not affiliated with Plex, Inc. Inter and JetBrains Mono are under the
+[MIT](LICENSE). Works with Plex. Plex is a trademark of Plex, Inc.; Liquiflux is not affiliated with or endorsed by Plex, Inc. Inter and JetBrains Mono are under the
 SIL Open Font License; media_kit is under its own MIT license.

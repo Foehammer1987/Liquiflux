@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.0.12
+
+Samsung TVs: a first Tizen build of Liquiflux, for Samsung TVs from 2021 on. Not yet tried on a Samsung TV (see TIZEN.md, Testing).
+
+- Built with Samsung's flutter-tizen (3.47.5-tizen.1.0.1) as a TV app (`app/tizen/`, package `com.foehammer.liquiflux`, label "Liquiflux", internet privilege only). The new `tizen` workflow builds three signed TPKs per run, one per Tizen version group (6.0 for 2021, 6.5 for 2022-2025, 10.0 for 2026), with `tools/build-tizen.sh`; package versions are x.y.(z*100 + n), so 1.0.12 is 1.0.1200, 1.0.1201 and 1.0.1202.
+- Video plays through Samsung's own player (AVPlay, `video_player_avplay`) on the TV's video plane. `services/avplay_player.dart` puts it behind media_kit's player API, so the player page and everything on it (resume, tracks, Skip Intro, Up Next, sleep timer, Watch Together, X-Ray, Plex progress) is shared with the other platforms. Plex's headers go in the stream address (AVPlay sends only Cookie and User-Agent). Text subtitles are drawn by the app; sidecar SRT and WebVTT files are read by the app.
+- What Samsung TVs can't play goes through Plex: DTS and TrueHD sound (converted, picture untouched), picture-based subtitles (burned in), and VC-1. AV1 plays on the TV.
+- Samsung's Return and Exit rules: Return on Home goes to the top of Home, then asks "Exit Liquiflux?" (No focused, only Yes exits); Return closes popups; Exit closes the app from anywhere. Media keys work in the player as on Android TV; colour, channel, Info and Guide keys do nothing.
+- A "No network connection" popup when the TV loses its network (checked every 3 s from the TV's own interfaces): playback stops and the player closes first, and the popup closes itself when the network is back, when Plex and Seerr are asked again at once.
+- No screensaver while a video plays (wakelock_plus_tizen).
+- Hidden on Samsung TVs: mpv-only settings (Passthrough, Speakers, Night Mode, Volume Boost, Hardware Decoding, Deinterlace, High Quality Scaling, Debanding, mpv Options, audio and subtitle delay, Restyle Styled Subtitles), Home trailers, and buttons that only open a web page. Samsung TVs count as low-memory TVs.
+- Store builds (`LIQUIFLUX_STORE`, now also Samsung) no longer check GitHub for updates or show the Updates panel.
+- Plex trademark line ("Works with Plex. Plex is a trademark of Plex, Inc. ...") in Settings > Advanced and the README.
+- Tests: `app/test/tizen_test.dart` (package manifest, AVPlay address, what goes through Plex, network watch, exit and network popups).
+- Version 1.0.12+70 (Android versionCode 1070 for armeabi-v7a, 2070 for arm64-v8a).
+
 ## 1.0.11
 
 TV Networks: shows by the channel or programming block they aired on, with the ones you're missing to request.

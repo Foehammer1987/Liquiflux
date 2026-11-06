@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 import '../app_info.dart';
+import '../platform.dart';
 
 /// System notifications (Windows toasts, Linux desktop notifications) with a Play button.
 /// Clicking either the toast or Play hands "play:ratingKey" to [onAction].
@@ -29,7 +30,7 @@ class Notifier {
   static const _windowsGuid = '5b0a3c6e-8f1d-4c2b-9a7e-2d4f6b8c1e93';
 
   /// Whether this platform gets system notifications at all.
-  static bool get supported => Platform.isWindows || Platform.isLinux;
+  static bool get supported => isDesktop && (Platform.isWindows || Platform.isLinux);
 
   Future<void> init() async {
     if (_ready || !supported) return;

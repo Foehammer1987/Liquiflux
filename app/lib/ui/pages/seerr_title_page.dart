@@ -146,8 +146,8 @@ class _SeerrTitlePageState extends State<SeerrTitlePage> {
           onPressed: _anyBusy ? null : () => _request(),
         ),
       if (inPlex != null && state.requestable) ConsoleButton(label: 'Open in Library', icon: LucideIcons.play, size: ButtonSize.lg, onPressed: () => ShellNav.of(context).push(ItemDest(inPlex))),
-      if (trailer?.url != null) ConsoleButton(label: 'Watch Trailer', icon: LucideIcons.clapperboard, size: ButtonSize.lg, iconOnly: true, onPressed: () => openExternal(trailer!.url)),
-      if (detail.imdbId != null)
+      if (trailer?.url != null && canOpenLinks) ConsoleButton(label: 'Watch Trailer', icon: LucideIcons.clapperboard, size: ButtonSize.lg, iconOnly: true, onPressed: () => openExternal(trailer!.url)),
+      if (detail.imdbId != null && canOpenLinks)
         ConsoleButton(
           label: 'Open on IMDb',
           icon: LucideIcons.globe,
@@ -155,7 +155,7 @@ class _SeerrTitlePageState extends State<SeerrTitlePage> {
           iconOnly: true,
           onPressed: () => openExternal('https://www.imdb.com/title/${Uri.encodeComponent(detail.imdbId!)}/'),
         ),
-      ConsoleButton(label: 'Open in Seerr', icon: LucideIcons.externalLink, size: ButtonSize.lg, iconOnly: true, onPressed: () => openExternal(seerrWeb)),
+      if (canOpenLinks) ConsoleButton(label: 'Open in Seerr', icon: LucideIcons.externalLink, size: ButtonSize.lg, iconOnly: true, onPressed: () => openExternal(seerrWeb)),
     ];
 
     final status = Column(

@@ -1,7 +1,7 @@
 name: console_app
 description: "Liquiflux, a Plex client with Seerr requests built in."
 publish_to: none
-version: 1.0.11+69
+version: 1.0.12+70
 
 environment:
   sdk: ^3.8.0
@@ -27,6 +27,18 @@ dependencies:
   qr: 4.0.0
   # Open Watch Party rooms (see packages/console_core).
   openwatchparty: 1.1.0
+  # Samsung TVs (Tizen), built with flutter-tizen (see TIZEN.md). Each of these is a Tizen-only
+  # plugin: the Android, Windows and Linux builds don't include them.
+  # Samsung's hardware player, in place of mpv (services/avplay_player.dart).
+  video_player_avplay: 0.8.22
+  # Keeps the TV's screensaver away while a video plays (wakelock_plus already comes with
+  # media_kit_video; only the Tizen side is new).
+  wakelock_plus: ^1.8.1
+  wakelock_plus_tizen: 2.1.5
+  # Tizen versions of plugins the app already uses.
+  flutter_secure_storage_tizen: 0.1.6
+  path_provider_tizen: 2.3.3
+  url_launcher_tizen: 2.1.9
 # Our copy of media_kit_video 2.0.1 with the Windows picture handed to Flutter without
 # tearing (see packages/media_kit_video/LIQUIFLUX.md). Android and the rest are unchanged.
 dependency_overrides:

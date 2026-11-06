@@ -5,6 +5,7 @@ import 'package:console_ui/console_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 
+import '../../platform.dart';
 import '../../services/tv_sleep.dart';
 import 'player_session.dart';
 import 'remote.dart';
@@ -113,6 +114,8 @@ class PlayerSheet extends StatelessWidget {
       else
         for (final a in s.mpvAudio)
           _Choice(label: a.title ?? a.language ?? 'Track ${a.id}', detail: a.codec, on: s.player.state.track.audio.id == a.id, tint: _tint, onTap: () => s.player.setAudioTrack(a)),
+      // Samsung's player has no audio delay, sound filters or output choice (they're mpv's).
+      if (!isTizen) ...[
       _Heading('Sync', color: accent),
       _Stepper(
         label: 'Audio Delay',
@@ -128,6 +131,7 @@ class PlayerSheet extends StatelessWidget {
       if (s.audioDevices.length > 1) ...[
         _Heading('Output', color: accent),
         for (final d in s.audioDevices) _Choice(label: d.name == 'auto' ? 'System Default' : d.description, on: d.name == s.audioDevice, tint: _tint, onTap: () => s.setAudioDevice(d)),
+      ],
       ],
     ];
   }
@@ -209,6 +213,7 @@ class PlayerSheet extends StatelessWidget {
       if (s.transcoding && s.subtitle != null) const _Note('The server is burning these subtitles into the picture, so the style below applies when playing the original.'),
       if (image) const _Note('Picture-based subtitles (PGS, VobSub) keep their own look. Size and height still apply.'),
       if (s.canSearchOnline) ..._online(s),
+      if (!isTizen) ...[
       _Heading('Sync', color: accent),
       _Stepper(
         label: 'Subtitle Delay',
@@ -218,6 +223,7 @@ class PlayerSheet extends StatelessWidget {
         onPlus: () => s.setSubtitleDelay(s.subtitleDelayMs + 100),
         onReset: s.subtitleDelayMs == 0 ? null : () => s.setSubtitleDelay(0),
       ),
+      ],
       _Heading('Style', color: accent),
       _Labelled(
         'Size',
@@ -294,7 +300,7 @@ class PlayerSheet extends StatelessWidget {
       ],
       _Heading('Picture', color: accent),
       _Labelled('Aspect', _Chips<String>(options: const [('fit', 'Fit'), ('fill', 'Fill'), ('stretch', 'Stretch')], value: s.aspect, tint: _tint, onChanged: s.setAspect)),
-      _SwitchRow(label: 'Deinterlace', help: 'For old TV recordings with combing on motion.', value: s.deinterlace, tint: _tint, onChanged: s.setDeinterlace),
+      if (!isTizen) _SwitchRow(label: 'Deinterlace', help: 'For old TV recordings with combing on motion.', value: s.deinterlace, tint: _tint, onChanged: s.setDeinterlace),
     ];
   }
 
@@ -308,7 +314,7 @@ class PlayerSheet extends StatelessWidget {
     return [
       _Heading('Speed', color: accent),
       _Chips<double>(options: const [(0.5, '0.5×'), (0.75, '0.75×'), (1.0, 'Normal'), (1.25, '1.25×'), (1.5, '1.5×'), (1.75, '1.75×'), (2.0, '2×')], value: s.rate, tint: _tint, onChanged: s.setRate),
-      const _Note('Pitch stays natural at every speed.'),
+      if (!isTizen) const _Note('Pitch stays natural at every speed.'),
       _Heading('Sleep Timer', color: accent),
       _Chips<String>(
         options: [

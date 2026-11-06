@@ -5,6 +5,7 @@ import 'package:console_core/console_core.dart';
 import 'package:flutter/foundation.dart';
 
 import '../app_info.dart';
+import '../platform.dart';
 import '../services/channels.dart';
 import '../services/collections_cache.dart';
 import '../services/open_party.dart';
@@ -328,7 +329,11 @@ class AppState extends ChangeNotifier {
     return out;
   }
 
-  String get _platform => Platform.isWindows
+  /// What Plex is told the app runs on (its dashboard shows it, and it picks the server's
+  /// stream profile). Tizen comes first: Dart sees a Samsung TV as Linux.
+  String get _platform => isTizen
+      ? 'Tizen'
+      : Platform.isWindows
       ? 'Windows'
       : Platform.isAndroid
       ? 'Android'
@@ -609,6 +614,24 @@ class AppState extends ChangeNotifier {
         await _checkSeerr(gen);
         if (gen == _gen) _afterSeerr(gen, _backoff(wait));
       });
+    }
+  }
+
+  /// The TV's network is back (see NetworkWatch): whatever couldn't be reached is asked
+  /// again now, not at its next retry (which may be minutes away), so Home fills in.
+  void networkBack() {
+    final gen = _gen;
+    if (plexConn == Conn.failed) {
+      _plexRetry?.cancel();
+      unawaited(_checkPlex(gen).then((_) {
+        if (gen == _gen) _afterPlex(gen, const Duration(seconds: 15));
+      }));
+    }
+    if (seerrConn == Conn.failed) {
+      _seerrRetry?.cancel();
+      unawaited(_checkSeerr(gen).then((_) {
+        if (gen == _gen) _afterSeerr(gen, const Duration(seconds: 15));
+      }));
     }
   }
 
