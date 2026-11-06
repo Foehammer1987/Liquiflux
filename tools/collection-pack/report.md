@@ -1,95 +1,65 @@
 # Collection pack report (2026-11-06)
 
-48 collections, 21552 shows, 7377 without a TMDB id, 2119 KB.
+51 collections, 8537 shows, 1798 without a TMDB id, 873 KB.
 
 ## Blocks
 
 - **Toonami** (List of programs broadcast by Toonami): headings: Animated series, Anime, Domestic and other animation, Movies and specials, Microseries, Specials, Animated movies, Live-action movies, Giant Robot Week, Adult Swim April Fools' Day 2012, Programs featured by block, Weekday Toonami on Cartoon Network, Weekday Toonami (1997–2004), Moltar's block (1997–'99), TOM's blocks (1999–2004), Midnight Run (2000–'03), Weekend Toonami on Cartoon Network, Saturday Toonami (1997–'99), Midnight Run (1999–2000), Rising Sun (2000–'01), Super Saturday (2001–'03), Toonami Saturday Night (2004–'08), Toonami lineups on Adult Swim, 2012–2019, 2020–present, Toonami Rewind, Toonami special blocks, See also, Notes, References, External links
-  - 254 rows, 128 shows, 64 series-like rows not on TVmaze
-    - not matched: Akame ga Kill! (Animated series / Anime)
-    - not matched: Blue Exorcist (Animated series / Anime)
-    - not matched: Blue Exorcist: Beyond the Snow Saga (Animated series / Anime)
-    - not matched: Blue Exorcist: Kyoto Saga (Animated series / Anime)
-    - not matched: Blue Exorcist: Shimane Illuminati Saga (Animated series / Anime)
-    - not matched: Blue Lock (Animated series / Anime)
-    - not matched: Cardcaptor Sakura (Animated series / Anime)
-    - not matched: Cyborg 009 (Animated series / Anime)
-    - not matched: Deadman Wonderland (Animated series / Anime)
-    - not matched: Dr. Stone (Animated series / Anime)
-    - not matched: Eyeshield 21 (Animated series / Anime)
-    - not matched: Fire Force (Animated series / Anime)
-    - not matched: FLCL: Grunge (Animated series / Anime)
-    - not matched: FLCL: Shoegaze (Animated series / Anime)
-    - not matched: Food Wars!: Shokugeki no Soma (Animated series / Anime)
-    - not matched: Gachiakuta (Animated series / Anime)
+  - 254 rows, 159 shows, 12 series-like rows not on TVmaze
     - not matched: Harlock Saga (Animated series / Anime)
-    - not matched: Hellsing Ultimate (Animated series / Anime)
-    - not matched: Hikaru no Go (Animated series / Anime)
-    - not matched: Inuyasha: The Final Act (Animated series / Anime)
-    - not matched: JoJo's Bizarre Adventure: Diamond Is Unbreakable (Animated series / Anime)
-    - not matched: JoJo's Bizarre Adventure: Golden Wind (Animated series / Anime)
-    - not matched: JoJo's Bizarre Adventure: Stardust Crusaders (Animated series / Anime)
     - not matched: Lupin the 3rd Part IV: The Italian Adventure (Animated series / Anime)
     - not matched: Lupin the 3rd Part V: Misadventures in France (Animated series / Anime)
     - not matched: Lupin the 3rd Part 6 (Animated series / Anime)
-    - not matched: Made in Abyss (Animated series / Anime)
-    - not matched: MÄR (Animated series / Anime)
-    - not matched: Mashle (Animated series / Anime)
-    - not matched: Mobile Suit Gundam: The Origin (Animated series / Anime)
-    - not matched: Mobile Suit Gundam Unicorn (Animated series / Anime)
     - not matched: Parasyte (Animated series / Anime)
-    - not matched: Pokémon Chronicles (Animated series / Anime)
-    - not matched: Pokémon: Battle Frontier (Animated series / Anime)
-    - not matched: Pokémon: Indigo League (Animated series / Anime)
-    - not matched: Pokémon: Johto League Champions (Animated series / Anime)
-    - not matched: Pokémon: The Johto Journeys (Animated series / Anime)
-    - not matched: Pokémon: Master Quest (Animated series / Anime)
-    - not matched: The Prince of Tennis (Animated series / Anime)
-    - not matched: The Promised Neverland (Animated series / Anime)
-    - not matched: Rave Master (Animated series / Anime)
-    - not matched: Record of Lodoss War (Animated series / Anime)
-    - not matched: Rooster Fighter (Animated series / Anime)
-    - not matched: Soul Eater (Animated series / Anime)
     - not matched: Sword Art Online II (Animated series / Anime)
-    - not matched: Sword Art Online: Alicization (Animated series / Anime)
-    - not matched: Sword Art Online: Alicization (Animated series / Anime)
     - not matched: Tenchi Muyo! Ryo-Ohki (Animated series / Anime)
-    - not matched: Tokyo Ghoul (Animated series / Anime)
     - not matched: Tokyo Ghoul √A (Animated series / Anime)
-    - not matched: Uzumaki (Animated series / Anime)
-    - not matched: Wind Breaker (manga) (Animated series / Anime)
-    - not matched: Zatch Bell! (Animated series / Anime)
-    - not matched: Zom 100: Bucket List of the Dead (Animated series / Anime)
     - not matched: Wulin Warriors (Animated series / Domestic and other animation)
     - not matched: Tenchi Muyo! Ryo-Ohki (Programs featured by block / Weekday Toonami on Cartoon Network / Weekday Toonami (1997–2004) / TOM's blocks (1999–2004))
-    - not matched: Cardcaptor Sakura (Programs featured by block / Weekday Toonami on Cartoon Network / Weekday Toonami (1997–2004) / TOM's blocks (1999–2004))
-    - not matched: Cyborg 009 (Programs featured by block / Weekday Toonami on Cartoon Network / Weekday Toonami (1997–2004) / TOM's blocks (1999–2004))
     - not matched: Tenchi Muyo! Ryo-Ohki (Programs featured by block / Weekday Toonami on Cartoon Network / Midnight Run (2000–'03))
-    - not matched: Pokémon Chronicles (Programs featured by block / Weekend Toonami on Cartoon Network / Toonami Saturday Night (2004–'08))
+    - not matched: Wulin Warriors (Programs featured by block / Weekend Toonami on Cartoon Network / Toonami Saturday Night (2004–'08))
 - **Adult Swim Originals** (List of programs broadcast by Adult Swim): headings: Current programming, Animated, Live-action, Toonami block, Acquired programming, Toonami block, Cartoon Network programming / Checkered Past block, Upcoming programming, Original programming, Former original programming, Animated, Live-action, Toonami block, Former acquired programming, Toonami block, Cartoon Network programming / Checkered Past block, Stunts and cross-promotional, Original online programming, Pilots and specials, Pilots, Original specials, Syndicated shorts and specials, Films, See also, Notes, References, External links
-  - 100 rows, 91 shows, 9 series-like rows not on TVmaze
+  - 100 rows, 92 shows, 8 series-like rows not on TVmaze
     - not matched: Adult Swim Smalls (Current programming / Animated)
     - not matched: The Hollywood Reporter (Upcoming programming / Original programming)
     - not matched: Deadline Hollywood (Upcoming programming / Original programming)
-    - not matched: SuperMutant Magic Academy (Upcoming programming / Original programming)
     - not matched: All Elite Wrestling (Upcoming programming / Original programming)
     - not matched: The Last Podcast on the Left (Original online programming)
     - not matched: Pregame Prognostifications from the Pigskin Wyzzard (Original online programming)
     - not matched: Toonami Pre-Flight (Original online programming)
     - not matched: Animation Magazine (Original online programming)
 - **Adult Swim Anime** (List of programs broadcast by Adult Swim): headings: Current programming, Animated, Live-action, Toonami block, Acquired programming, Toonami block, Cartoon Network programming / Checkered Past block, Upcoming programming, Original programming, Former original programming, Animated, Live-action, Toonami block, Former acquired programming, Toonami block, Cartoon Network programming / Checkered Past block, Stunts and cross-promotional, Original online programming, Pilots and specials, Pilots, Original specials, Syndicated shorts and specials, Films, See also, Notes, References, External links
-  - 0 rows, 0 shows, 0 series-like rows not on TVmaze
+  - 268 rows, 93 shows, 19 series-like rows not on TVmaze
+    - not matched: Adult Swim Smalls (Current programming / Animated)
+    - not matched: Case Closed (Former acquired programming)
+    - not matched: Code Geass: Lelouch of the Rebellion (Former acquired programming)
+    - not matched: Lupin the 3rd Part II (Former acquired programming)
+    - not matched: Moribito: Guardian of the Spirit (Former acquired programming)
+    - not matched: The Candidate for Goddess (Former acquired programming)
+    - not matched: The Smoking Gun (Former acquired programming)
+    - not matched: Tenchi Muyo! Ryo-Ohki (Former acquired programming)
+    - not matched: Lupin the 3rd Part IV: The Italian Adventure (Former acquired programming / Toonami block)
+    - not matched: Lupin the 3rd Part V: Misadventures in France (Former acquired programming / Toonami block)
+    - not matched: Lupin the 3rd Part 6 (Former acquired programming / Toonami block)
+    - not matched: Parasyte -the maxim- (Former acquired programming / Toonami block)
+    - not matched: Sword Art Online II (Former acquired programming / Toonami block)
+    - not matched: Tokyo Ghoul √A (Former acquired programming / Toonami block)
+    - not matched: The Bob Clampett Show (Former acquired programming / Cartoon Network programming / Checkered Past block)
+    - not matched: The Last Podcast on the Left (Original online programming)
+    - not matched: Pregame Prognostifications from the Pigskin Wyzzard (Original online programming)
+    - not matched: Toonami Pre-Flight (Original online programming)
+    - not matched: Animation Magazine (Original online programming)
 - **Nick at Nite** (List of programs broadcast by Nick at Nite): headings: Current programming, Former programming, Original programming, Programming from Nickelodeon, Acquired programming, Programming from Paramount networks (TV Land, CMT, Comedy Central), Special/cross-promotional airings, Movie presentations, Former, Television specials, See also, Notes, References
-  - 171 rows, 163 shows, 7 series-like rows not on TVmaze
+  - 171 rows, 165 shows, 5 series-like rows not on TVmaze
     - not matched: The Search for the Funniest Mom in America (Former programming / Original programming)
     - not matched: Group Chat (talk show) (Former programming / Programming from Nickelodeon)
-    - not matched: Dragnet (series) (Former programming / Acquired programming)
     - not matched: Kids Say the Darndest Things (Former programming / Acquired programming)
     - not matched: Mad Movies with the L.A. Connection (Former programming / Acquired programming)
-    - not matched: Mr. Wizard's World (Former programming / Acquired programming)
     - not matched: Turkey Television (Former programming / Acquired programming)
 - **SNICK** (SNICK): headings: Background, History, 1992–2000: Original SNICK, 2000–2001: SNICK House, 2001–2002: Elevator Music Era, 2002–2004: SNICK On-Air Dare, 2004–2005: Saturday Night on Nickelodeon era and the end of SNICK, 2011: SNICK on The '90s Are All That, 2017: SNICK on NickSplat, SNICK line-ups, Special line-ups, Home video releases, Volume 1: Nick SNICKS Friendship, Volume 2: Nick SNICKS The Family, Notes, References, External links
-  - 0 rows, 0 shows, 0 series-like rows not on TVmaze
+  - 21 rows, 16 shows, 2 series-like rows not on TVmaze
+    - not matched: Chicago Sun-Times (SNICK line-ups)
+    - not matched: Toledo Blade (Special line-ups)
 - **Cartoon Cartoons** (Cartoon Cartoons): headings: History, Revival, List of shorts, Promotions, Programming blocks, List of series, Precursor, Full series, In other media, See also, Notes, References, External links
   - 27 rows, 17 shows, 9 series-like rows not on TVmaze
     - not matched: Computer animation (History / Revival / List of shorts)
@@ -102,9 +72,8 @@
     - not matched: Adult animation (History / Revival / List of shorts)
     - not matched: Cartoon Network (Programming blocks)
 - **Fox Kids** (List of programs broadcast by Fox Kids): headings: Australia, Specials, Europe, France, Movies, Germany, Greece, Movies/Specials, India, Israel, Movies, Italy, Latin America, Shorts/Interstitials, Movies/Specials, Blocks, Scrapped, Netherlands, Poland, Movies, Russia, Scandinavia, Spain, Blocks, United States, See also, Notes, References
-  - 715 rows, 279 shows, 139 series-like rows not on TVmaze
+  - 715 rows, 289 shows, 114 series-like rows not on TVmaze
     - not matched: Cybernet (Australia)
-    - not matched: Deepwater Black (Australia)
     - not matched: Groundling Marsh (Australia)
     - not matched: The Hooley Dooleys (Australia)
     - not matched: The Mr. Potato Head Show (Australia)
@@ -119,65 +88,66 @@
     - not matched: Rimba's Island (Australia)
     - not matched: Sesame Park (Australia)
     - not matched: Secret Life of Toys (Australia)
-    - not matched: Crayon Shin-chan (Australia)
     - not matched: Totally Tooned In (Australia)
     - not matched: Witch World (Australia)
-    - not matched: Dragon Ball (Europe)
     - not matched: Go! Go! Itsutsugo Land (Europe)
-    - not matched: Shaman King (Europe)
-    - not matched: Crayon Shin-chan (Europe)
     - not matched: The Genie Family (France)
-    - not matched: Cardcaptor Sakura (France)
-    - not matched: Iznogoud (France)
     - not matched: Jim Button and Luke the Engine Driver (France)
     - not matched: Go! Go! Itsutsugo Land (France)
     - not matched: Power Rangers Ninja Storm (France)
     - not matched: Power Rangers Time Force (France)
     - not matched: Power Rangers Wild Force (France)
-    - not matched: Shaman King (France)
-    - not matched: Crayon Shin-chan (France)
     - not matched: Chiisana Obake Acchi, Kocchi, Socchi (France)
     - not matched: Zoe and Charlie (France)
     - not matched: Benjamin the Elephant (Germany)
     - not matched: Bumpety Boo (Germany)
     - not matched: Ganbare, Kickers! (Germany)
     - not matched: Jin Jin and the Panda Patrol (Germany)
-    - not matched: MegaMan NT Warrior (Germany)
     - not matched: Power Rangers Lightspeed Rescue (Germany)
     - not matched: Power Rangers Lost Galaxy (Germany)
     - not matched: Power Rangers Wild Force (Germany)
-    - not matched: Shaman King (Germany)
-    - not matched: Crayon Shin-chan (Germany)
     - not matched: Chiisana Obake Acchi, Kocchi, Socchi (Germany)
     - not matched: Jim Button and Luke the Engine Driver (Greece)
     - not matched: Power Rangers Zeo (Greece)
-    - not matched: Shaman King (Greece)
-    - not matched: Iznogoud (Israel)
     - not matched: Power Rangers Lightspeed Rescue (Israel)
     - not matched: Power Rangers Time Force (Israel)
     - not matched: Super Pig (Israel)
-    - not matched: Iznogoud (Italy)
     - not matched: Jim Button and Luke the Engine Driver (Italy)
     - not matched: The Marvel Super Heroes (Italy)
     - not matched: Monster Farm (Italy)
     - not matched: Power Rangers in Space (Italy)
     - not matched: Power Rangers Lightspeed Rescue (Italy)
     - not matched: Power Rangers Lost Galaxy (Italy)
+    - not matched: Power Rangers Ninja Storm (Italy)
+    - not matched: Power Rangers Time Force (Italy)
+    - not matched: Power Rangers Turbo (Italy)
+    - not matched: Power Rangers Wild Force (Italy)
+    - not matched: Power Rangers Zeo (Italy)
+    - not matched: Super Pig (Italy)
+    - not matched: The Adventures of Timmy the Tooth (Latin America)
+    - not matched: Cyber Team in Akihabara (Latin America)
+    - not matched: Groundling Marsh (Latin America)
+    - not matched: Hallo Spencer (Latin America)
+    - not matched: The Marvel Super Heroes (Latin America)
+    - not matched: The Marvel Super Heroes (Latin America)
+    - not matched: Jim Button and Luke the Engine Driver (Latin America)
+    - not matched: Jin Jin and the Panda Patrol (Latin America)
+    - not matched: Kamen Rider Black (Latin America)
 - **Kids' WB** (List of programs broadcast by Kids' WB): headings: Programming, Original programming, Programming from Warner Bros. Television, Acquired programming, Anime, Miscellaneous, Short-form programming, Films, See also, Notes, References
-  - 77 rows, 68 shows, 9 series-like rows not on TVmaze
+  - 77 rows, 70 shows, 7 series-like rows not on TVmaze
     - not matched: Bugs 'n' Daffy (Programming / Original programming)
     - not matched: Bugs 'n' Daffy (Programming / Original programming)
     - not matched: Bugs 'n' Daffy (Programming / Original programming)
     - not matched: The New Batman/Superman Adventures (Programming / Original programming)
     - not matched: The Cat&Birdy Warneroonie PinkyBrainy Big Cartoonie Show (Programming / Original programming)
     - not matched: The New Scooby and Scrappy-Doo Show (Programming / Programming from Warner Bros. Television)
-    - not matched: Cardcaptor Sakura (Programming / Acquired programming / Anime)
-    - not matched: MegaMan NT Warrior (Programming / Acquired programming / Anime)
     - not matched: Channel Umptee-3 (Programming / Acquired programming / Miscellaneous)
-- **4Kids TV / FoxBox**: page "List of programs broadcast by 4Kids TV" not found
-  - 0 rows, 0 shows, 0 series-like rows not on TVmaze
+- **4Kids TV / FoxBox** (4Kids TV): headings: History, Programming, Former programming, FoxBox, Original programming, Acquired programming, 4Kids TV, Original programming, Acquired programming, 4KidsTV.com, Online network, Relationship with Fox and broadcast ambiguities, Markets where 4Kids TV did not run, Markets where 4Kids TV ran on a MyNetworkTV affiliate, Markets where 4Kids TV ran on a CW affiliate, Markets where 4Kids TV ran on an independent station, See also, Notes, References, External links
+  - 41 rows, 30 shows, 2 series-like rows not on TVmaze
+    - not matched: Ultraman Tiga (Programming / Former programming / FoxBox / Original programming)
+    - not matched: The Adrenaline Project (Programming / Former programming / 4Kids TV / Original programming)
 - **Jetix** (List of programs broadcast by Jetix): headings: Jetix Europe co-produced shows, Jetix original broadcast series, Jetix Play, Americas, United States, Marathons, Jetix Animation Concepts, Shorts/Interstitials, Movies/Specials, Blocks, Asia, India, Movies, Japan, Europe, France, Movies, Germany, Movies/Specials, Greece, Movies/Specials, Israel, Italy, Movies, Netherlands, Movies/Specials, Scandinavia, United Kingdom, Movies/Specials, See also, Notes, References, External links
-  - 465 rows, 190 shows, 101 series-like rows not on TVmaze
+  - 465 rows, 200 shows, 68 series-like rows not on TVmaze
     - not matched: Battle B-Daman (Jetix original broadcast series)
     - not matched: PXG (Jetix original broadcast series)
     - not matched: Power Rangers Dino Thunder (Jetix original broadcast series)
@@ -189,10 +159,7 @@
     - not matched: Lady Lovely Locks (Jetix Play)
     - not matched: Saban's Around the World in Eighty Dreams (Jetix Play)
     - not matched: Chiisana Obake Acchi, Kocchi, Socchi (Jetix Play)
-    - not matched: Beyblade (Americas / United States / Jetix Animation Concepts)
-    - not matched: Dinosaur King (Americas / United States / Jetix Animation Concepts)
     - not matched: Jibber Jabber (TV series) (Americas / United States / Jetix Animation Concepts)
-    - not matched: MegaMan NT Warrior (Americas / United States / Jetix Animation Concepts)
     - not matched: Power Rangers in Space (Americas / United States / Jetix Animation Concepts)
     - not matched: Power Rangers Lightspeed Rescue (Americas / United States / Jetix Animation Concepts)
     - not matched: Power Rangers Lost Galaxy (Americas / United States / Jetix Animation Concepts)
@@ -201,10 +168,8 @@
     - not matched: Power Rangers Turbo (Americas / United States / Jetix Animation Concepts)
     - not matched: Power Rangers Wild Force (Americas / United States / Jetix Animation Concepts)
     - not matched: Power Rangers Zeo (Americas / United States / Jetix Animation Concepts)
-    - not matched: Shaman King (Americas / United States / Jetix Animation Concepts)
     - not matched: Supernormal (Americas / United States / Jetix Animation Concepts)
     - not matched: Teenage Mutant Ninja Turtles (2003 TV series) season 6 (Americas / United States / Jetix Animation Concepts)
-    - not matched: Ultimate Muscle (Americas / United States / Jetix Animation Concepts)
     - not matched: Juan Carlos Osorio (Americas / United States / Shorts/Interstitials)
     - not matched: Case Closed (Asia / India)
     - not matched: Didi's Comedy Show (Asia / India)
@@ -216,90 +181,33 @@
     - not matched: Vicky & Vetaal (Asia / India)
     - not matched: WWE 24X7 (Asia / India)
     - not matched: RoboDz Kazagumo Hen (Asia / Japan)
-    - not matched: Shaman King (Asia / Japan)
-    - not matched: Azumanga Daioh (Europe)
-    - not matched: Dinosaur King (Europe)
-    - not matched: Iznogoud (Europe)
     - not matched: Jim Button and Luke the Engine Driver (Europe)
     - not matched: Go! Go! Itsutsugo Land (Europe)
-    - not matched: One Piece (Europe)
-    - not matched: Pretty Cure (Europe)
-    - not matched: Crayon Shin-chan (Europe)
     - not matched: Urban Vermin (Europe)
     - not matched: Michel Vaillant (Europe / France)
-    - not matched: Shaman King (Europe / France)
-    - not matched: Crayon Shin-chan (Europe / France)
     - not matched: Urban Vermin (Europe / France)
     - not matched: Benjamin the Elephant (Europe / Germany)
-    - not matched: MegaMan NT Warrior (Europe / Germany)
     - not matched: Power Rangers Lost Galaxy (Europe / Germany)
     - not matched: Power Rangers Wild Force (Europe / Germany)
-    - not matched: Shaman King (Europe / Germany)
-    - not matched: Crayon Shin-chan (Europe / Germany)
     - not matched: Jim Button and Luke the Engine Driver (Europe / Greece)
     - not matched: Go! Go! Itsutsugo Land (Europe / Greece)
-- **Miguzi** (Miguzi): headings: Current programming, Original programming, Acquired programming, Repeats of ended programming, Upcoming programming, Original programming, Former programming, Original programming, Animated, Live-action and live-action/animated series, Preschool, Miniseries, Short series, Programming from Hanna-Barbera/Turner Entertainment, Programming from Warner Bros. Animation, Programming from Adult Swim, Acquired programming, Co-productions, Animated, Anime, Live-action and live-action/animated series, Preschool (Cartoonito), Specials, Programming blocks, Current programming blocks, Former programming blocks, Pilots, Short format, Picked up, Not picked up, Long format, See also, Notes, References
-  - 515 rows, 425 shows, 76 series-like rows not on TVmaze
-    - not matched: O Canada (TV series) (Former programming / Original programming / Animated)
-    - not matched: The Bob Clampett Show (Former programming / Original programming / Animated)
-    - not matched: The Chuck Jones Show (Former programming / Original programming / Animated)
-    - not matched: Bobb'e Says (Former programming / Original programming / Live-action and live-action/animated series)
-    - not matched: Stakes (miniseries) (Former programming / Original programming / Miniseries)
-    - not matched: Islands (miniseries) (Former programming / Original programming / Miniseries)
-    - not matched: Elements (miniseries) (Former programming / Original programming / Miniseries)
-    - not matched: List of Clarence episodes (Former programming / Original programming / Miniseries)
-    - not matched: List of Ben 10 (2005 TV series) episodes (Former programming / Original programming / Short series)
-    - not matched: List of The Grim Adventures of Billy & Mandy episodes (Former programming / Original programming / Short series)
-    - not matched: List of Camp Lazlo episodes (Former programming / Original programming / Short series)
-    - not matched: List of Foster's Home for Imaginary Friends episodes (Former programming / Original programming / Short series)
-    - not matched: List of The Grim Adventures of Billy & Mandy episodes (Former programming / Original programming / Short series)
-    - not matched: List of The Grim Adventures of Billy & Mandy episodes (Former programming / Original programming / Short series)
-    - not matched: List of My Gym Partner's a Monkey episodes (Former programming / Original programming / Short series)
-    - not matched: List of OK K.O.! Let's Be Heroes episodes (Former programming / Original programming / Short series)
-    - not matched: The Atom Ant/Secret Squirrel Show (Former programming / Programming from Hanna-Barbera/Turner Entertainment)
-    - not matched: Barney Bear (Former programming / Programming from Hanna-Barbera/Turner Entertainment)
-    - not matched: Buford and the Galloping Ghost (Former programming / Programming from Hanna-Barbera/Turner Entertainment)
-    - not matched: The Captain and the Kids (film series) (Former programming / Programming from Hanna-Barbera/Turner Entertainment)
-    - not matched: Droopy (Former programming / Programming from Hanna-Barbera/Turner Entertainment)
-    - not matched: George and Junior (Former programming / Programming from Hanna-Barbera/Turner Entertainment)
-    - not matched: Loopy De Loop (Former programming / Programming from Hanna-Barbera/Turner Entertainment)
-    - not matched: Marmaduke (Former programming / Programming from Hanna-Barbera/Turner Entertainment)
-    - not matched: Pixie and Dixie and Mr. Jinks (Former programming / Programming from Hanna-Barbera/Turner Entertainment)
-    - not matched: Popeye (Former programming / Programming from Hanna-Barbera/Turner Entertainment)
-    - not matched: Screwy Squirrel (Former programming / Programming from Hanna-Barbera/Turner Entertainment)
-    - not matched: The Skatebirds (Former programming / Programming from Hanna-Barbera/Turner Entertainment)
-    - not matched: Snagglepuss (Former programming / Programming from Hanna-Barbera/Turner Entertainment)
-    - not matched: Space Stars (Former programming / Programming from Hanna-Barbera/Turner Entertainment)
-    - not matched: Tom and Jerry (Former programming / Programming from Hanna-Barbera/Turner Entertainment)
-    - not matched: The Tom and Jerry Show (1975 TV series) (Former programming / Programming from Hanna-Barbera/Turner Entertainment)
-    - not matched: The New Batman/Superman Adventures (Former programming / Programming from Warner Bros. Animation)
-    - not matched: Superman (1940s animated film series) (Former programming / Programming from Warner Bros. Animation)
-    - not matched: Infomercials (TV specials) (Former programming / Programming from Adult Swim)
-    - not matched: Betty Boop (Former programming / Acquired programming / Animated)
-    - not matched: Dudley Do-Right (Former programming / Acquired programming / Animated)
-    - not matched: Hot Wheels: AcceleRacers (Former programming / Acquired programming / Animated)
-    - not matched: Nudnik (Former programming / Acquired programming / Animated)
-    - not matched: Peanuts (TV series) (Former programming / Acquired programming / Animated)
-    - not matched: Wulin Warriors (Former programming / Acquired programming / Animated)
-    - not matched: .hack//Legend of the Twilight (Former programming / Acquired programming / Anime)
-    - not matched: .hack//Roots (Former programming / Acquired programming / Anime)
-    - not matched: Bakugan: Armored Alliance (Former programming / Acquired programming / Anime)
-    - not matched: Bakugan: Mechtanium Surge (Former programming / Acquired programming / Anime)
-    - not matched: Beyblade: Metal Masters (Former programming / Acquired programming / Anime)
-    - not matched: Beyblade: Metal Fury (Former programming / Acquired programming / Anime)
-    - not matched: Beyblade: Shogun Steel (Former programming / Acquired programming / Anime)
-    - not matched: Cardcaptor Sakura (Former programming / Acquired programming / Anime)
-    - not matched: Cyborg 009 (Former programming / Acquired programming / Anime)
-    - not matched: MÄR (Former programming / Acquired programming / Anime)
-    - not matched: MegaMan NT Warrior (Former programming / Acquired programming / Anime)
-    - not matched: Pokémon Chronicles (Former programming / Acquired programming / Anime)
-    - not matched: The Prince of Tennis (Former programming / Acquired programming / Anime)
-    - not matched: Rave Master (Former programming / Acquired programming / Anime)
-    - not matched: Shaman King (Former programming / Acquired programming / Anime)
-    - not matched: Tenchi Muyo! Ryo-Ohki (Former programming / Acquired programming / Anime)
-    - not matched: Zatch Bell! (Former programming / Acquired programming / Anime)
-    - not matched: All3Media (Former programming / Acquired programming / Live-action and live-action/animated series)
-    - not matched: SlamBall (Former programming / Acquired programming / Live-action and live-action/animated series)
+    - not matched: Power Rangers in Space (Europe / Greece)
+    - not matched: Power Rangers Lost Galaxy (Europe / Greece)
+    - not matched: Power Rangers Turbo (Europe / Greece)
+    - not matched: Power Rangers Zeo (Europe / Greece)
+    - not matched: Urban Vermin (Europe / Greece)
+    - not matched: Jim Button and Luke the Engine Driver (Europe / Israel)
+    - not matched: Power Rangers in Space (Europe / Israel)
+    - not matched: Power Rangers Lightspeed Rescue (Europe / Israel)
+    - not matched: Power Rangers Ninja Storm (Europe / Israel)
+    - not matched: Power Rangers Wild Force (Europe / Israel)
+    - not matched: Jim Button and Luke the Engine Driver (Europe / Italy)
+    - not matched: Jin Jin and the Panda Patrol (Europe / Italy)
+    - not matched: Go! Go! Itsutsugo Land (Europe / Italy)
+    - not matched: Power Rangers Ninja Storm (Europe / Italy)
+    - not matched: Saban's Around the World in Eighty Dreams (Europe / Italy)
+    - not matched: Urban Vermin (Europe / Italy)
+    - not matched: Jim Button and Luke the Engine Driver (Europe / Netherlands)
 - **The Disney Afternoon** (The Disney Afternoon): headings: Background, History, The Disney Afternoon, Disney-Kellogg's Alliance, International broadcasts, Programming, Adaptations, Comic books, Disney parks, Video games, See also, Notes, References, External links
   - 16 rows, 16 shows, 0 series-like rows not on TVmaze
 - **One Saturday Morning** (One Saturday Morning): headings: History, Disney's One Saturday Morning, ABC Kids, Closure, Programming, Disney's One Saturday Morning, Original programming, Animated, Programming from Disney Channel, Animated, Live-action, Acquired programming, Animated, Live-action, ABC Kids, Original programming, Animated, Programming from Disney Channel/Jetix, Animated, Live-action, Acquired programming, Live-action, Purposed programming, ABC Kids, Programming from Disney Channel/Jetix, Animated, Live-action, See also, Notes, References, External links
@@ -366,31 +274,31 @@
 - **Disney XD**: 90 shows
 - **Disney Junior**: 44 shows
 - **Boomerang**: 15 shows
-- **PBS Kids**: 546 shows
+- **PBS Kids**: 400 shows
 - **Comedy Central**: 121 shows
 - **MTV**: 278 shows
 - **FX**: 115 shows
 - **AMC**: 96 shows
-- **HBO**: 779 shows
-- **Showtime**: 0 shows
+- **HBO**: 288 shows
+- **Showtime**: 167 shows
 - **Starz**: 70 shows
 - **Syfy**: 144 shows
 - **USA Network**: 132 shows
 - **TNT & TBS**: 150 shows
-- **ABC**: 1229 shows
-- **CBS**: 1146 shows
-- **NBC**: 1243 shows
-- **FOX**: 509 shows
+- **ABC**: 400 shows
+- **CBS**: 400 shows
+- **NBC**: 400 shows
+- **FOX**: 400 shows
 - **The CW & The WB**: 392 shows
-- **Netflix**: 2554 shows
-- **Prime Video**: 1281 shows
+- **Netflix**: 200 shows
+- **Prime Video**: 200 shows
 - **Hulu**: 378 shows
-- **Disney+**: 442 shows
-- **Apple TV+**: 276 shows
-- **Paramount+**: 305 shows
+- **Disney+**: 200 shows
+- **Apple TV+**: 200 shows
+- **Paramount+**: 200 shows
 - **Peacock**: 215 shows
 - **Crunchyroll**: 42 shows
-- **BBC**: 5272 shows
-- **TV Tokyo**: 851 shows
-- **Fuji TV**: 699 shows
-- **Tokyo MX**: 1008 shows
+- **BBC**: 400 shows
+- **TV Tokyo**: 400 shows
+- **Fuji TV**: 400 shows
+- **Tokyo MX**: 400 shows
