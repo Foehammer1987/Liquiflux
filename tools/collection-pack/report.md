@@ -1,11 +1,12 @@
 # Collection pack report (2026-11-06)
 
-51 collections, 8537 shows, 1798 without a TMDB id, 873 KB.
+51 collections, 9428 shows, 2182 without a TMDB id, 959 KB.
 
 ## Blocks
 
 - **Toonami** (List of programs broadcast by Toonami): headings: Animated series, Anime, Domestic and other animation, Movies and specials, Microseries, Specials, Animated movies, Live-action movies, Giant Robot Week, Adult Swim April Fools' Day 2012, Programs featured by block, Weekday Toonami on Cartoon Network, Weekday Toonami (1997–2004), Moltar's block (1997–'99), TOM's blocks (1999–2004), Midnight Run (2000–'03), Weekend Toonami on Cartoon Network, Saturday Toonami (1997–'99), Midnight Run (1999–2000), Rising Sun (2000–'01), Super Saturday (2001–'03), Toonami Saturday Night (2004–'08), Toonami lineups on Adult Swim, 2012–2019, 2020–present, Toonami Rewind, Toonami special blocks, See also, Notes, References, External links
-  - 254 rows, 159 shows, 12 series-like rows not on TVmaze
+  - 254 rows, 157 shows, 13 series-like rows not on TVmaze
+    - not matched: Food Wars!: Shokugeki no Soma (Animated series / Anime)
     - not matched: Harlock Saga (Animated series / Anime)
     - not matched: Lupin the 3rd Part IV: The Italian Adventure (Animated series / Anime)
     - not matched: Lupin the 3rd Part V: Misadventures in France (Animated series / Anime)
@@ -29,7 +30,7 @@
     - not matched: Toonami Pre-Flight (Original online programming)
     - not matched: Animation Magazine (Original online programming)
 - **Adult Swim Anime** (List of programs broadcast by Adult Swim): headings: Current programming, Animated, Live-action, Toonami block, Acquired programming, Toonami block, Cartoon Network programming / Checkered Past block, Upcoming programming, Original programming, Former original programming, Animated, Live-action, Toonami block, Former acquired programming, Toonami block, Cartoon Network programming / Checkered Past block, Stunts and cross-promotional, Original online programming, Pilots and specials, Pilots, Original specials, Syndicated shorts and specials, Films, See also, Notes, References, External links
-  - 268 rows, 93 shows, 19 series-like rows not on TVmaze
+  - 268 rows, 93 shows, 20 series-like rows not on TVmaze
     - not matched: Adult Swim Smalls (Current programming / Animated)
     - not matched: Case Closed (Former acquired programming)
     - not matched: Code Geass: Lelouch of the Rebellion (Former acquired programming)
@@ -38,6 +39,7 @@
     - not matched: The Candidate for Goddess (Former acquired programming)
     - not matched: The Smoking Gun (Former acquired programming)
     - not matched: Tenchi Muyo! Ryo-Ohki (Former acquired programming)
+    - not matched: Food Wars!: Shokugeki no Soma (Former acquired programming / Toonami block)
     - not matched: Lupin the 3rd Part IV: The Italian Adventure (Former acquired programming / Toonami block)
     - not matched: Lupin the 3rd Part V: Misadventures in France (Former acquired programming / Toonami block)
     - not matched: Lupin the 3rd Part 6 (Former acquired programming / Toonami block)
@@ -279,7 +281,7 @@
 - **MTV**: 278 shows
 - **FX**: 115 shows
 - **AMC**: 96 shows
-- **HBO**: 288 shows
+- **HBO**: 400 shows
 - **Showtime**: 167 shows
 - **Starz**: 70 shows
 - **Syfy**: 144 shows
@@ -290,12 +292,12 @@
 - **NBC**: 400 shows
 - **FOX**: 400 shows
 - **The CW & The WB**: 392 shows
-- **Netflix**: 200 shows
-- **Prime Video**: 200 shows
+- **Netflix**: 400 shows
+- **Prime Video**: 400 shows
 - **Hulu**: 378 shows
-- **Disney+**: 200 shows
-- **Apple TV+**: 200 shows
-- **Paramount+**: 200 shows
+- **Disney+**: 400 shows
+- **Apple TV+**: 276 shows
+- **Paramount+**: 305 shows
 - **Peacock**: 215 shows
 - **Crunchyroll**: 42 shows
 - **BBC**: 400 shows
