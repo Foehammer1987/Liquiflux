@@ -10,6 +10,7 @@ on:
     paths:
       - tools/collection-pack/build_pack.py
       - tools/collection-pack/sources.json
+      - .github/workflows/collection-pack.yml
   workflow_dispatch:
     inputs:
       only:
@@ -54,4 +55,6 @@ jobs:
           git add app/assets/collections/tv-pack.json tools/collection-pack/report.md
           if git diff --cached --quiet; then echo "No change."; exit 0; fi
           git commit -m "Collection pack: rebuild ($(date -u +%Y-%m-%d))"
-          git push
+          # Someone may have pushed while the pack was building.
+          for i in 1 2 3; do git pull --rebase && git push && exit 0; sleep 5; done
+          exit 1
