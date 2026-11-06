@@ -291,15 +291,37 @@ def tvmaze_lookup(imdb=None, tvdb=None):
     return None
 
 
-def tvmaze_search(title, year):
-    j = fetch_json(f'{TVMAZE}/search/shows?' + urllib.parse.urlencode({'q': title}), gap=0.55) or []
-    want = _norm(title)
-    for hit in j:
-        s = hit.get('show') or {}
-        y = _year(s.get('premiered'))
-        if _norm(s.get('name') or '') == want and (year is None or (y is not None and abs(y - year) <= 1)):
-            return s
+def tvmaze_search(names, aired=None, year=None):
+    """A show by exact name. Wikipedia often links an anime to its manga's article, whose
+    Wikidata item has no TV ids and the manga's year, so the block's own air years decide:
+    the show must have premiered by then (and a remake after it is ruled out)."""
+    for name in names:
+        if not name:
+            continue
+        j = fetch_json(f'{TVMAZE}/search/shows?' + urllib.parse.urlencode({'q': name}), gap=0.55) or []
+        want = _norm(name)
+        hits = [h.get('show') or {} for h in j]
+        hits = [s for s in hits if _norm(s.get('name') or '') == want]
+        if aired:
+            hits = [s for s in hits if _year(s.get('premiered')) is None or _year(s.get('premiered')) <= aired[1] + 1]
+        elif year:
+            near = [s for s in hits if _year(s.get('premiered')) is not None and abs(_year(s.get('premiered')) - year) <= 1]
+            hits = near or hits
+        if hits:
+            return max(hits, key=lambda s: s.get('weight') or 0)
     return None
+
+
+def _names(title, label):
+    """Names to search for: Wikidata's label, the article title without "(TV series)", and
+    for "Show: Season Name" the show itself."""
+    out = []
+    for n in (label, re.sub(r'\s*\([^)]*\)$', '', title)):
+        if n and n not in out:
+            out.append(n)
+        if n and ': ' in n and n.split(': ')[0] not in out:
+            out.append(n.split(': ')[0])
+    return out
 
 
 def tvmaze_index():
@@ -383,13 +405,14 @@ def build_block(b, shows, report):
         if e and (e['imdb'] or e['tvdb']):
             s = tvmaze_lookup(e['imdb'], e['tvdb'])
         if s is None and e:
-            yr = years_in(line)
-            s = tvmaze_search(e['label'] or title, e['year'] or (yr[0] if yr else None))
+            s = tvmaze_search(_names(title, e['label']), aired=years_in(line), year=e['year'])
         if s is None:
             if e is not None:
                 misses.append(f'{title} ({head})')
             continue
         if s['id'] in seen:
+            continue
+        if b.get('filter') == 'anime' and not (s.get('language') == 'Japanese' or 'Anime' in (s.get('genres') or [])):
             continue
         seen.add(s['id'])
         picked.append(shows.add(s, e['tmdb'] if e else None))
@@ -446,9 +469,11 @@ def main():
         tv, im = tmdb_by_external({(s.get('externals') or {}).get('thetvdb') for s in allshows} - {None},
                                   {(s.get('externals') or {}).get('imdb') for s in allshows} - {None})
         for n in nets:
-            got = members[n['id']]
+            # The best-known shows only: past a few hundred it's mostly local news and
+            # one-season shows, and the pack has to stay small for 2 GB TVs.
+            got = sorted(members[n['id']], key=lambda s: -(s.get('weight') or 0))[:n.get('limit', 400)]
             ids = []
-            for s in sorted(got, key=lambda s: -(s.get('weight') or 0)):
+            for s in got:
                 ext = s.get('externals') or {}
                 tm = tv.get(str(ext.get('thetvdb'))) or im.get(ext.get('imdb') or '')
                 i = shows.add(s, tm)
