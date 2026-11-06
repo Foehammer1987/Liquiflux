@@ -853,8 +853,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 value: const [0, 4, 8, 12, 20].contains(p.subtitleRaise) ? p.subtitleRaise : 0,
                 onChanged: (v) => _set(app, p.copyWith(subtitleRaise: v)),
               ),
+              last: isTizen,
             ),
-            _Row(
+            // The app draws every subtitle as plain text on a Samsung TV, so there's no ASS styling to replace.
+            if (!isTizen) _Row(
               label: 'Restyle Styled Subtitles',
               help: 'Apply this style to anime-style (ASS) subtitles too, replacing their own fonts and colours.',
               control: ConsoleSwitch(
@@ -866,7 +868,8 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
         ),
       ),
-      ConsolePanel(
+      // Each of these is an mpv setting; Samsung's player has none of them.
+      if (!isTizen) ConsolePanel(
         title: 'Audio',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -917,7 +920,9 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Row(
+          // Samsung's player always decodes in hardware and has no mpv picture options: only
+          // Picture Size applies there.
+          if (!isTizen) _Row(
             label: 'Hardware Decoding',
             help: 'Uses the graphics card to decode, which is cooler and quieter. Turn off if you see green frames or glitches.',
             control: ConsoleDropdown<String>(
@@ -964,7 +969,9 @@ class _SettingsPageState extends State<SettingsPage> {
               value: p.aspect,
               onChanged: (v) => _set(app, p.copyWith(aspect: v)),
             ),
+            last: isTizen,
           ),
+          if (!isTizen) ...[
           _Row(
             label: 'Deinterlace',
             help: 'For old TV recordings with combing on motion.',
@@ -990,6 +997,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             last: true,
           ),
+          ],
         ],
       ),
     ),
@@ -1035,6 +1043,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ConsoleSegmented<bool>(options: const [(true, 'Frosted Glass'), (false, 'Flat')], value: s.glass, onChanged: app.setGlass),
           const SizedBox(height: Space.space1),
           Text('Flat is lighter on older graphics cards.', style: ConsoleText.caption.copyWith(color: context.c.text300)),
+          if (trailersSupported) ...[
           const SizedBox(height: Space.space4),
           Text('Home Trailers', style: ConsoleText.caption.copyWith(color: context.c.text200)),
           const SizedBox(height: Space.space1),
@@ -1048,6 +1057,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 : 'This device runs 32-bit Android, which leaves little memory for a second video player. Spotlight Only plays a trailer just while you’re on the spotlight’s buttons, and frees its player as soon as you move away. Experimental.',
             style: ConsoleText.caption.copyWith(color: context.c.text300),
           ),
+          ],
         ],
       ),
     ),
@@ -1087,8 +1097,9 @@ class _SettingsPageState extends State<SettingsPage> {
   ];
 
   List<Widget> _advanced(AppState app, ConsoleColors c, PlaybackPrefs p) => [
-    UpdatesPanel(updater: app.updater, start: widget.update),
-    ConsolePanel(
+    // A store build is updated by its store (and a Samsung TV installs nothing else).
+    if (storeBuild.isEmpty) UpdatesPanel(updater: app.updater, start: widget.update),
+    if (!isTizen) ConsolePanel(
       title: 'mpv Options',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1201,6 +1212,11 @@ class _SettingsPageState extends State<SettingsPage> {
     Padding(
       padding: const EdgeInsets.symmetric(horizontal: Space.space1),
       child: Text('$appName $appVersion', style: ConsoleText.caption.copyWith(color: c.text300)),
+    ),
+    // Plex's trademark guidelines ask for this line wherever the Plex name is used.
+    Padding(
+      padding: const EdgeInsets.fromLTRB(Space.space1, Space.space1, Space.space1, 0),
+      child: Text(plexAttribution, style: ConsoleText.caption.copyWith(color: c.text300)),
     ),
   ];
 }

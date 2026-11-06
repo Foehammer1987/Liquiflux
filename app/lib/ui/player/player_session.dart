@@ -7,12 +7,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../app_info.dart';
 import '../../platform.dart';
 import '../../services/channels.dart';
 import '../../services/display_match.dart';
 import '../../services/gpu_memory.dart';
+import '../../services/avplay_player.dart';
 import '../../services/live_players.dart';
 import '../../services/mpv_tls.dart';
 import '../../services/playback_prefs.dart';
@@ -100,14 +102,16 @@ class PlayerSession extends ChangeNotifier {
   /// the 2019 Shield the copy path got the app killed within seconds of starting a 4K file.
   /// Fixed for the session, since mpv's output is set up once. mpv draws no subtitles this
   /// way, so the player page draws text ones and Plex burns in picture-based ones.
-  late final bool direct = prefs.directVideo(android: Platform.isAndroid, lowMemory: isLowMemoryTv);
+  /// On a Samsung TV, Samsung's player always works this way: it draws on the TV's own
+  /// video plane and the app draws the subtitles ([AvPlayPlayer]).
+  late final bool direct = isTizen || prefs.directVideo(android: Platform.isAndroid, lowMemory: isLowMemoryTv);
 
   late final Player player = () {
-    final p = Player(
-      // Streams may only pull in more over the web, never local files.
-      // A low-memory TV gets half the read-ahead: Android kills the app outright when memory runs low.
-      configuration: PlayerConfiguration(title: appName, bufferSize: (isLowMemoryTv ? 32 : 64) * 1024 * 1024, libass: !direct, protocolWhitelist: streamProtocols),
-    );
+    // Streams may only pull in more over the web, never local files.
+    // A low-memory TV gets half the read-ahead: Android kills the app outright when memory runs low.
+    final config = PlayerConfiguration(title: appName, bufferSize: (isLowMemoryTv ? 32 : 64) * 1024 * 1024, libass: !direct, protocolWhitelist: streamProtocols);
+    // A Samsung TV has no mpv: Samsung's own player stands in behind the same API.
+    final p = Player(configuration: config, platformPlayer: isTizen ? AvPlayPlayer(configuration: config) : null);
     // Leaving the app lets it go first, if the page hasn't yet (see LivePlayers).
     LivePlayers.add(p, _releasePlayer);
     return p;
@@ -130,7 +134,7 @@ class PlayerSession extends ChangeNotifier {
   /// how Plex's app and Plezy show 4K on the 2019 Shield, where a texture got Liquiflux killed.
   late final bool plane = prefs.planeVideo(android: Platform.isAndroid, lowMemory: isLowMemoryTv);
 
-  late final VideoController? video = plane
+  late final VideoController? video = plane || isTizen
       ? null
       : VideoController(
           player,
@@ -305,6 +309,7 @@ class PlayerSession extends ChangeNotifier {
       ..add(player.stream.completed.listen(_onCompleted))
       ..add(
         player.stream.playing.listen((p) {
+          _keepScreenOn(p);
           _sendTimeline(p ? 'playing' : 'paused');
           _scrobbleState(p);
           notifyListeners();
@@ -414,8 +419,19 @@ class PlayerSession extends ChangeNotifier {
     }
   }
 
+  bool _screenOn = false;
+
+  /// Samsung TVs: no screensaver while a video plays ("mandatory" in Samsung's checklist).
+  /// It may come back while paused. Elsewhere the video widget or the TV sees to this.
+  void _keepScreenOn(bool on) {
+    if (!isTizen || on == _screenOn) return;
+    _screenOn = on;
+    unawaited(WakelockPlus.toggle(enable: on).catchError((Object e) => debugPrint('screensaver: $e')));
+  }
+
   @override
   void dispose() {
+    _keepScreenOn(false);
     _disposed = true;
     _report?.cancel();
     _probeVideo?.cancel();
@@ -586,14 +602,24 @@ class PlayerSession extends ChangeNotifier {
 
   /// With [direct] output, what the player can't show itself goes through Plex: a
   /// picture-based subtitle (burned in) or a video codec the hardware decoder doesn't take.
-  bool get needsServer => directNeedsServer(direct: direct, subtitle: subtitle, video: streams.where((s) => s.isVideo).firstOrNull);
+  bool get needsServer => directNeedsServer(direct: direct, subtitle: subtitle, video: streams.where((s) => s.isVideo).firstOrNull, audio: audio, samsung: isTizen);
+
+  /// Audio Samsung TVs don't play (Plex's names): "The DTS Audio codec is not supported on
+  /// 2025 TVs" (and 2026), and TrueHD isn't on Samsung's list. Plex converts the sound and
+  /// sends the picture as it is.
+  static const samsungUnplayableAudio = {'dca', 'dts', 'dca-ma', 'truehd', 'mlp'};
+
+  /// AV1 and VC-1 aren't in [hardwareCodecs] (for Android), but Samsung's player takes AV1 on
+  /// 2021 and later sets; VC-1 is gone from 2025 sets, so it still goes through Plex.
+  static const samsungExtraCodecs = {'av1'};
 
   @visibleForTesting
-  static bool directNeedsServer({required bool direct, PlexStream? subtitle, PlexStream? video}) {
+  static bool directNeedsServer({required bool direct, PlexStream? subtitle, PlexStream? video, PlexStream? audio, bool samsung = false}) {
     if (!direct) return false;
     if (subtitle?.isImageSubtitle ?? false) return true;
+    if (samsung && samsungUnplayableAudio.contains(audio?.codec?.toLowerCase())) return true;
     final codec = video?.codec?.toLowerCase();
-    return codec != null && !hardwareCodecs.contains(codec);
+    return codec != null && !hardwareCodecs.contains(codec) && !(samsung && samsungExtraCodecs.contains(codec));
   }
 
   /// Answers the resume question: carry on from the saved place, or start again.
@@ -823,7 +849,8 @@ class PlayerSession extends ChangeNotifier {
     audio = s;
     notifyListeners();
     _remember(audioId: s.id);
-    if (transcoding) return _reopen();
+    // On a Samsung TV a DTS or TrueHD track goes through Plex ([needsServer]).
+    if (transcoding || needsServer) return _reopen();
     final k = _inFile(audioStreams).indexWhere((x) => x.id == s.id);
     if (k >= 0) await player.setAudioTrack(AudioTrack('${k + 1}', null, null));
   }
@@ -978,7 +1005,9 @@ class PlayerSession extends ChangeNotifier {
   /// The plane takes the picture's shape, since the decoder fills whatever surface it gets.
   /// Fill shows as Fit there.
   void _planeAspect() {
-    if (!plane || _disposed) return;
+    if (_disposed) return;
+    if (player.platform case final AvPlayPlayer av) unawaited(av.setFit(aspect));
+    if (!plane) return;
     final v = player.state.videoParams;
     final turned = v.rotate == 90 || v.rotate == 270;
     final w = (turned ? v.dh : v.dw) ?? 0;

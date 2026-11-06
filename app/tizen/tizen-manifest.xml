@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Liquiflux for Samsung TVs (2021 and later, Tizen 6.0+). See TIZEN.md.
+  package / appid: Seller Office app "Liquiflux" (app ID 3202611050786); never change them,
+  or the store treats it as another app. version and api-version are set per package by
+  tools/build-tizen.sh (one TPK per Tizen version group, as video_player_avplay needs).
+-->
+<manifest package="com.foehammer.liquiflux" version="1.0.12" api-version="6.0" xmlns="http://tizen.org/ns/packages">
+    <profile name="tv"/>
+    <ui-application appid="com.foehammer.liquiflux" exec="Runner.dll" type="dotnet" multiple="false" nodisplay="false" taskmanage="true">
+        <label>Liquiflux</label>
+        <icon>ic_launcher.png</icon>
+        <metadata key="http://tizen.org/metadata/prefer_dotnet_aot" value="true"/>
+        <metadata key="http://tizen.org/metadata/prefer_nuget_cache" value="true"/>
+    </ui-application>
+    <feature name="http://tizen.org/feature/screen.size.all"/>
+    <privileges>
+        <!-- Plex, Seerr, Trakt, AniList, X-Ray and Watch Together; nothing else is asked for. -->
+        <privilege>http://tizen.org/privilege/internet</privilege>
+    </privileges>
+</manifest>

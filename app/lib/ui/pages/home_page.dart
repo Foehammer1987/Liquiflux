@@ -295,7 +295,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                 active: !_covered && !_rootCovered && !_dockBusy && _heroOnScreen,
                 plex: plex,
                 trailers: _trailers!,
-                trailersOn: homeTrailersSupported ? app.settings.homeTrailers : app.settings.spotlightTrailers || Probe.has('trailers'),
+                trailersOn: trailersSupported && (homeTrailersSupported ? app.settings.homeTrailers : app.settings.spotlightTrailers || Probe.has('trailers')),
                 focusOnly: !homeTrailersSupported,
                 onPlay: _play,
                 onInfo: _info,

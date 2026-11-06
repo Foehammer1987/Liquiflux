@@ -55,13 +55,15 @@ Future<void> _main() async {
   await Probe.init();
   // Before anything asks whether this is a low-memory TV.
   if (Probe.has('lowmem')) forceLowMemory = true;
+  if (isTizen) debugPrint('Samsung TV, Tizen ${Platform.environment['TIZEN_API_VERSION']}, ${deviceRamMb ?? '?'} MB RAM');
   if (Platform.isAndroid) debugPrint('memory: ${deviceRamMb ?? '?'} MB RAM, ${is32BitAndroid ? '32' : '64'}-bit, low-memory mode ${isLowMemoryTv ? 'on' : 'off'}');
   if (Probe.has('blank')) {
     // The engine alone, for measuring what it costs.
     runApp(const ColoredBox(color: Color(0xFF000000)));
     return;
   }
-  MediaKit.ensureInitialized();
+  // mpv: there's none on a Samsung TV, where Samsung's player is used instead.
+  if (!isTizen) MediaKit.ensureInitialized();
   // Android starts in touch mode, where Flutter hides the focus highlight until the first key
   // press (and hides it again after any touch): on a TV the first press moved focus you
   // couldn't see yet. A remote always shows where focus is.

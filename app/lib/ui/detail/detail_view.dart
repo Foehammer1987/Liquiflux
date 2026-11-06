@@ -93,6 +93,8 @@ class _TitleDetailViewState extends State<TitleDetailView> {
   Widget build(BuildContext context) {
     final d = widget.detail;
     final credits = [...d.cast, ...d.crew];
+    // Online extras open in a browser, which a Samsung TV build doesn't use.
+    final extras = [for (final e in d.extras) if (e.plexItem != null || canOpenLinks) e];
     return PageBody(
       padding: const EdgeInsets.fromLTRB(Space.space6, Space.space3, Space.space6, Space.space8),
       children: [
@@ -112,15 +114,15 @@ class _TitleDetailViewState extends State<TitleDetailView> {
               children: [for (final cr in credits) CreditAvatar(credit: cr, onTap: () => _openCredit(cr))],
             ),
           ),
-        if (d.extras.isNotEmpty)
+        if (extras.isNotEmpty)
           ConsolePanel(
             title: 'Extras',
-            meta: muted(context, '${d.extras.length}'),
+            meta: muted(context, '${extras.length}'),
             padding: const EdgeInsets.fromLTRB(Space.space2, Space.space2, Space.space2, Space.space3),
             child: PosterRow(
               itemWidth: 240,
               children: [
-                for (final e in d.extras)
+                for (final e in extras)
                   PosterCard(
                     title: e.title,
                     subtitle: [e.kind, if (e.durationMs != null) formatDuration(e.durationMs), if (e.url != null && e.plexItem == null) 'YouTube'].where((s) => s.isNotEmpty).join(' · '),
