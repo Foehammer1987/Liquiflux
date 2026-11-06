@@ -291,7 +291,7 @@ def tvmaze_lookup(imdb=None, tvdb=None):
     return None
 
 
-def tvmaze_search(names, aired=None, year=None):
+def tvmaze_search(names, aired=None, year=None, animated=False):
     """A show by exact name. Wikipedia often links an anime to its manga's article, whose
     Wikidata item has no TV ids and the manga's year, so the block's own air years decide:
     the show must have premiered by then (and a remake after it is ruled out)."""
@@ -302,6 +302,8 @@ def tvmaze_search(names, aired=None, year=None):
         want = _norm(name)
         hits = [h.get('show') or {} for h in j]
         hits = [s for s in hits if _norm(s.get('name') or '') == want]
+        if animated:
+            hits = [s for s in hits if s.get('type') == 'Animation' or 'Anime' in (s.get('genres') or [])]
         if aired:
             hits = [s for s in hits if _year(s.get('premiered')) is None or _year(s.get('premiered')) <= aired[1] + 1]
         elif year:
@@ -405,7 +407,7 @@ def build_block(b, shows, report):
         if e and (e['imdb'] or e['tvdb']):
             s = tvmaze_lookup(e['imdb'], e['tvdb'])
         if s is None and e:
-            s = tvmaze_search(_names(title, e['label']), aired=years_in(line), year=e['year'])
+            s = tvmaze_search(_names(title, e['label']), aired=years_in(line), year=e['year'], animated=bool(b.get('animated')))
         if s is None:
             if e is not None:
                 misses.append(f'{title} ({head})')
@@ -461,9 +463,11 @@ def main():
             if not ch:
                 continue
             country = (ch.get('country') or {}).get('code')
-            for key in ((ch.get('name', '').lower(), country), (ch.get('name', '').lower(), None)):
-                for nid in want.get(key, []):
-                    members[nid].append(s)
+            hit = set()
+            for key in {(ch.get('name', '').lower(), country), (ch.get('name', '').lower(), None)}:
+                hit.update(want.get(key, []))
+            for nid in hit:
+                members[nid].append(s)
         # TMDB ids for network shows, from Wikidata, by TVDB and IMDb id.
         allshows = [s for v in members.values() for s in v]
         tv, im = tmdb_by_external({(s.get('externals') or {}).get('thetvdb') for s in allshows} - {None},
