@@ -7,17 +7,19 @@ import 'plex/plex_models.dart';
 class ChannelSource {
   const ChannelSource({required this.kind, required this.key, required this.title, this.section});
 
-  /// collection, label, show or section (a whole library).
+  /// collection, label, show, section (a whole library) or pack (a TV network or block
+  /// from Liquiflux's collection pack: the shows of it you own, kept up to date).
   final String kind;
 
-  /// The collection's or show's ratingKey, the label's id, or the section's key.
+  /// The collection's or show's ratingKey, the label's id, the section's key, or the pack
+  /// collection's id.
   final String key;
   final String title;
 
   /// The library a label belongs to (labels are listed per library).
   final String? section;
 
-  static const kinds = ['collection', 'label', 'show', 'section'];
+  static const kinds = ['collection', 'label', 'show', 'section', 'pack'];
 
   Map<String, dynamic> toJson() => {'kind': kind, 'key': key, 'title': title, if (section != null) 'section': section};
 
@@ -351,8 +353,12 @@ void channelStarted(ChannelProgress progress, ChannelPool pool, ChannelSlot slot
 /// Reads what [source] holds from Plex, as shows and their episodes. A movie or a lone clip
 /// counts as a show of its own.
 /// Specials (season 0) are left out unless [specials].
-Future<Map<String, List<PlexItem>>> loadChannelSource(PlexClient plex, ChannelSource source, {Map<String, String>? titles, bool specials = false}) async {
+/// The library's shows in a pack collection (a TV network or block), by its id.
+typedef PackShows = Future<List<PlexItem>> Function(String collectionId);
+
+Future<Map<String, List<PlexItem>>> loadChannelSource(PlexClient plex, ChannelSource source, {Map<String, String>? titles, bool specials = false, PackShows? packShows}) async {
   final top = switch (source.kind) {
+    'pack' => packShows == null ? const <PlexItem>[] : await packShows(source.key),
     'collection' => await plex.collectionItems(source.key),
     'label' => await plex.labelled(source.section ?? '', source.key),
     'section' => (await plex.sectionItems(source.key, size: 20000, timeout: const Duration(minutes: 2))).items,
@@ -393,9 +399,9 @@ Future<Map<String, List<PlexItem>>> loadChannelSource(PlexClient plex, ChannelSo
 }
 
 /// What all of [sources] hold, as one set of shows: a show that's in two of them counts once.
-Future<Map<String, List<PlexItem>>> loadChannelSources(PlexClient plex, List<ChannelSource> sources, {Map<String, String>? titles}) async {
+Future<Map<String, List<PlexItem>>> loadChannelSources(PlexClient plex, List<ChannelSource> sources, {Map<String, String>? titles, PackShows? packShows}) async {
   final out = <String, List<PlexItem>>{};
-  final each = await Future.wait([for (final s in sources) loadChannelSource(plex, s, titles: titles)]);
+  final each = await Future.wait([for (final s in sources) loadChannelSource(plex, s, titles: titles, packShows: packShows)]);
   for (final m in each) {
     for (final e in m.entries) {
       final list = out.putIfAbsent(e.key, () => []);
@@ -407,9 +413,9 @@ Future<Map<String, List<PlexItem>>> loadChannelSources(PlexClient plex, List<Cha
 }
 
 /// Everything [rule] can play.
-Future<ChannelPool> loadChannelPool(PlexClient plex, ChannelRule rule) async {
+Future<ChannelPool> loadChannelPool(PlexClient plex, ChannelRule rule, {PackShows? packShows}) async {
   final titles = <String, String>{};
-  final shows = loadChannelSources(plex, rule.sources, titles: titles);
+  final shows = loadChannelSources(plex, rule.sources, titles: titles, packShows: packShows);
   // Bumpers keep their specials: a "show" of clips often files them as season 0.
   final bumpers = rule.bumpers == null ? Future.value(<String, List<PlexItem>>{}) : loadChannelSource(plex, rule.bumpers!, specials: true);
   final b = await bumpers;

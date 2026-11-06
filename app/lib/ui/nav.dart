@@ -69,6 +69,21 @@ class CollectionsDest extends Dest {
   String get railId => 'collections';
 }
 
+/// TV networks and programming blocks (Adult Swim, Toonami...).
+class TvCollectionsDest extends Dest {
+  const TvCollectionsDest();
+  @override
+  String get railId => 'tv-networks';
+}
+
+/// One TV network or block, by its id in the collection pack.
+class TvCollectionDest extends Dest {
+  const TvCollectionDest(this.id);
+  final String id;
+  @override
+  String get railId => '';
+}
+
 /// One series' showcase page.
 class CollectionDest extends Dest {
   const CollectionDest(this.franchise);

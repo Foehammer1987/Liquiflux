@@ -99,6 +99,8 @@ class _ChannelEditorState extends State<ChannelEditor> {
           ]).then((r) => (section: s, collections: r[0] as List<PlexItem>, labels: r[1] as List<({String key, String title})>)),
       ]);
       final lib = await app.library().then<List<PlexItem>>((l) => [for (final x in l.bySection) ...x], onError: (Object _) => const <PlexItem>[]);
+      // TV networks and blocks you own at least one show from.
+      final packs = await app.tvCollections().then<List<TvShelf>>((t) => tvShelves(t.pack, t.shows), onError: (Object _) => const <TvShelf>[]);
       final shows = lib.where((i) => i.type == 'show').toList()..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
       if (!mounted) return;
       int byLabel(SourceChoice a, SourceChoice b) => a.label.toLowerCase().compareTo(b.label.toLowerCase());
@@ -112,6 +114,14 @@ class _ChannelEditorState extends State<ChannelEditor> {
             for (final l in p.labels) (source: ChannelSource(kind: 'label', key: l.key, title: l.title, section: p.section.key), label: where(p.section, l.title)),
         ]..sort(byLabel);
         _choices['show'] = [for (final s in shows) (source: ChannelSource(kind: 'show', key: s.ratingKey, title: s.title), label: s.year == null ? s.title : '${s.title} (${s.year})')];
+        _choices['pack'] = [
+          for (final p in packs)
+            if (p.owned.isNotEmpty)
+              (
+                source: ChannelSource(kind: 'pack', key: p.collection.id, title: p.collection.name),
+                label: '${p.collection.name} (${p.collection.isBlock ? 'block' : 'network'}, ${p.owned.length} ${p.owned.length == 1 ? 'show' : 'shows'})',
+              ),
+        ];
         _choices['section'] = [for (final s in sections) (source: ChannelSource(kind: 'section', key: s.key, title: s.title), label: s.title)];
         _loadingChoices = false;
       });
@@ -142,7 +152,7 @@ class _ChannelEditorState extends State<ChannelEditor> {
     });
     try {
       final titles = <String, String>{};
-      final shows = await loadChannelSources(plex, sources, titles: titles);
+      final shows = await loadChannelSources(plex, sources, titles: titles, packShows: widget.app.packShows);
       if (!mounted || !identical(_poolFor, sources)) return;
       setState(() {
         _pool = ChannelPool(shows: shows, titles: titles);

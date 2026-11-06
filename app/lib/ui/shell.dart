@@ -29,6 +29,7 @@ import 'window_buttons.dart';
 import 'channels/channels_page.dart';
 import 'collections/collection_page.dart';
 import 'collections/collections_page.dart';
+import 'collections/tv_collections_page.dart';
 import 'pages/home_page.dart';
 import 'pages/item_page.dart';
 import 'pages/library_page.dart';
@@ -331,7 +332,7 @@ class _ShellState extends State<Shell> {
   Widget _pageFor(Dest d) => d is HomeDest || d is CollectionDest
       ? _page(d)
       : Padding(
-          padding: EdgeInsets.only(top: _chromeHeight + Space.space2, left: d is TrendingDest || d is MoodsDest || d is CollectionsDest || d is ChannelsDest ? 0 : Space.space4),
+          padding: EdgeInsets.only(top: _chromeHeight + Space.space2, left: d is TrendingDest || d is MoodsDest || d is CollectionsDest || d is TvCollectionsDest || d is ChannelsDest ? 0 : Space.space4),
           child: _page(d),
         );
 
@@ -341,6 +342,8 @@ class _ShellState extends State<Shell> {
     MoodsDest() => const MoodsPage(),
     ChannelsDest() => const ChannelsPage(),
     CollectionsDest() => const CollectionsPage(),
+    TvCollectionsDest() => const TvCollectionsPage(),
+    TvCollectionDest(:final id) => TvCollectionPage(key: ValueKey('tv:$id'), id: id),
     CollectionDest(:final franchise) => CollectionPage(key: ValueKey(franchise.key), franchise: franchise),
     LibraryDest(:final sectionKey) => LibraryPage(key: ValueKey(sectionKey), sectionKey: sectionKey),
     SearchDest(:final query) => SearchPage(key: ValueKey(query), query: query),
@@ -1098,6 +1101,7 @@ class _RailState extends State<_Rail> {
         item('home', LucideIcons.house, 'Home', const HomeDest()),
         item('trending', LucideIcons.flame, 'Trending', const TrendingDest()),
         item('collections', LucideIcons.layers, 'Collections', const CollectionsDest()),
+        item('tv-networks', LucideIcons.satelliteDish, 'TV Networks', const TvCollectionsDest()),
         item('moods', LucideIcons.sparkles, 'Moods', const MoodsDest()),
         action('shuffle', LucideIcons.shuffle, 'Shuffle Play', () => showShuffle(context)),
         item('channels', LucideIcons.radioTower, 'Channels', const ChannelsDest()),

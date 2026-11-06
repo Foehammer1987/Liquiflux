@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.11
+
+TV Networks: shows by the channel or programming block they aired on, with the ones you're missing to request.
+
+- A new TV Networks page in the sidebar (the satellite dish, under Collections), with a row for each programming block (Toonami, Adult Swim Originals, Adult Swim Anime, Nick at Nite, SNICK, Cartoon Cartoons, Fox Kids, Kids' WB, 4Kids TV, Jetix, Miguzi, The Disney Afternoon, One Saturday Morning, TGIF, Animation Domination, Nicktoons) and, under Networks, for networks and streaming services (Adult Swim, Cartoon Network, Nickelodeon, Disney, HBO, FX, AMC, the broadcast networks, Netflix, Prime Video, Crunchyroll, TV Tokyo and more).
+- What a row shows: every show of it in your library, best-rated first. While you have fewer than ten, the best-rated shows you're missing fill it up to ten; with ten or more, it's just yours. Missing shows are dimmed and open their Seerr page.
+- See All opens the block's own page: what you have, the top-rated missing shows, Show All N Missing for the full list, and Request N Missing to ask Seerr for them in one go.
+- Built for every library, not one server: the collections are lists of show ids (TMDB, TVDB, IMDb) that every install matches against its own Plex library, through the new Plex agents' ids, the legacy TheTVDB and TheMovieDB agents and HAMA's tvdb ids, and last by title and year.
+- The lists come from Wikipedia's programme lists (blocks) and TVmaze (networks), with ids from Wikidata, built by `tools/collection-pack/build_pack.py` in the new Collection pack workflow (no API keys). It runs when its source list changes and on the 1st of each month; Liquiflux ships the latest pack and fetches a newer one from this repository at most once a day. `tools/collection-pack/sources.json` says which blocks and networks are in it; `report.md` lists what didn't match.
+- Channels: a TV network or block can be a channel's source (the Networks & Blocks tab in the picker). The channel plays the shows of it you have, and picks up new ones as you add them.
+- Tests: `packages/console_core/test/tv_collections_test.dart` (pack reading, matching, the ten-show rule, pack sources in channels) and `app/test/tv_networks_test.dart` (rows, the block page, Request Missing, with the remote under CONSOLE_TV=1); the D-pad walk covers both pages.
+- Version 1.0.11+69 (Android versionCode 1069 for armeabi-v7a, 2069 for arm64-v8a).
+
 ## 1.0.10
 
 Channels can mix several shows, collections, labels and libraries.

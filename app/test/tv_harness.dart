@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:console_app/main.dart' show TvCanvas;
 import 'package:console_app/services/channels.dart';
 import 'package:console_app/services/settings_store.dart';
+import 'package:console_app/services/tv_pack.dart';
 import 'package:console_app/state/app_state.dart';
 import 'package:console_app/state/scope.dart';
 import 'package:console_app/ui/nav.dart' show rootRoutes, rootStack;
@@ -174,6 +175,24 @@ http.Client fakeServers() => MockClient((req) async {
   return _plex(const []);
 });
 
+/// A collection pack: "Saturday Block" (3 shows you have, 20 you don't, rated from high to
+/// low) and "Test Network" (12 you have).
+String fakePackJson() => jsonEncode({
+  'format': 1,
+  'built': '2026-11-06T00:00:00Z',
+  'credits': 'Test data.',
+  'shows': [
+    for (var i = 201; i <= 215; i++) {'t': 'Show $i', 'tm': i, 'r': 7.0, 'w': 50},
+    for (var i = 0; i < 20; i++) {'t': 'Missing $i', 'tm': 900 + i, 'y': 2000 + i, 'r': 9.0 - i * 0.1, 'w': 80},
+  ],
+  'collections': [
+    {'id': 'saturday', 'kind': 'block', 'name': 'Saturday Block', 'years': '1998–2004', 'about': 'Cartoons on Saturday.', 'shows': [0, 1, 2, for (var i = 15; i < 35; i++) i]},
+    {'id': 'testnet', 'kind': 'network', 'name': 'Test Network', 'shows': [for (var i = 3; i < 15; i++) i]},
+  ],
+});
+
+TvPackStore fakeTvPack() => TvPackStore(bundled: () async => fakePackJson(), client: MockClient((_) async => http.Response('', 404)), folder: () async => throw UnsupportedError('no disk in widget tests'));
+
 class _NoSecrets implements SecretStore {
   @override
   Future<String?> read(String key) async => null;
@@ -190,7 +209,7 @@ Future<AppState> tvApp(WidgetTester t, {int settle = 60, void Function(AppState)
   t.view.physicalSize = const Size(1920, 1080);
   t.view.devicePixelRatio = 2;
   addTearDown(t.view.reset);
-  final state = AppState(SettingsStore(secrets: _NoSecrets()), channels: ChannelStore(disk: false))
+  final state = AppState(SettingsStore(secrets: _NoSecrets()), channels: ChannelStore(disk: false), tvPack: fakeTvPack())
     ..settings = const Settings(clientId: 'c', plexUrl: 'http://plex.test:32400', plexToken: 'tok', seerrUrl: 'http://seerr.test', seerrApiKey: 'key')
     ..plex = PlexClient(baseUrl: 'http://plex.test:32400', token: 'tok', clientId: 'c', http: JsonHttp(client: fakeServers()))
     ..seerr = SeerrClient(baseUrl: 'http://seerr.test', apiKey: 'key', http: JsonHttp(client: fakeServers()))
