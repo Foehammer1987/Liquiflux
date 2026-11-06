@@ -25,8 +25,6 @@
      "pages": ["The Disney Afternoon"], "sections": "program|lineup|schedule|show|series"},
     {"id": "one-saturday-morning", "name": "One Saturday Morning", "years": "1997–2002", "about": "ABC's Saturday morning block.",
      "pages": ["One Saturday Morning"], "sections": "program|lineup|schedule|show|series"},
-    {"id": "tgif", "name": "TGIF", "years": "1989–2005", "about": "ABC's Friday night family sitcom block.",
-     "pages": ["TGIF (TV programming block)"], "sections": "line-?up", "skip": "post|tgit|return|urkel|special|legacy"},
     {"id": "animation-domination", "animated": true, "name": "Animation Domination", "years": "2005–", "about": "Fox's Sunday night animated comedy block.",
      "pages": ["Animation Domination"], "sections": "program|lineup|schedule|show|series"},
     {"id": "nicktoons", "animated": true, "name": "Nicktoons", "years": "1991–", "about": "Nickelodeon's original animated series.",
