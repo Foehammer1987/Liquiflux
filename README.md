@@ -83,7 +83,7 @@ artwork behind the player away while the video runs.
   Marathon to play them in order.
 - **Because You Watched** rows from what you've played lately, with thumbs up and down.
 - **Shuffle Play** by type, genre and how much time you've got.
-- **Channels.** Make your own TV channel from a Plex collection, label, show or whole library.
+- **Channels.** Make your own TV channel from any mix of Plex shows, collections, labels and libraries.
   Every show gets a fair turn (pick a show, then an episode), so 800 episodes of one show don't
   drown out a 50-episode one, and you can set any show higher or lower. Nothing repeats until a
   show runs out, and a channel carries on where you left it. Add bumpers (short clips kept in

@@ -23,7 +23,7 @@ ChannelPool pool() => ChannelPool(
 
 void main() {
   test('a channel\'s line-up marks its bumpers and grows as it plays', () {
-    const rule = ChannelRule(id: 'r', name: 'Adult Swim', source: src, bumpers: bumps);
+    const rule = ChannelRule(id: 'r', name: 'Adult Swim', sources: [src], bumpers: bumps);
     var saves = 0;
     final run = ChannelRun(rule, pool(), ChannelProgress(), random: Random(1), onChange: () => saves++);
     // Bumper, then episode and bumper in turn.
@@ -52,7 +52,7 @@ void main() {
     final store = ChannelStore(file: () async => file);
     await store.load('server-1');
     expect(store.rules, isEmpty);
-    store.put(const ChannelRule(id: 'r', name: 'Adult Swim', source: src, bumpers: bumps, weights: {'a': 2}));
+    store.put(const ChannelRule(id: 'r', name: 'Adult Swim', sources: [src], bumpers: bumps, weights: {'a': 2}));
     store.progressOf('r')
       ..current = 'a-3'
       ..played['a'] = {'a-3'};
@@ -68,14 +68,14 @@ void main() {
     // Another server has its own channels, and the first server's stay in the file.
     await again.load('server-2');
     expect(again.rules, isEmpty);
-    again.put(const ChannelRule(id: 's', name: 'Toonami', source: src));
+    again.put(const ChannelRule(id: 's', name: 'Toonami', sources: [src]));
     await again.save();
     final j = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
     expect((j['servers'] as Map).keys, containsAll(['server-1', 'server-2']));
 
     // A new source starts the channel afresh; deleting forgets it.
     await again.load('server-1');
-    again.put(const ChannelRule(id: 'r', name: 'Adult Swim', source: ChannelSource(kind: 'label', key: '7', title: 'AS', section: '2')));
+    again.put(const ChannelRule(id: 'r', name: 'Adult Swim', sources: [ChannelSource(kind: 'label', key: '7', title: 'AS', section: '2')]));
     expect(again.canResume('r'), isFalse);
     again.remove('r');
     expect(again.rules, isEmpty);
@@ -88,7 +88,7 @@ void main() {
     final store = ChannelStore(file: () async => file);
     await store.load('x');
     expect(store.rules, isEmpty);
-    store.read({'rules': [{'id': 'a'}, 'junk', const ChannelRule(id: 'ok', name: 'n', source: src).toJson()]});
+    store.read({'rules': [{'id': 'a'}, 'junk', const ChannelRule(id: 'ok', name: 'n', sources: [src]).toJson()]});
     expect(store.rules.map((r) => r.id), ['ok']);
   });
 }

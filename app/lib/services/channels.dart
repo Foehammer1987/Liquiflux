@@ -93,7 +93,7 @@ class ChannelStore extends ChangeNotifier {
     rules = [...rules];
     if (at >= 0) {
       // A new source starts the channel afresh.
-      if (rules[at].source != rule.source) _progress.remove(rule.id);
+      if (!listEquals(rules[at].sources, rule.sources)) _progress.remove(rule.id);
       if (rules[at].bumpers != rule.bumpers) _progress[rule.id]?.bumpersPlayed.clear();
       rules[at] = rule;
     } else if (rules.length < maxRules) {

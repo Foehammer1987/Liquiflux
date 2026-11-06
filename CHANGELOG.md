@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.10
+
+Channels can mix several shows, collections, labels and libraries.
+
+- A channel now draws from as many sources as you like, played as one pool: tick shows, collections, labels or whole libraries in the new picker (Add Shows and Collections in the channel editor). A show that's in two of them counts once. Each source has its own Remove button in the editor.
+- The picker is made for the remote: tabs for Shows, Collections, Labels and Libraries (with counts), a Search box that narrows the list as you type, and a list where Select ticks or unticks a line. Done keeps the choice, Cancel leaves it as it was. Choosing bumpers uses the same picker, picking one.
+- D-pad fix for every screen: Left or Right from a button under a scrolling list no longer jumps into a list row that's mostly hidden behind it (only the part of a row that shows counts as beside the button).
+- Channels saved by 1.0.9 open with their one source; a channel saved by 1.0.10 still opens in 1.0.9 with its first source.
+- `app/test/channels_tv_test.dart` (CONSOLE_TV=1) now builds a channel with key presses only: ticking four shows, scrolling far down the list, removing one, choosing bumpers, raising a show's share, saving, and editing it again with Search.
+- Version 1.0.10+68 (Android versionCode 1068 for armeabi-v7a, 2068 for arm64-v8a).
+
 ## 1.0.9
 
 Channels: shuffle rules that play like your own TV channel, bumpers and all.

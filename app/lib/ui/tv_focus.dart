@@ -151,7 +151,8 @@ List<_Stop> _stops(FocusNode from, Rect at, Iterable<FocusNode> nodes) {
   // A nested scope's own controls are listed too; the scope itself is no stop (and no card).
   final fair = <_Stop>[
     for (final n in nodes)
-      if (n != from && n is! FocusScopeNode && _fair(n)) (node: n, rect: n.rect),
+      if (n != from && n is! FocusScopeNode && _fair(n))
+        if (_shownPart(n, n.rect, from) case final rect?) (node: n, rect: rect),
   ];
   if (fair.any((c) => _holds(c.rect, at))) return fair;
   bool tucked(_Stop s) => fair.any((c) => !identical(c, s) && _holds(c.rect, s.rect));
@@ -159,6 +160,27 @@ List<_Stop> _stops(FocusNode from, Rect at, Iterable<FocusNode> nodes) {
     for (final s in fair)
       if (!tucked(s) || s.node.ancestors.contains(from)) s,
   ];
+}
+
+/// Where [n] (at [rect]) can be seen, for a move from [from]: when it's in a scrolling list
+/// [from] isn't in, only the part inside the list's window counts, and none at all when it's
+/// scrolled out of it (a row built just past the bottom of a list, under the buttons below
+/// it, isn't beside those buttons). Within its own list the whole of it counts, so a move
+/// still reaches the next row along, which scrolls the list.
+Rect? _shownPart(FocusNode n, Rect rect, FocusNode from) {
+  final list = Scrollable.maybeOf(n.context!);
+  if (list == null) return rect;
+  final fromCtx = from.context;
+  if (fromCtx != null && fromCtx.mounted) {
+    for (ScrollableState? s = Scrollable.maybeOf(fromCtx); s != null; s = Scrollable.maybeOf(s.context)) {
+      if (s == list) return rect;
+    }
+  }
+  final box = list.context.findRenderObject();
+  if (box is! RenderBox || !box.hasSize || !box.attached) return rect;
+  // The same space as FocusNode.rect (through the TV canvas's scaling).
+  final shown = MatrixUtils.transformRect(box.getTransformTo(null), Offset.zero & box.size).intersect(rect);
+  return shown.width > 0 && shown.height > 0 ? shown : null;
 }
 
 /// [outer] holds all of [inner] and is bigger.
