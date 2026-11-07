@@ -58,7 +58,7 @@ class WatchTogether extends ChangeNotifier {
   /// Why it didn't work, in words for the viewer.
   static String explain(Object e) {
     if (e is ApiException && (e.status == 401 || e.status == 403)) {
-      return 'Plex turned this down. Watch Together needs Liquiflux signed in with your own Plex account (Settings, Servers, My Plex Account).';
+      return 'Plex turned this down. Watch Together needs Liquiflux signed in with your own Plex account (Settings, Servers, Plex Media Server, Sign In Again).';
     }
     if (e is ApiException && e.status == 400) return 'Plex only lets you invite friends and people in your Plex Home.';
     if (e is ApiException && e.status == 410) return 'Plex has switched off this part of Watch Together. Room codes still work.';

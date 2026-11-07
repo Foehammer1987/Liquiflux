@@ -771,9 +771,15 @@ class PlayerSession extends ChangeNotifier {
   }
 
   /// Sets this player's speed only.
+  /// Samsung's player can turn a speed down; then the speed stays as it was, so the badge
+  /// and the Speed chips show what is really playing.
   Future<void> setRateDirect(double r) async {
     rate = r;
     await player.setRate(r);
+    if (isTizen && player.state.rate != r) {
+      rate = player.state.rate;
+      flash('This TV can’t play at ${r == r.roundToDouble() ? r.toInt() : r}× speed');
+    }
     notifyListeners();
   }
 
@@ -1458,7 +1464,7 @@ class PlayerSession extends ChangeNotifier {
   /// What mpv is actually doing, for the info overlay.
   Future<List<(String, String)>> stats() async {
     final n = _native;
-    if (n == null) return const [];
+    if (n == null) return playerStats();
     Future<String> g(String p) async {
       try {
         return await n.getProperty(p);
@@ -1492,6 +1498,29 @@ class PlayerSession extends ChangeNotifier {
           if (int.tryParse(r[17]) != null) '${(int.parse(r[17]) * 8 / 1e6).toStringAsFixed(1)} Mbps in',
         ].join(' · '),
       ),
+    ];
+  }
+}
+
+/// Playback Info where there is no mpv to ask (Samsung's player): what Plex says about the
+/// file and the picked tracks, and the size of the picture the player is showing.
+extension on PlayerSession {
+  List<(String, String)> playerStats() {
+    final m = media;
+    final v = _videoStream;
+    final a = audio;
+    final sub = subtitle;
+    final st = player.state;
+    String up(String? s) => s?.toUpperCase() ?? '';
+    return [
+      ('Playback', transcoding ? 'Transcode · ${streamQuality.isOriginal ? 'Original' : streamQuality.label}' : 'Direct Play'),
+      if (m != null) ('File', [m.container?.toUpperCase(), m.resolutionLabel, if (m.bitrate != null) '${(m.bitrate! / 1000).toStringAsFixed(1)} Mbps'].whereType<String>().join(' · ')),
+      ('Video', [up(v?.codec ?? m?.videoCodec), if (v?.width != null && v?.height != null) '${v!.width}×${v.height}', if (v?.frameRate != null) '${v!.frameRate!.toStringAsFixed(3)} fps'].where((s) => s.isNotEmpty).join(' · ')),
+      ('Picture', st.width != null && st.height != null && st.width! > 0 ? '${st.width}×${st.height}' : ''),
+      ('Audio', a == null ? '' : [a.label, if (a.channels != null) '${a.channels} ch', if (a.bitrate != null) '${a.bitrate} kbps'].join(' · ')),
+      ('Subtitles', sub == null ? 'Off' : [sub.label, if (sub.isImageSubtitle || transcoding) 'burned in by the server'].join(' · ')),
+      if (rate != 1) ('Speed', '$rate×'),
+      ('Player', isTizen ? 'Samsung TV player' : 'System player'),
     ];
   }
 }

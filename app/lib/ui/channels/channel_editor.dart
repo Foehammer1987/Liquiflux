@@ -10,6 +10,7 @@ import '../../services/channels.dart';
 import '../../state/app_state.dart';
 import '../../state/scope.dart';
 import '../settings/settings_field.dart';
+import '../tv_popups.dart';
 import 'source_picker.dart';
 
 /// What the editor closed with: a rule to save, or one to delete.
@@ -61,6 +62,11 @@ class _ChannelEditorState extends State<ChannelEditor> {
   ChannelPool? _pool;
   List<ChannelSource>? _poolFor;
   bool _loadingPool = false;
+
+  Future<void> _delete() async {
+    final ok = await confirmAction(context, title: 'Delete ${widget.rule!.name}?', body: 'The channel and its rules go. This can’t be undone.', action: 'Delete');
+    if (ok && mounted) Navigator.of(context).pop((rule: widget.rule!, deleted: true));
+  }
 
   @override
   void initState() {
@@ -349,7 +355,7 @@ class _ChannelEditorState extends State<ChannelEditor> {
                     decoration: BoxDecoration(border: Border(top: BorderSide(color: c.border200))),
                     child: Row(
                       children: [
-                        if (widget.rule != null) ConsoleButton(label: 'Delete', icon: LucideIcons.trash2, kind: ButtonKind.danger, onPressed: () => Navigator.of(context).pop((rule: widget.rule!, deleted: true))),
+                        if (widget.rule != null) ConsoleButton(label: 'Delete', icon: LucideIcons.trash2, kind: ButtonKind.danger, onPressed: _delete),
                         const Spacer(),
                         ConsoleButton(label: 'Cancel', kind: ButtonKind.tertiary, onPressed: () => Navigator.of(context).pop()),
                         const SizedBox(width: Space.space2),

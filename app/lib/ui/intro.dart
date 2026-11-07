@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../app_info.dart';
+import 'player/remote.dart' show isExitKey;
 
 /// The startup animation, "flow": the logo's two ribbons of liquid fly in twisting from
 /// opposite edges of the screen (the L from the left, the outer layer from the right) and lay
@@ -487,6 +488,8 @@ void _line(Canvas canvas, Offset centre, double width, double fade) {
 
 /// While the intro is up, any key skips it and is swallowed; so is its key-up, even when it
 /// comes after the intro has gone, or an unhandled Back key-up would turn into a system Back.
+/// The remote's Exit key is never taken: on a Samsung TV it closes the app from anywhere,
+/// the launch animation too (flutter-tizen closes the app on an unhandled Exit key-up).
 ///
 /// HardwareKeyboard handlers can't stop the focus system from also getting a key, so this
 /// patches the key message handler once (it passes everything on when no intro is up).
@@ -521,6 +524,7 @@ class _KeySwallow {
   bool _takes(KeyMessage message) {
     var took = false;
     for (final e in message.events) {
+      if (isExitKey(e)) continue;
       if (e is KeyUpEvent) {
         took |= _down.remove(e.physicalKey);
       } else if (!_finished) {

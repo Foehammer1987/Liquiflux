@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.0.13
+
+Samsung TVs: fixes for what a store reviewer would trip over, from the App Description review of 1.0.12. Most of it helps every TV.
+
+- Player keys: only the arrows, OK, the media keys and 0-9 bring the controls up (or end the pause screen). Colour keys, Channel Up/Down, Info and Guide now do nothing at all, as Samsung's rule asks for keys an app doesn't list.
+- Exit: the remote's Exit key now closes the app during the launch animation and while the sleep timer's warning is up (both used to swallow the first press). flutter-tizen gives Exit no logical key, so it's told apart by its physical key.
+- Playback Info on Samsung TVs is no longer an empty box: it shows Direct Play or Transcode, the file, the video and audio tracks from Plex, the subtitles (and when Plex burns them in), the picture size Samsung's player reports, and the speed.
+- Speed on Samsung TVs: a speed the TV's player turns down now says "This TV can't play at N× speed" and the speed badge and chips keep showing the speed that's really playing.
+- Samsung remotes: a long press of Rewind or Fast Forward (which the remote sends as Previous / Next track) now seeks back or forward instead of changing episode.
+- Ready to Watch, Watch Together invitations and the update card: on a TV the card takes the remote's focus on its main button as it comes in (the arrows couldn't reach the corner from a page), Back closes it, and focus goes back where it was. Not while the player, a popup or a text field is in use. Ready to Watch stays 20 s on a TV.
+- "Ask Who's Watching" now works at launch (it was checked before the settings had loaded).
+- Trending and Requests are left out of the sidebar until Seerr is set up (they only said to connect Seerr).
+- On a TV, Back from search results goes back to the page the search started on, not Home.
+- Deleting a channel asks first (Cancel focused). The Request All popups on collection and TV network pages start with Cancel focused and scroll when the list is long.
+- Wording: the Watch Together invitation for another server no longer says "Join from Plex Web"; the Watch Together sign-in error points to Plex Media Server's Sign In Again (not Seerr's My Plex Account); the secure-storage warning and the Flat surfaces hint have TV wording; the online subtitle note leaves out Subtitle Delay where it's hidden; the picture-subtitle "size and height still apply" note no longer shows when Plex burns them in.
+- Checked in flutter-tizen's embedder: one Return press can't act twice there (it skips the route pop when the key-down was handled), so Android's BackKeyGuard isn't needed on Samsung TVs.
+- Tests: `app/test/notice_toast_test.dart`, and new cases in `intro_test.dart` (Exit isn't swallowed), `player_remote_test.dart` (unused keys, Exit, long-press track keys) and `tizen_test.dart` (the confirm popup).
+- Version 1.0.13+71 (Android versionCode 1071 for armeabi-v7a, 2071 for arm64-v8a; Samsung packages 1.0.1300, 1.0.1301, 1.0.1302).
+
 ## 1.0.12
 
 Samsung TVs: a first Tizen build of Liquiflux, for Samsung TVs from 2021 on. Not yet tried on a Samsung TV (see TIZEN.md, Testing).

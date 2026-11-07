@@ -2,9 +2,16 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:console_ui/console_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import 'player/remote.dart' show backKeys;
 
 /// A frosted card that slides in at the bottom right ("Ready to watch", a Watch Together
 /// invitation), glowing in the title's colours, with its main action right on it.
+///
+/// With [takeFocus] (a TV, nothing covering the pages) it takes the remote's focus as it comes
+/// in, on its main button, since the arrows can't reach a card in the corner from a page.
+/// Back closes it, and when it goes, focus returns to where it was.
 class NoticeToast extends StatefulWidget {
   const NoticeToast({
     super.key,
@@ -21,6 +28,7 @@ class NoticeToast extends StatefulWidget {
     this.secondary,
     this.onSecondary,
     this.lifetime = const Duration(seconds: 12),
+    this.takeFocus = false,
   });
   final String eyebrow;
   final IconData icon;
@@ -37,6 +45,7 @@ class NoticeToast extends StatefulWidget {
   final VoidCallback? onSecondary;
   final VoidCallback onDismiss;
   final Duration lifetime;
+  final bool takeFocus;
 
   @override
   State<NoticeToast> createState() => _NoticeToastState();
@@ -46,24 +55,65 @@ class _NoticeToastState extends State<NoticeToast> with SingleTickerProviderStat
   late final _life = AnimationController(vsync: this, duration: widget.lifetime)..forward();
   bool _hover = false;
 
+  final _card = FocusScopeNode(debugLabel: 'notice card');
+  final _primary = FocusNode(debugLabel: 'notice main button');
+  final _close = FocusNode(debugLabel: 'notice dismiss');
+
+  /// Where the remote's focus was before the card took it.
+  FocusNode? _before;
+
   @override
   void initState() {
     super.initState();
     _life.addStatusListener((s) {
       if (s == AnimationStatus.completed) widget.onDismiss();
     });
+    if (widget.takeFocus) {
+      _before = FocusManager.instance.primaryFocus;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        (widget.onPrimary != null ? _primary : _close).requestFocus();
+      });
+    }
   }
 
   @override
   void dispose() {
+    final hadFocus = _card.hasFocus;
+    final before = _before;
     _life.dispose();
+    _card.dispose();
+    _primary.dispose();
+    _close.dispose();
+    if (hadFocus && before != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Not when what the card did covered the pages (the player, a popup).
+        final ctx = before.context;
+        if (ctx != null && ctx.mounted && before.canRequestFocus && (ModalRoute.of(ctx)?.isCurrent ?? true)) before.requestFocus();
+      });
+    }
     super.dispose();
+  }
+
+  /// Back closes the card (its key-up too, so it doesn't step a page back as well).
+  KeyEventResult _onKey(FocusNode _, KeyEvent e) {
+    if (!backKeys.contains(e.logicalKey)) return KeyEventResult.ignored;
+    if (e is KeyDownEvent) widget.onDismiss();
+    return KeyEventResult.handled;
   }
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
     final poster = widget.poster;
+    return FocusScope(
+      node: _card,
+      onKeyEvent: _onKey,
+      child: _build(context, c, poster),
+    );
+  }
+
+  Widget _build(BuildContext context, ConsoleColors c, String? poster) {
     return MouseRegion(
       // Pointing at it holds it open.
       onEnter: (_) {
@@ -124,6 +174,7 @@ class _NoticeToastState extends State<NoticeToast> with SingleTickerProviderStat
                                     ),
                                   ),
                                   Focusable(
+                                    focusNode: _close,
                                     onTap: widget.onDismiss,
                                     semanticLabel: 'Dismiss',
                                     builder: (_, hover, _) => Icon(LucideIcons.x, size: 16, color: Colors.white.withValues(alpha: hover ? 1 : 0.6)),
@@ -147,7 +198,7 @@ class _NoticeToastState extends State<NoticeToast> with SingleTickerProviderStat
                               const SizedBox(height: Space.space3),
                               Row(
                                 children: [
-                                  ConsoleButton(label: widget.primary, icon: widget.primaryIcon, kind: ButtonKind.primary, onPressed: widget.onPrimary),
+                                  ConsoleButton(label: widget.primary, icon: widget.primaryIcon, kind: ButtonKind.primary, focusNode: _primary, onPressed: widget.onPrimary),
                                   if (widget.secondary != null) ...[const SizedBox(width: Space.space2), ConsoleButton(label: widget.secondary!, onPressed: widget.onSecondary)],
                                 ],
                               ),

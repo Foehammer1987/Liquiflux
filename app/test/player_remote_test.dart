@@ -34,12 +34,36 @@ void main() {
         expect(remoteAction(LogicalKeyboardKey.mediaPause, onControl: onControl), RemoteAction.pause);
         expect(remoteAction(LogicalKeyboardKey.mediaFastForward, onControl: onControl), RemoteAction.seekForward);
         expect(remoteAction(LogicalKeyboardKey.mediaRewind, onControl: onControl), RemoteAction.seekBack);
-        expect(remoteAction(LogicalKeyboardKey.mediaTrackNext, onControl: onControl), RemoteAction.next);
-        expect(remoteAction(LogicalKeyboardKey.mediaTrackPrevious, onControl: onControl), RemoteAction.previous);
+        expect(remoteAction(LogicalKeyboardKey.mediaTrackNext, onControl: onControl, samsung: false), RemoteAction.next);
+        expect(remoteAction(LogicalKeyboardKey.mediaTrackPrevious, onControl: onControl, samsung: false), RemoteAction.previous);
         expect(remoteAction(LogicalKeyboardKey.mediaStop, onControl: onControl), RemoteAction.stop);
         expect(remoteAction(LogicalKeyboardKey.escape, onControl: onControl), RemoteAction.back);
         expect(remoteAction(LogicalKeyboardKey.goBack, onControl: onControl), RemoteAction.back);
       }
+    });
+
+    test('Samsung: the track keys (a long press of Rewind / Fast Forward) seek', () {
+      expect(remoteAction(LogicalKeyboardKey.mediaTrackNext, samsung: true), RemoteAction.seekForward);
+      expect(remoteAction(LogicalKeyboardKey.mediaTrackPrevious, samsung: true), RemoteAction.seekBack);
+    });
+
+    test('keys the player does not use are not player keys (Samsung: they must not respond)', () {
+      for (final k in [
+        LogicalKeyboardKey.colorF0Red, LogicalKeyboardKey.colorF1Green, LogicalKeyboardKey.colorF2Yellow, LogicalKeyboardKey.colorF3Blue, //
+        LogicalKeyboardKey.channelUp, LogicalKeyboardKey.channelDown, LogicalKeyboardKey.info, LogicalKeyboardKey.guide, LogicalKeyboardKey.contextMenu,
+      ]) {
+        expect(playerKeys.contains(k), isFalse, reason: k.debugName);
+        expect(remoteAction(k), isNull, reason: k.debugName);
+      }
+      for (final k in [LogicalKeyboardKey.arrowUp, LogicalKeyboardKey.select, LogicalKeyboardKey.enter, LogicalKeyboardKey.mediaPlayPause, LogicalKeyboardKey.mediaFastForward, LogicalKeyboardKey.digit5]) {
+        expect(playerKeys.contains(k), isTrue, reason: k.debugName);
+      }
+    });
+
+    test('the Exit key is told by its physical key (flutter-tizen gives it no logical one)', () {
+      KeyEvent down(LogicalKeyboardKey l, PhysicalKeyboardKey p) => KeyDownEvent(logicalKey: l, physicalKey: p, timeStamp: Duration.zero);
+      expect(isExitKey(down(const LogicalKeyboardKey(0x1400000000), PhysicalKeyboardKey.exit)), isTrue);
+      expect(isExitKey(down(LogicalKeyboardKey.escape, PhysicalKeyboardKey.escape)), isFalse);
     });
 
     test('Back can be left to the system, and other keys to the keyboard shortcuts', () {

@@ -181,7 +181,8 @@ class PlayerSheet extends StatelessWidget {
           onTap: () => s.fetchOnline(r),
         ),
       if (s.onlineNote != null) _Note(s.onlineNote!),
-      if (results != null && results.isNotEmpty) const _Note('Found by your Plex server. Names closest to your file’s line up best; Subtitle Delay fixes the rest.'),
+      if (results != null && results.isNotEmpty)
+        _Note(isTizen ? 'Found by your Plex server. Names closest to your file’s line up best.' : 'Found by your Plex server. Names closest to your file’s line up best; Subtitle Delay fixes the rest.'),
     ];
   }
 
@@ -211,7 +212,8 @@ class PlayerSheet extends StatelessWidget {
       else
         for (final t in s.mpvSubtitles) _Choice(label: t.title ?? t.language ?? 'Track ${t.id}', on: s.player.state.track.subtitle.id == t.id, tint: _tint, onTap: () => s.player.setSubtitleTrack(t)),
       if (s.transcoding && s.subtitle != null) const _Note('The server is burning these subtitles into the picture, so the style below applies when playing the original.'),
-      if (image) const _Note('Picture-based subtitles (PGS, VobSub) keep their own look. Size and height still apply.'),
+      // Burned in by the server (the note above), they are part of the picture: nothing here changes them.
+      if (image && !s.transcoding) const _Note('Picture-based subtitles (PGS, VobSub) keep their own look. Size and height still apply.'),
       if (s.canSearchOnline) ..._online(s),
       if (!isTizen) ...[
       _Heading('Sync', color: accent),

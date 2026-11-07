@@ -150,6 +150,27 @@ void main() {
       expect(find.byType(ExitPopup), findsNothing);
     });
 
+    testWidgets('confirm: Cancel is focused first, so OK twice does nothing', (tester) async {
+      late BuildContext ctx;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ConsoleTheme.dark(glass: false),
+          home: Builder(
+            builder: (c) {
+              ctx = c;
+              return const SizedBox.expand();
+            },
+          ),
+        ),
+      );
+      final result = confirmAction(ctx, title: 'Delete Toonami?', action: 'Delete');
+      await tester.pumpAndSettle();
+      expect(find.text('Delete Toonami?'), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(await result, isFalse);
+    });
+
     testWidgets('network: the popup closes itself when the connection is back', (tester) async {
       final w = NetworkWatch.instance;
       addTearDown(w.reset);

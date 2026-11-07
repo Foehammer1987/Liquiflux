@@ -48,11 +48,33 @@ final _media = {
   LogicalKeyboardKey.mediaStop: RemoteAction.stop,
 };
 
+/// The remote keys the player answers to: the arrows, OK, the media keys and 0-9. Any other
+/// key (colour keys, Channel Up/Down, Info, Guide) leaves the player as it is.
+final playerKeys = {
+  ..._arrows,
+  ...selectKeys,
+  ..._media.keys,
+  LogicalKeyboardKey.digit0, LogicalKeyboardKey.digit1, LogicalKeyboardKey.digit2, LogicalKeyboardKey.digit3, LogicalKeyboardKey.digit4, //
+  LogicalKeyboardKey.digit5, LogicalKeyboardKey.digit6, LogicalKeyboardKey.digit7, LogicalKeyboardKey.digit8, LogicalKeyboardKey.digit9,
+};
+
+/// The remote's Exit key. flutter-tizen gives Samsung's Exit (XF86Exit) no logical key, only
+/// the physical one, and closes the app when the app leaves its key-up unhandled.
+bool isExitKey(KeyEvent e) => e.physicalKey == PhysicalKeyboardKey.exit || e.logicalKey == LogicalKeyboardKey.exit;
+
 /// What [key] does on a TV. [onControl]: a button or the seek bar has focus, rather than
 /// the picture. [upNext] and [skip]: the Up Next card or a Skip button is showing, so Select
 /// takes it. [goBack] false leaves the Back key to the system, which reaches the player as a
 /// route pop instead. Null for keys the remote doesn't own (the keyboard shortcuts keep those).
-RemoteAction? remoteAction(LogicalKeyboardKey key, {bool onControl = false, bool upNext = false, bool skip = false, bool goBack = true}) {
+///
+/// [samsung]: on a Samsung remote the track keys are what a long press of Rewind or Fast
+/// Forward sends (Samsung's remote control guide), so there they seek like Rewind and Fast
+/// Forward instead of changing episode.
+RemoteAction? remoteAction(LogicalKeyboardKey key, {bool onControl = false, bool upNext = false, bool skip = false, bool goBack = true, bool? samsung}) {
+  if (samsung ?? isTizen) {
+    if (key == LogicalKeyboardKey.mediaTrackNext) return RemoteAction.seekForward;
+    if (key == LogicalKeyboardKey.mediaTrackPrevious) return RemoteAction.seekBack;
+  }
   final media = _media[key];
   if (media != null) return media;
   if (backKeys.contains(key)) return key == LogicalKeyboardKey.goBack && !goBack ? null : RemoteAction.back;

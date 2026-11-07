@@ -59,4 +59,24 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     expect(seen.whereType<KeyDownEvent>().map((e) => e.logicalKey), [LogicalKeyboardKey.arrowDown]);
   });
+
+  testWidgets('the Exit key is never swallowed: on a Samsung TV it closes the app', (tester) async {
+    final seen = <KeyEvent>[];
+    await tester.pumpWidget(app(onKey: seen.add));
+    await tester.pump(const Duration(milliseconds: 300));
+    // As flutter-tizen sends it: the physical Exit key, with no logical key of its own.
+    // ignore: deprecated_member_use
+    final handler = ServicesBinding.instance.keyEventManager.keyMessageHandler!;
+    const logical = LogicalKeyboardKey(0x1400000000);
+    // ignore: deprecated_member_use
+    handler(KeyMessage([const KeyDownEvent(logicalKey: logical, physicalKey: PhysicalKeyboardKey.exit, timeStamp: Duration.zero)], null));
+    // ignore: deprecated_member_use
+    handler(KeyMessage([const KeyUpEvent(logicalKey: logical, physicalKey: PhysicalKeyboardKey.exit, timeStamp: Duration.zero)], null));
+    // It went on to the app (flutter-tizen closes the app when nothing handles it) ...
+    expect(seen.map((e) => e.physicalKey), [PhysicalKeyboardKey.exit, PhysicalKeyboardKey.exit]);
+    // ... and didn't skip the intro.
+    expect(find.byType(Intro), findsOneWidget);
+    await tester.pump(Intro.total);
+    await tester.pump();
+  });
 }

@@ -85,7 +85,10 @@ class _ShellState extends State<Shell> {
       Notifier.instance.onAction = _onNotification;
       unawaited(Probe.atHome(context, openTitle: (key) => push(ItemDest(key))));
       // "Who's watching?" as Liquiflux opens, when asked for (it closes itself without a Home).
-      if (app.settings.plexReady && app.settings.askProfile) unawaited(_profiles(atStart: true));
+      // Settings are still loading on the first frame, so this waits for them.
+      _whenLoaded(app, () {
+        if (mounted && app.settings.plexReady && app.settings.askProfile) unawaited(_profiles(atStart: true));
+      });
     });
     if (isTv) FocusManager.instance.addListener(_focusMoved);
     playerHandoff.addListener(_fromPlayer);
@@ -93,6 +96,18 @@ class _ShellState extends State<Shell> {
       NetworkWatch.instance.online.addListener(_networkChanged);
       NetworkWatch.instance.start();
     }
+  }
+
+  /// Runs [then] once the saved settings have loaded (straight away if they have).
+  void _whenLoaded(AppState app, VoidCallback then) {
+    if (app.loaded) return then();
+    void check() {
+      if (!app.loaded) return;
+      app.removeListener(check);
+      then();
+    }
+
+    app.addListener(check);
   }
 
   bool _networkPopup = false;
@@ -215,7 +230,7 @@ class _ShellState extends State<Shell> {
     final thumb = item?.thumb;
     await Notifier.instance.ready(
       title: '${room.createdBy?.title ?? 'A friend'} invited you to Watch Together',
-      body: here ? room.title : '${room.title}. It’s on another Plex server, so join from Plex Web.',
+      body: here ? room.title : '${room.title}. It’s on a Plex server Liquiflux isn’t connected to.',
       payload: 'join:${room.id}',
       posterUrl: thumb == null ? null : app.plex?.imageUrl(thumb, width: 200, height: 300),
       action: here ? 'Join' : 'Open',
@@ -291,7 +306,16 @@ class _ShellState extends State<Shell> {
     }
   }
 
+  /// On a TV a card takes the remote's focus as it comes in (the arrows can't reach the corner
+  /// from a page), unless the player or a popup is over the pages or a text field is in use.
+  bool get _cardTakesFocus {
+    if (!isTv || !(ModalRoute.of(context)?.isCurrent ?? true)) return false;
+    final p = FocusManager.instance.primaryFocus?.context;
+    return p == null || p.widget is! EditableText;
+  }
+
   Widget _toast(Object t) {
+    final takeFocus = _cardTakesFocus;
     if (t is UpdateInfo) {
       final updater = AppScope.read(context).updater;
       return NoticeToast(
@@ -315,6 +339,7 @@ class _ShellState extends State<Shell> {
           unawaited(updater.skip(t.version));
         },
         onDismiss: () => _dismiss(t),
+        takeFocus: takeFocus,
         // Longer on a TV, where the remote has further to go to reach it.
         lifetime: Duration(seconds: isTv ? 40 : 20),
       );
@@ -333,6 +358,9 @@ class _ShellState extends State<Shell> {
         secondary: 'Details',
         onSecondary: () => _openReady(t),
         onDismiss: () => _dismiss(t),
+        takeFocus: takeFocus,
+        // Longer on a TV, where it's read from across the room.
+        lifetime: Duration(seconds: isTv ? 20 : 12),
       );
     }
     final invite = t as _Invite;
@@ -343,7 +371,7 @@ class _ShellState extends State<Shell> {
       eyebrow: 'WATCH TOGETHER',
       icon: LucideIcons.usersRound,
       title: invite.room.title,
-      body: item != null ? '$who wants to watch this with you, in step.' : '$who invited you, but it’s on a Plex server Liquiflux isn’t connected to. Join from Plex Web.',
+      body: item != null ? '$who wants to watch this with you, in step.' : '$who invited you, but it’s on a Plex server Liquiflux isn’t connected to. Join from an app signed in to that server.',
       poster: item == null ? null : plex?.imageUrl(item.thumb, width: 200, height: 300),
       art: item == null ? null : plex?.imageUrl(item.art ?? item.thumb, width: 400, height: 225),
       primary: 'Join',
@@ -357,6 +385,7 @@ class _ShellState extends State<Shell> {
               push(ItemDest(item.ratingKey));
             },
       onDismiss: () => _dismiss(invite),
+        takeFocus: takeFocus,
       lifetime: const Duration(seconds: 45),
     );
   }
@@ -397,7 +426,12 @@ class _ShellState extends State<Shell> {
     ),
   );
 
+  /// The page search results were opened from, for Back to return to on a TV.
+  Dest? _fromSearch;
+
   void go(Dest d) {
+    if (d is SearchDest && _top is! SearchDest) _fromSearch = _top;
+    if (d is! SearchDest) _fromSearch = null;
     setState(() => _top = d);
     if (d is! SearchDest) _search.clear();
     _nav.currentState?.pushAndRemoveUntil(_route(d), (_) => false);
@@ -438,6 +472,12 @@ class _ShellState extends State<Shell> {
     final nav = _nav.currentState;
     if (nav != null && nav.canPop()) {
       nav.maybePop();
+      return true;
+    }
+    // Back from search results returns to the page the search started on.
+    if (isTv && _top is SearchDest && _fromSearch != null && _fromSearch is! HomeDest) {
+      go(_fromSearch!);
+      _claimFocus();
       return true;
     }
     if (isTv && _top is! HomeDest) {
@@ -1145,7 +1185,8 @@ class _RailState extends State<_Rail> {
       mainAxisSize: MainAxisSize.min,
       children: [
         item('home', LucideIcons.house, 'Home', const HomeDest()),
-        item('trending', LucideIcons.flame, 'Trending', const TrendingDest()),
+        // Trending and Requests come from Seerr: without one set up they'd only say so.
+        if (app.settings.seerrReady) item('trending', LucideIcons.flame, 'Trending', const TrendingDest()),
         item('collections', LucideIcons.layers, 'Collections', const CollectionsDest()),
         item('tv-networks', LucideIcons.satelliteDish, 'TV Networks', const TvCollectionsDest()),
         item('moods', LucideIcons.sparkles, 'Moods', const MoodsDest()),
@@ -1153,8 +1194,10 @@ class _RailState extends State<_Rail> {
         item('channels', LucideIcons.radioTower, 'Channels', const ChannelsDest()),
         if (app.sections.isNotEmpty) rule(),
         for (final s in app.sections) item('library:${s.key}', s.type == 'show' ? LucideIcons.tv : LucideIcons.clapperboard, s.title, LibraryDest(s.key)),
-        rule(),
-        item('requests', LucideIcons.download, 'Requests', const RequestsDest(), badge: app.activeRequestCount),
+        if (app.settings.seerrReady) ...[
+          rule(),
+          item('requests', LucideIcons.download, 'Requests', const RequestsDest(), badge: app.activeRequestCount),
+        ],
       ],
     );
     final panel = Container(

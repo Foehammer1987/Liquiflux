@@ -474,6 +474,8 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
   /// the focused control too (Select paused the video). Its release goes with it, then the
   /// picture has the focus again.
   KeyEventResult _onSleepKey(FocusNode _, KeyEvent e) {
+    // Exit closes the app from anywhere (Samsung's rule): left unhandled, the TV does it.
+    if (isExitKey(e)) return KeyEventResult.ignored;
     if (e is KeyDownEvent) {
       if (_s.sleepWarning) _s.keepWatching();
       _sleepHeld.add(e.logicalKey);
@@ -496,12 +498,16 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     }
   }
 
-  /// On a TV every key but Back brings the controls up and restarts their timer, whichever
-  /// control the key goes to.
+  /// On a TV the remote's player keys (the arrows, OK, the media keys and 0-9) bring the
+  /// controls up and restart their timer, whichever control the key goes to. Keys the player
+  /// doesn't use (colour keys, Channel Up/Down, Info, Guide) do nothing at all: Samsung's
+  /// review rule is that keys the app doesn't list must not respond. Keyboard shortcuts bring
+  /// the controls up through [_onKeyboard] when they do something.
   bool _anyKey(KeyEvent e) {
+    if (!playerKeys.contains(e.logicalKey)) return false;
     // Noted before the key ends the pause screen, for Down there to open X-Ray.
     if (e is KeyDownEvent) _keyOnPauseScreen = _paused;
-    if (e is! KeyUpEvent && !backKeys.contains(e.logicalKey) && mounted && _route?.isCurrent == true) _poke();
+    if (e is! KeyUpEvent && mounted && _route?.isCurrent == true) _poke();
     return false;
   }
 
@@ -699,8 +705,8 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
       LogicalKeyboardKey.keyI: () => setState(() => _info = !_info),
       if (PlayerDock.enabled) LogicalKeyboardKey.keyB: _minimize,
       LogicalKeyboardKey.keyX: () => _xray.cast.isNotEmpty ? _openSheet(SheetTab.xray) : null,
-      LogicalKeyboardKey.bracketLeft: () => _stepRate(-0.25),
-      LogicalKeyboardKey.bracketRight: () => _stepRate(0.25),
+      LogicalKeyboardKey.bracketLeft: () => unawaited(_stepRate(-0.25)),
+      LogicalKeyboardKey.bracketRight: () => unawaited(_stepRate(0.25)),
       LogicalKeyboardKey.home: () => _s.seekTo(Duration.zero),
     };
     // Held keys repeat seeking and volume, not toggles.
@@ -729,9 +735,11 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     return true;
   }
 
-  void _stepRate(double by) {
+  Future<void> _stepRate(double by) async {
     final r = (_s.rate + by).clamp(0.5, 2.0);
-    unawaited(_s.setRate(r));
+    await _s.setRate(r);
+    // A speed Samsung's player turned down says so itself (see setRateDirect).
+    if (!mounted || (isTizen && _s.room == null && _s.rate != r)) return;
     _s.flash(r == 1 ? 'Normal Speed' : '${_trim(r)}× Speed');
   }
 

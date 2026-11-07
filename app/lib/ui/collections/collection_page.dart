@@ -106,10 +106,12 @@ class _CollectionPageState extends State<CollectionPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: Text('Request ${missing.length} ${missing.length == 1 ? 'film' : 'films'}?'),
         content: Text(missing.map((p) => '•  ${SeriesArt.shortTitle(p.title, _f)} (${p.year ?? '?'})').join('\n')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          // Cancel holds the remote's focus as the popup opens, as in the other popups.
+          TextButton(autofocus: true, onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Request All')),
         ],
       ),

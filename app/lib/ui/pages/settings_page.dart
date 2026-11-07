@@ -364,6 +364,9 @@ class _SettingsPageState extends State<SettingsPage> {
               Platform.isAndroid
                   ? "This device's Android Keystore couldn't be used to keep sign-ins in, so $appName only remembers them until it closes (they are never saved in plain text). "
                         'Restarting the device and signing in again usually fixes it.'
+                  : isTizen
+                  ? "This TV's secure storage couldn't be used to keep sign-ins in, so $appName only remembers them until it closes (they are never saved in plain text). "
+                        'Turning the TV off and on and signing in again usually fixes it.'
                   : 'This computer has no keyring to keep sign-ins in, so $appName only remembers them until it closes (they are never saved in plain text). '
                         'On Linux, install and unlock GNOME Keyring or KWallet, then sign in again.',
             ),
@@ -1042,7 +1045,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: Space.space1),
           ConsoleSegmented<bool>(options: const [(true, 'Frosted Glass'), (false, 'Flat')], value: s.glass, onChanged: app.setGlass),
           const SizedBox(height: Space.space1),
-          Text('Flat is lighter on older graphics cards.', style: ConsoleText.caption.copyWith(color: context.c.text300)),
+          Text(isTv ? 'Flat is lighter on TVs with little memory.' : 'Flat is lighter on older graphics cards.', style: ConsoleText.caption.copyWith(color: context.c.text300)),
           if (trailersSupported) ...[
           const SizedBox(height: Space.space4),
           Text('Home Trailers', style: ConsoleText.caption.copyWith(color: context.c.text200)),

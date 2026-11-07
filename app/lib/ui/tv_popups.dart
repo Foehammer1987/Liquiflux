@@ -31,6 +31,25 @@ class ExitPopup extends StatelessWidget {
   );
 }
 
+/// Asks before something that can't be undone ([action], e.g. "Delete"). Cancel is focused
+/// first, so a second press of OK doesn't do it by surprise; Return closes it as Cancel.
+Future<bool> confirmAction(BuildContext context, {required String title, String? body, required String action}) async {
+  final yes = await showDialog<bool>(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.7),
+    builder: (context) => _Popup(
+      icon: LucideIcons.triangleAlert,
+      title: title,
+      body: body,
+      actions: [
+        ConsoleButton(label: 'Cancel', autofocus: true, kind: ButtonKind.secondary, onPressed: () => Navigator.pop(context, false)),
+        ConsoleButton(label: action, kind: ButtonKind.danger, onPressed: () => Navigator.pop(context, true)),
+      ],
+    ),
+  );
+  return yes ?? false;
+}
+
 /// The network-lost message (Samsung CO-CN-02). It closes itself once the TV is back on
 /// the network; Return closes it sooner, and the app keeps watching either way.
 Future<void> showNetworkLost(BuildContext context) => showDialog<void>(

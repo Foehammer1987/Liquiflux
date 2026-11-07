@@ -6,7 +6,7 @@ earlier can't run Flutter apps. The Samsung build is the same app as on Windows 
 the same Home, title pages, Seerr requests, Channels, X-Ray, Watch Together, Trakt and AniList.
 What's different is below.
 
-Status: first build (1.0.12). It compiles and its tests pass, but it has **not run on a Samsung
+Status: 1.0.13 (first build 1.0.12). It compiles and its tests pass, but it has **not run on a Samsung
 TV yet**. See [Testing](#testing) for what needs a real TV.
 
 ## What's different on a Samsung TV
@@ -16,6 +16,9 @@ TV yet**. See [Testing](#testing) for what needs a real TV.
   plugin), drawn on the TV's video plane behind the app. `app/lib/services/avplay_player.dart`
   puts it behind media_kit's player API, so the player page, Skip Intro, Up Next, the sleep timer,
   Watch Together, X-Ray and Plex progress reports work as they do elsewhere.
+- **Playback Info** comes from Plex and the player instead of mpv: Direct Play or Transcode, the
+  file, the video and audio tracks, the subtitles, the picture size and the speed. A speed
+  Samsung's player turns down shows a short message and the speed stays as it was.
 - **What Plex converts.** Samsung TVs don't play DTS (2025 and 2026 sets say so outright) or
   TrueHD sound, or Dolby Vision. With a DTS or TrueHD track picked, Plex converts the sound and
   sends the picture as it is. Picture-based subtitles (PGS, VobSub) are burned in by Plex, as on
@@ -32,12 +35,20 @@ TV yet**. See [Testing](#testing) for what needs a real TV.
 - **Samsung's key rules.**
   - Return goes back a page. On Home it first goes to the top of Home, and from there it asks
     "Exit Liquiflux?" (No is focused; only Yes closes the app). Return on a popup closes it.
-  - Exit closes the app from anywhere, including during playback. The app never handles it, so
-    flutter-tizen closes the app.
+  - Exit closes the app from anywhere, including during playback, the launch animation and the
+    sleep timer's warning. The app never handles it, so flutter-tizen closes the app. (flutter-tizen
+    gives Exit no logical key; the app tells it by its physical key, `isExitKey` in
+    `app/lib/ui/player/remote.dart`.)
+  - One Return press does one thing: flutter-tizen's embedder only turns Return into a route pop
+    when neither its key-down nor its key-up was handled, so Android's `BackKeyGuard` isn't needed.
   - Long-pressing Return isn't registered (the TV turns it into Exit).
   - Play, Pause, Play/Pause, Stop, Rewind, Fast Forward and the track keys work in the player as on
-    Android TV. Number keys 0-9 in the player jump to 0-90% of the title. Colour keys, Channel
-    Up/Down, Info and Guide aren't used and do nothing.
+    Android TV, except that the track keys seek (a Samsung remote sends them for a long press of
+    Rewind and Fast Forward). Number keys 0-9 in the player jump to 0-90% of the title. Colour
+    keys, Channel Up/Down, Info and Guide aren't used and do nothing, not even bring up the
+    controls.
+  - Ready to Watch and Watch Together cards take the remote's focus as they come in; Return
+    closes them.
 - **Network lost.** When the TV loses its network, playback stops (the place is saved, like Back),
   the player closes and a "No network connection" popup shows. It closes by itself once the
   connection is back, and Plex and Seerr are asked again straight away.
@@ -93,7 +104,7 @@ Certificate Manager: Create Samsung Certificate, TV, sign in with your Samsung a
    `sdb devices` shows the TV and its DUID.
 3. Make the Samsung certificate with that DUID (above) and build, or have the workflow build with
    it.
-4. `sdb install Liquiflux-1.0.12-tizen-6.5.tpk` (pick the package for the TV's year), or
+4. `sdb install Liquiflux-1.0.13-tizen-6.5.tpk` (pick the package for the TV's year), or
    `flutter-tizen install` from `app/`.
 5. Logs: `sdb dlog -v time ConsoleMessage` or `flutter-tizen logs`.
 
