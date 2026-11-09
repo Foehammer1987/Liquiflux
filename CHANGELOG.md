@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.14
+
+Builds on a self-hosted Forgejo, so day-to-day work doesn't depend on GitHub. No change to the app itself.
+
+- `.forgejo/workflows/build.yml`: every pull request, push to `main` and Run workflow runs the tests (also as a TV) and builds the Android TV APKs for armeabi-v7a and arm64-v8a, with their SHA-256 sums, as the run's artifacts. Nothing is published.
+- `.forgejo/workflows/tizen.yml`: the three Samsung TPKs, as on GitHub, with the Tizen 10.0 package name fixed (`TIZEN-10.0-NativeAppDevelopment-CLI`).
+- `tools/ci/setup-flutter.sh` sets up the pinned Flutter (checked against its SHA-256), JDK 17 and the Android SDK in a plain Debian container.
+- `docs/CI.md` explains the two homes: Forgejo for development, GitHub for public releases (its workflows are unchanged), and the signing secrets for each.
+- Version 1.0.14+72 (Samsung packages 1.0.1400, 1.0.1401, 1.0.1402).
+
 ## 1.0.13
 
 Samsung TVs: fixes for what a store reviewer would trip over, from the App Description review of 1.0.12. Most of it helps every TV.

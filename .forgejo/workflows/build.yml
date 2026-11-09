@@ -1,0 +1,124 @@
+# Day-to-day CI on Forgejo: tests and Android TV builds for every pull request, every push to
+# main, and by hand (Run workflow). Builds only, nothing is published: the APKs are the run's
+# artifacts. Public releases (Windows installer, APKs, WinGet) stay in
+# .github/workflows/release.yml for when the code is pushed to GitHub. Forgejo reads only
+# .forgejo/workflows once that folder exists, and GitHub never reads it, so the two don't clash.
+#
+# Runs on the self-hosted runner (label `docker`) in a plain Debian container;
+# tools/ci/setup-flutter.sh installs the pinned Flutter, JDK and Android SDK.
+#
+# Android signing: add these secrets in Forgejo (the repository's Settings > Actions > Secrets)
+# so the APKs are signed with the same key as the PC builds and install as updates over them:
+#   ANDROID_KEYSTORE_BASE64   the .jks file, base64-encoded
+#   ANDROID_KEYSTORE_PASSWORD
+#   ANDROID_KEY_ALIAS
+#   ANDROID_KEY_PASSWORD
+# tools/export-signing-key.ps1 prints them. Without them the APKs use a throwaway debug key.
+# Secrets are not given to pull requests from forks.
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: "3.47.7"
+  FLUTTER_SHA256: af7455f540df951184c7953fbe3cf884766e7541dacf8571f9f582db03dd6230
+  ANDROID_CMDLINE_TOOLS: "13114758"
+  ANDROID_CMDLINE_TOOLS_SHA256: ""
+
+jobs:
+  test:
+    runs-on: docker
+    container:
+      image: node:22-bookworm
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            /opt/flutter
+            ~/.pub-cache
+          key: flutter-${{ env.FLUTTER_VERSION }}-test-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: flutter-${{ env.FLUTTER_VERSION }}-test-
+      - name: Flutter
+        run: tools/ci/setup-flutter.sh
+      - name: console_core tests
+        working-directory: packages/console_core
+        run: dart pub get && dart test
+      - name: console_ui tests
+        working-directory: packages/console_ui
+        run: flutter pub get && flutter test
+      - name: App analyze and tests
+        working-directory: app
+        run: flutter pub get && flutter analyze && flutter test
+      - name: App tests as a TV (remote-control focus)
+        working-directory: app
+        run: CONSOLE_TV=1 flutter test test/tv_home_test.dart test/updates_focus_test.dart test/profiles_tv_test.dart
+
+  android:
+    needs: test
+    runs-on: docker
+    container:
+      image: node:22-bookworm
+    timeout-minutes: 60
+    env:
+      HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            /opt/flutter
+            /opt/android-sdk
+            ~/.pub-cache
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: flutter-${{ env.FLUTTER_VERSION }}-android-${{ hashFiles('**/pubspec.lock', 'app/android/**/*.kts', 'app/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: flutter-${{ env.FLUTTER_VERSION }}-android-
+      - name: Flutter and Android SDK
+        run: tools/ci/setup-flutter.sh android
+      - name: Signing key
+        if: env.HAS_KEY == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          dir="$RUNNER_TEMP/signing"
+          mkdir -p "$dir" && chmod 700 "$dir"
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$dir/release.jks"
+          {
+            echo "storeFile=$dir/release.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > "$dir/key.properties"
+          echo "LIQUIFLUX_KEY_PROPERTIES=$dir/key.properties" >> "$GITHUB_ENV"
+      - name: No signing key
+        if: env.HAS_KEY != 'true'
+        run: echo "::warning::No Android signing secrets, so these APKs use a debug key and won't install over the PC builds."
+      - name: Build APKs
+        working-directory: app
+        run: |
+          flutter pub get
+          # Trimming unused icons corrupts the Lucide icon font, so keep it whole.
+          flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64 --no-tree-shake-icons
+          v=$(sed -n 's/^version:[[:space:]]*\([^+[:space:]]*\).*/\1/p' pubspec.yaml)
+          mkdir -p ../dist
+          for abi in armeabi-v7a arm64-v8a; do
+            cp "build/app/outputs/flutter-apk/app-$abi-release.apk" "../dist/Liquiflux-$v-android-tv-$abi.apk"
+          done
+          (cd ../dist && sha256sum *.apk > SHA256SUMS.txt && cat SHA256SUMS.txt)
+      - name: Remove the signing key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/signing"
+      - uses: https://code.forgejo.org/forgejo/upload-artifact@v4
+        with:
+          name: liquiflux-android-tv
+          path: dist/*
+          if-no-files-found: error

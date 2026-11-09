@@ -180,6 +180,10 @@ Every push and pull request runs the tests and builds Windows and both APKs in G
 publishes a release with the installer, the zip and the APKs. Signing the APKs needs four
 repository secrets; `tools/export-signing-key.ps1` prints them from your local key.
 
+Day-to-day development also works on a self-hosted Forgejo: `.forgejo/workflows` runs the
+tests and builds the APKs and Samsung packages there without publishing anything. See
+[docs/CI.md](docs/CI.md) for both setups and their secrets.
+
 Trakt's sign-in needs an app Client ID and Client Secret, which can't stay secret in open source,
 so none is in the repo or the release builds. Make your own free Trakt app and enter its keys once
 in Settings > Tracking (on a TV, a QR code opens a page on your phone to type them). The same goes
