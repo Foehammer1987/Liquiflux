@@ -4,7 +4,8 @@
 # released: Samsung TVs get Liquiflux from Samsung's store through Seller Office.
 #
 # Runs on the self-hosted runner (label `docker`) in an Ubuntu 22.04 container made for
-# Actions runners (it has sudo, node and the usual tools), so the steps match the GitHub ones.
+# Actions runners (it has sudo, node and the usual tools). The SDK refuses to install as root,
+# so tools/ci/tizen-build.sh runs as a normal user made in the job.
 #
 # Signing. Without secrets, each run makes a throwaway Tizen certificate, which proves the
 # build works but installs on no Samsung TV. For TVs and the store, add these secrets in
@@ -28,6 +29,7 @@ on:
       - app/**
       - packages/**
       - tools/build-tizen.sh
+      - tools/ci/tizen-build.sh
       - .forgejo/workflows/tizen.yml
   workflow_dispatch:
 
@@ -55,65 +57,24 @@ jobs:
             packages: NativeToolchain-Gcc-9.2 TIZEN-10.0-NativeAppDevelopment-CLI
     steps:
       - uses: actions/checkout@v4
-      - name: Tizen SDK
-        run: |
-          sudo add-apt-repository -y ppa:deadsnakes/ppa
-          sudo apt-get update
-          sudo apt-get install -y libncurses5 python3.8 libpython3.8 gettext \
-            libkf5itemmodels5 libkf5kiowidgets5 libkchart2 dbus-x11 gnome-keyring
-          curl -fsSL "$TIZEN_SDK_URL" -o install.bin
-          sha="$(sha256sum install.bin | cut -d' ' -f1)"
-          echo "Tizen SDK installer sha256: $sha"
-          if [ -n "$TIZEN_SDK_SHA256" ] && [ "$sha" != "$TIZEN_SDK_SHA256" ]; then
-            echo "::error::The Tizen SDK installer changed (expected $TIZEN_SDK_SHA256)."
-            exit 1
-          fi
-          chmod a+x install.bin
-          ./install.bin --accept-license "$HOME/tizen-studio"
-          rm install.bin
-          "$HOME/tizen-studio/package-manager/package-manager-cli.bin" install ${{ matrix.packages }}
-          echo "$HOME/tizen-studio/tools/ide/bin" >> "$GITHUB_PATH"
-          echo "$HOME/tizen-studio/tools" >> "$GITHUB_PATH"
-      - name: flutter-tizen
-        run: |
-          git clone https://github.com/flutter-tizen/flutter-tizen.git "$HOME/flutter-tizen"
-          git -C "$HOME/flutter-tizen" checkout --detach "$FLUTTER_TIZEN_COMMIT"
-          echo "$HOME/flutter-tizen/bin" >> "$GITHUB_PATH"
-      - name: Certificate profile
+      - name: Build as a normal user (the Tizen SDK won't install as root)
         env:
+          TIZEN_API: ${{ matrix.api }}
+          TIZEN_PACKAGES: ${{ matrix.packages }}
           AUTHOR_P12: ${{ secrets.TIZEN_AUTHOR_P12_BASE64 }}
           AUTHOR_PASSWORD: ${{ secrets.TIZEN_AUTHOR_PASSWORD }}
           DISTRIBUTOR_P12: ${{ secrets.TIZEN_DISTRIBUTOR_P12_BASE64 }}
           DISTRIBUTOR_PASSWORD: ${{ secrets.TIZEN_DISTRIBUTOR_PASSWORD }}
         run: |
-          keys="$RUNNER_TEMP/tizen-keys"
-          mkdir -p "$keys"
-          if [ -n "$AUTHOR_P12" ] && [ -n "$DISTRIBUTOR_P12" ]; then
-            echo "Signing with the repository's Samsung certificate."
-            echo "$AUTHOR_P12" | base64 -d > "$keys/author.p12"
-            echo "$DISTRIBUTOR_P12" | base64 -d > "$keys/distributor.p12"
-            dbus-run-session -- bash -c "
-              echo tizen | gnome-keyring-daemon --unlock >/dev/null &&
-              tizen security-profiles add -n liquiflux -a '$keys/author.p12' -p \"\$AUTHOR_PASSWORD\" \
-                -d '$keys/distributor.p12' -dp \"\$DISTRIBUTOR_PASSWORD\" -A
-            "
-          else
-            echo "::notice::No Samsung certificate secrets: signing with a throwaway certificate. These TPKs won't install on a TV."
-            dbus-run-session -- bash -c "
-              echo tizen | gnome-keyring-daemon --unlock >/dev/null &&
-              tizen certificate -a liquiflux -p liquiflux -f throwaway &&
-              tizen security-profiles add -n liquiflux -a \"\$HOME/tizen-studio-data/keystore/author/throwaway.p12\" -p liquiflux -A
-            "
-          fi
-      - name: Doctor
-        run: flutter-tizen doctor -v
-      - name: Build
-        env:
-          TIZEN_SECURITY_PROFILE: liquiflux
-        run: dbus-run-session -- bash -c "echo tizen | gnome-keyring-daemon --unlock >/dev/null && tools/build-tizen.sh ${{ matrix.api }}"
-      - name: Remove the keys
-        if: always()
-        run: rm -rf "$RUNNER_TEMP/tizen-keys" "$HOME/tizen-studio-data/keystore"
+          sudo add-apt-repository -y ppa:deadsnakes/ppa
+          sudo apt-get update
+          sudo apt-get install -y libncurses5 python3.8 libpython3.8 gettext \
+            libkf5itemmodels5 libkf5kiowidgets5 libkchart2 dbus-x11 gnome-keyring
+          id builder >/dev/null 2>&1 || useradd -m -s /bin/bash builder
+          chown -R builder: "$GITHUB_WORKSPACE"
+          sudo -u builder -H \
+            --preserve-env=TIZEN_API,TIZEN_PACKAGES,TIZEN_SDK_URL,TIZEN_SDK_SHA256,FLUTTER_TIZEN_COMMIT,AUTHOR_P12,AUTHOR_PASSWORD,DISTRIBUTOR_P12,DISTRIBUTOR_PASSWORD \
+            bash "$GITHUB_WORKSPACE/tools/ci/tizen-build.sh"
       - uses: https://code.forgejo.org/forgejo/upload-artifact@v4
         with:
           name: liquiflux-tizen-${{ matrix.api }}

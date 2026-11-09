@@ -27,7 +27,7 @@ env:
   FLUTTER_VERSION: "3.47.7"
   FLUTTER_SHA256: af7455f540df951184c7953fbe3cf884766e7541dacf8571f9f582db03dd6230
   ANDROID_CMDLINE_TOOLS: "13114758"
-  ANDROID_CMDLINE_TOOLS_SHA256: ""
+  ANDROID_CMDLINE_TOOLS_SHA256: 7ec965280a073311c339e571cd5de778b9975026cfcbe79f2b1cdcb1e15317ee
 
 jobs:
   test:
@@ -120,5 +120,64 @@ jobs:
       - uses: https://code.forgejo.org/forgejo/upload-artifact@v4
         with:
           name: liquiflux-android-tv
+          path: dist/*
+          if-no-files-found: error
+
+  windows:
+    needs: test
+    # A Windows runner on a PC (label `windows`, host mode: no container), with Flutter,
+    # Visual Studio's C++ tools and Inno Setup 6 installed. Jobs wait in the queue while that
+    # PC is off; the Linux jobs don't depend on this one.
+    runs-on: windows
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Flutter version
+        shell: powershell
+        run: |
+          $v = (flutter --version --machine | ConvertFrom-Json).frameworkVersion
+          if ($v -ne $env:FLUTTER_VERSION) { Write-Output "::warning::This runner has Flutter $v, CI expects $env:FLUTTER_VERSION." }
+          flutter --version
+      - name: Build
+        shell: powershell
+        working-directory: app
+        # Trimming unused icons corrupts the Lucide icon font, so keep it whole.
+        run: |
+          flutter pub get
+          if ($LASTEXITCODE -ne 0) { throw 'flutter pub get failed' }
+          flutter build windows --release --no-tree-shake-icons
+          if ($LASTEXITCODE -ne 0) { throw 'flutter build windows failed' }
+      - name: Zip and installer
+        shell: powershell
+        run: |
+          $version = (Select-String -Path app/pubspec.yaml -Pattern '^version:\s*([^+\s]+)').Matches[0].Groups[1].Value
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $release = 'app/build/windows/x64/runner/Release'
+          # Ship the Visual C++ runtime next to the exe, as the GitHub release build does.
+          foreach ($dll in 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll') {
+            Copy-Item "$env:WINDIR\System32\$dll" $release
+          }
+          $stage = Join-Path ([IO.Path]::GetTempPath()) "Liquiflux-ci-$env:GITHUB_RUN_ID\Liquiflux"
+          Remove-Item -Recurse -Force (Split-Path $stage) -ErrorAction SilentlyContinue
+          Copy-Item $release $stage -Recurse
+          Compress-Archive -Path $stage -DestinationPath "dist/Liquiflux-$version-windows-x64.zip"
+          Remove-Item -Recurse -Force (Split-Path $stage)
+          $iscc = Get-Command iscc.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+          if (-not $iscc) {
+            $iscc = @("$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe", "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe") |
+              Where-Object { Test-Path $_ } | Select-Object -First 1
+          }
+          if (-not $iscc) { throw 'Inno Setup 6 (ISCC.exe) is not installed on this runner' }
+          & $iscc "/DAppVersion=$version" "/DAppSource=$((Resolve-Path $release).Path)" "/DOutputDir=$((Resolve-Path dist).Path)" tools/installer/liquiflux.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup failed' }
+          Rename-Item dist/Liquiflux-Setup-x64.exe "Liquiflux-$version-Setup-x64.exe"
+          Push-Location dist
+          $sums = Get-ChildItem -File | ForEach-Object { "{0}  {1}" -f (Get-FileHash $_.Name -Algorithm SHA256).Hash.ToLower(), $_.Name }
+          $sums | Set-Content -Encoding ascii SHA256SUMS.txt
+          Get-Content SHA256SUMS.txt
+          Pop-Location
+      - uses: https://code.forgejo.org/forgejo/upload-artifact@v4
+        with:
+          name: liquiflux-windows
           path: dist/*
           if-no-files-found: error

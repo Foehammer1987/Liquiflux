@@ -6,6 +6,8 @@ Builds on a self-hosted Forgejo, so day-to-day work doesn't depend on GitHub. No
 
 - `.forgejo/workflows/build.yml`: every pull request, push to `main` and Run workflow runs the tests (also as a TV) and builds the Android TV APKs for armeabi-v7a and arm64-v8a, with their SHA-256 sums, as the run's artifacts. Nothing is published.
 - `.forgejo/workflows/tizen.yml`: the three Samsung TPKs, as on GitHub, with the Tizen 10.0 package name fixed (`TIZEN-10.0-NativeAppDevelopment-CLI`).
+- A `windows` job builds the Windows zip and installer on a Windows runner (a PC in host mode; see `docs/CI.md`).
+- The Tizen build runs as a normal user in CI (`tools/ci/tizen-build.sh`): Tizen's SDK installer refuses root.
 - `tools/ci/setup-flutter.sh` sets up the pinned Flutter (checked against its SHA-256), JDK 17 and the Android SDK in a plain Debian container.
 - `docs/CI.md` explains the two homes: Forgejo for development, GitHub for public releases (its workflows are unchanged), and the signing secrets for each.
 - Version 1.0.14+72 (Samsung packages 1.0.1400, 1.0.1401, 1.0.1402).
