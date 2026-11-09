@@ -26,7 +26,7 @@ sets building the same way: a change to how the app is built goes into both file
 - `tizen.yml`: on pull requests that touch the app, pushes to `main` and Run workflow. Three
   TPKs, one per Tizen version group (see `TIZEN.md`).
 
-The Linux jobs run on the self-hosted runner (label `docker`) inside containers: `node:22-bookworm` for
+The Linux jobs run on the self-hosted runner (label `docker`) inside containers: `ghcr.io/catthehacker/ubuntu:act-24.04` for
 Flutter and Android, `ghcr.io/catthehacker/ubuntu:act-22.04` for Tizen.
 `tools/ci/setup-flutter.sh` installs the pinned Flutter (checked against its SHA-256), JDK 17
 and the Android SDK command-line tools; Gradle then fetches the rest. Flutter, the Android SDK,

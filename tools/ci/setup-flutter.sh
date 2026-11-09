@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sets up a CI job container for Liquiflux (used by .forgejo/workflows, which run in plain
-# Debian containers on a self-hosted runner, so nothing is preinstalled).
+# Ubuntu/Debian containers on a self-hosted runner, so little is preinstalled).
 #
 #   tools/ci/setup-flutter.sh            Flutter only (tests)
 #   tools/ci/setup-flutter.sh android    Flutter, JDK 17 and the Android SDK command-line tools

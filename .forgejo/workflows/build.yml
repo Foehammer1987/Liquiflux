@@ -4,7 +4,7 @@
 # .github/workflows/release.yml for when the code is pushed to GitHub. Forgejo reads only
 # .forgejo/workflows once that folder exists, and GitHub never reads it, so the two don't clash.
 #
-# Runs on the self-hosted runner (label `docker`) in a plain Debian container;
+# Runs on the self-hosted runner (label `docker`) in an Ubuntu 24.04 container;
 # tools/ci/setup-flutter.sh installs the pinned Flutter, JDK and Android SDK.
 #
 # Android signing: add these secrets in Forgejo (the repository's Settings > Actions > Secrets)
@@ -33,7 +33,9 @@ jobs:
   test:
     runs-on: docker
     container:
-      image: node:22-bookworm
+      # Ubuntu 24.04 with Node.js for the actions. (flutter_tester crashed now and then on exit
+      # in a Debian bookworm container.)
+      image: ghcr.io/catthehacker/ubuntu:act-24.04
       # Docker's default 64 MB /dev/shm is too small for many test processes at once.
       options: --shm-size=2g
     timeout-minutes: 45
@@ -53,7 +55,7 @@ jobs:
         run: dart pub get && dart test
       - name: console_ui tests
         working-directory: packages/console_ui
-        run: flutter pub get && flutter test
+        run: flutter pub get && flutter test --concurrency=4
       - name: App analyze and tests
         working-directory: app
         # A few test processes at a time: the runner's host has many cores, and a test process
@@ -67,7 +69,9 @@ jobs:
     needs: test
     runs-on: docker
     container:
-      image: node:22-bookworm
+      # Ubuntu 24.04 with Node.js for the actions. (flutter_tester crashed now and then on exit
+      # in a Debian bookworm container.)
+      image: ghcr.io/catthehacker/ubuntu:act-24.04
     timeout-minutes: 60
     env:
       HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
