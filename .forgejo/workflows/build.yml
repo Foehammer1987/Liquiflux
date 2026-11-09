@@ -34,6 +34,8 @@ jobs:
     runs-on: docker
     container:
       image: node:22-bookworm
+      # Docker's default 64 MB /dev/shm is too small for many test processes at once.
+      options: --shm-size=2g
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -54,7 +56,9 @@ jobs:
         run: flutter pub get && flutter test
       - name: App analyze and tests
         working-directory: app
-        run: flutter pub get && flutter analyze && flutter test
+        # A few test processes at a time: the runner's host has many cores, and a test process
+        # per core at once has crashed flutter_tester (segmentation fault while loading).
+        run: flutter pub get && flutter analyze && flutter test --concurrency=4
       - name: App tests as a TV (remote-control focus)
         working-directory: app
         run: CONSOLE_TV=1 flutter test test/tv_home_test.dart test/updates_focus_test.dart test/profiles_tv_test.dart
