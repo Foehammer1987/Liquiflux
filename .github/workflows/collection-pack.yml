@@ -1,7 +1,8 @@
 # Rebuilds the TV collection pack (app/assets/collections/tv-pack.json) from Wikipedia,
 # Wikidata and TVmaze, then commits it and tools/collection-pack/report.md back to the
-# branch it ran on. Runs when the builder or its source list changes, by hand (Run
-# workflow), and on the 1st of each month so new shows join their networks.
+# branch it ran on. Runs when the builder or its source list changes and by hand (Run
+# workflow). The monthly rebuild runs on Forgejo (.forgejo/workflows/collection-pack.yml),
+# which opens a pull request there, so GitHub never commits on its own.
 name: Collection pack
 
 on:
@@ -16,8 +17,6 @@ on:
       only:
         description: Only these collection ids (comma-separated); empty = all
         required: false
-  schedule:
-    - cron: "17 6 1 * *"
 
 permissions:
   contents: write

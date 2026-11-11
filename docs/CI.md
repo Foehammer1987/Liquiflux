@@ -7,7 +7,7 @@ Liquiflux has two git homes, and each has its own workflows folder:
 | Used for | Day-to-day work: branches, pull requests, test builds | Public releases, once code with working builds is pushed there |
 | Workflows | `.forgejo/workflows/` | `.github/workflows/` |
 | Builds | Tests, Android TV APKs, Samsung TPKs, as run artifacts | Tests, Windows installer and zip, Android TV APKs, Samsung TPKs |
-| Publishes | Nothing | GitHub releases (which the in-app updater reads) and WinGet |
+| Publishes | Forgejo releases and pre-releases from `v*` tags | GitHub releases (which the in-app updater reads) and WinGet |
 
 Forgejo only reads `.forgejo/workflows` once that folder exists, and GitHub never reads it, so
 the same repository works on both without either running the other's workflows. Keep both
@@ -25,6 +25,16 @@ sets building the same way: a change to how the app is built goes into both file
   Windows runner (see below).
 - `tizen.yml`: on pull requests that touch the app, pushes to `main` and Run workflow. Three
   TPKs, one per Tizen version group (see `TIZEN.md`).
+- `release.yml`: on a pushed tag `v<version>` (it must match `version:` in `app/pubspec.yaml`).
+  Builds the APKs, the Windows zip and installer and the three TPKs, all signed with the real
+  keys (it fails rather than ship throwaway-signed files), and publishes them with one
+  `SHA256SUMS.txt` as a Forgejo release. `v1.0.15-rc1`, `-rc2`... make pre-releases (test
+  builds); `v1.0.15` makes a normal release with that version's `CHANGELOG.md` section. It never
+  touches GitHub, and the rc tags stay on Forgejo.
+- `collection-pack.yml`: on the 1st of each month (and Run workflow) rebuilds the TV collection
+  pack and opens a pull request with it on a `collection-pack/<date>` branch, instead of
+  committing to `main`. On GitHub the same workflow now only runs by hand or when its builder
+  changes on a branch.
 
 The Linux jobs run on the self-hosted runner (label `docker`) inside two local images, built
 once on the runner's Docker host so jobs don't install the same tools every run:
@@ -66,18 +76,42 @@ build still runs, signed with a throwaway key.
 `tools/build-android.ps1` made in `%USERPROFILE%\.liquiflux`, so CI APKs install as updates
 over PC builds. Use the same names on GitHub.
 
-## Moving builds to GitHub
+## Promoting to GitHub
 
-When a version builds cleanly on Forgejo, push `main` (and its tags) to GitHub, either by hand
-(`git push github main`) or with a push mirror (Forgejo: Settings > Repository > Mirror
-settings, with a GitHub token that can push). A push to GitHub's `main` with a new `version:` in
-`app/pubspec.yaml` makes `.github/workflows/release.yml` publish the release there.
+`tools/promote-to-github.ps1` moves code from Forgejo to GitHub, once a day, run on a PC with a
+clone of the Forgejo repository (its `origin`). It:
+
+1. fetches Forgejo's `main` and picks the newest of its last 20 commits whose Forgejo checks all
+   passed, including the `build` and `tizen` workflows;
+2. fetches GitHub's `main` (read only), stops if GitHub already has that commit, and stops if
+   GitHub's `main` isn't an ancestor of it (it never forces);
+3. stops if the last promotion was less than 24 hours ago (`-MinHours`);
+4. checks the new commits: author and committer emails must be GitHub noreply addresses (or
+   Claude's / the Actions bot's), and no added line may hold a LAN address, a local path, the
+   PC's name or user name, or a word from `%LOCALAPPDATA%\Liquiflux\promote-blocklist.txt` (one
+   per line: other machine names, private email addresses; this file stays on the PC);
+5. pushes that commit to GitHub's `main`, no tags, and logs it in
+   `%LOCALAPPDATA%\Liquiflux\promote.log`.
+
+GitHub's `release.yml` then publishes a release when the app version is new: plain `v1.0.15`,
+never the Forgejo rc tags. `-DryRun` does every check without pushing. Exit codes: 0 pushed or
+nothing to do, 1 setup error, 2 not yet, 3 histories split, 4 scrub check failed, 5 push failed.
+
+To run it daily, add a Task Scheduler task running
+`powershell -ExecutionPolicy Bypass -File <clone>\tools\promote-to-github.ps1`.
+
+Token setup: GitHub > Settings > Developer settings > Fine-grained tokens > Generate new token.
+Repository access: only this repository. Permissions: Contents and Workflows, read and write.
+Expiry: 90 days (renew it when the push starts failing with exit code 5). Save it as a user
+environment variable `GITHUB_PROMOTE_TOKEN`. The script also needs `FORGEJO_URL` and
+`FORGEJO_TOKEN` to read the Forgejo checks. Tokens are only handed to git and the API in memory,
+never written to disk, remotes or the log.
 
 ## The Windows runner
 
 Windows jobs (`runs-on: windows`) need a runner on a Windows PC: Forgejo's Docker runner only
 runs Linux. Forgejo's own runner has no Windows build, so it's Gitea's runner
-(`gitea-runner`, formerly `act_runner`) in host mode, registered for the forgeadmin user (all of
+(`gitea-runner`, formerly `act_runner`) in host mode, registered for your Forgejo user (all of
 its repositories) with the single label `windows:host`, capacity 1, started at logon by a
 scheduled task ("Forgejo runner") as the PC's user. It needs Git, Node.js, Flutter, Visual
 Studio's C++ tools, Inno Setup 6 (found on PATH or in its default install folders) and, for
