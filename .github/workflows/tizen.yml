@@ -51,7 +51,7 @@ jobs:
           - api: "6.5"
             packages: NativeToolchain-Gcc-9.2 IOT-Headed-6.5-NativeAppDevelopment-CLI
           - api: "10.0"
-            packages: NativeToolchain-Gcc-9.2 Tizen-10.0-NativeAppDevelopment-CLI
+            packages: NativeToolchain-Gcc-9.2 TIZEN-10.0-NativeAppDevelopment-CLI
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
