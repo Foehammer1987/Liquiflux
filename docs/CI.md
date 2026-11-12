@@ -41,8 +41,8 @@ once on the runner's Docker host so jobs don't install the same tools every run:
 
 | Image | Built from | Used by | Has |
 | --- | --- | --- | --- |
-| `liquiflux-flutter-ci:1` | `tools/ci/flutter-image/Dockerfile` (on `ghcr.io/catthehacker/ubuntu:act-24.04`) | `build.yml` test and android | Pinned Flutter, JDK 17, Android SDK, NDK and Gradle downloads |
-| `liquiflux-tizen-ci:1` | `tools/ci/tizen-image/Dockerfile` (on `ghcr.io/catthehacker/ubuntu:act-22.04`) | `tizen.yml` | Tizen SDK and packages for all three version groups, flutter-tizen at the pinned commit |
+| `liquiflux-flutter-ci:1` | `tools/ci/flutter-image/Dockerfile` (on `ghcr.io/catthehacker/ubuntu:act-24.04`) | `build.yml` test and android, `release.yml` android | Pinned Flutter, JDK 17, Android SDK, NDK and Gradle downloads |
+| `liquiflux-tizen-ci:1` | `tools/ci/tizen-image/Dockerfile` (on `ghcr.io/catthehacker/ubuntu:act-22.04`) | `tizen.yml`, `release.yml` tizen | Tizen SDK and packages for all three version groups, flutter-tizen at the pinned commit |
 
 Build them with `docker build -t <image> <folder with the Dockerfile>`. They aren't pushed to a
 registry; the runner uses the local copy. Rebuild with a new tag, and bump `image:` in the

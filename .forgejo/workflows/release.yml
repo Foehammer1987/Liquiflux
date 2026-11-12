@@ -59,24 +59,27 @@ jobs:
     needs: check
     runs-on: docker
     container:
-      image: ghcr.io/catthehacker/ubuntu:act-24.04
+      # The prebuilt image from tools/ci/flutter-image (see build.yml).
+      image: liquiflux-flutter-ci:1
     timeout-minutes: 60
     env:
       HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      # As in build.yml: media_kit's libmpv download has no timeout of its own.
+      JAVA_TOOL_OPTIONS: -Dsun.net.client.defaultConnectTimeout=30000 -Dsun.net.client.defaultReadTimeout=120000
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.TAG }}
+      # Only the pub packages and media_kit's libmpv jars, as in build.yml.
       - uses: actions/cache@v4
         with:
-          path: |
-            /opt/flutter
-            /opt/android-sdk
-            ~/.pub-cache
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: flutter-${{ env.FLUTTER_VERSION }}-android-${{ hashFiles('**/pubspec.lock', 'app/android/**/*.kts', 'app/android/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: flutter-${{ env.FLUTTER_VERSION }}-android-
+          path: ~/.pub-cache
+          key: pub-${{ env.FLUTTER_VERSION }}-android-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: pub-${{ env.FLUTTER_VERSION }}-android-
+      - uses: actions/cache@v4
+        with:
+          path: app/build/media_kit_libs_android_video/v*
+          key: libmpv-android-${{ hashFiles('app/pubspec.lock') }}
       - name: Flutter and Android SDK
         run: tools/ci/setup-flutter.sh android
       - name: Signing key
@@ -180,7 +183,8 @@ jobs:
     needs: check
     runs-on: docker
     container:
-      image: ghcr.io/catthehacker/ubuntu:act-22.04
+      # The prebuilt image from tools/ci/tizen-image (see tizen.yml).
+      image: liquiflux-tizen-ci:1
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -213,11 +217,13 @@ jobs:
           DISTRIBUTOR_P12: ${{ secrets.TIZEN_DISTRIBUTOR_P12_BASE64 }}
           DISTRIBUTOR_PASSWORD: ${{ secrets.TIZEN_DISTRIBUTOR_PASSWORD }}
         run: |
-          sudo add-apt-repository -y ppa:deadsnakes/ppa
-          sudo apt-get update
-          sudo apt-get install -y libncurses5 python3.8 libpython3.8 gettext \
-            libkf5itemmodels5 libkf5kiowidgets5 libkchart2 dbus-x11 gnome-keyring \
-            dotnet-sdk-8.0
+          if [ ! -f /etc/liquiflux-tizen-ci ]; then
+            sudo add-apt-repository -y ppa:deadsnakes/ppa
+            sudo apt-get update
+            sudo apt-get install -y libncurses5 python3.8 libpython3.8 gettext \
+              libkf5itemmodels5 libkf5kiowidgets5 libkchart2 dbus-x11 gnome-keyring \
+              dotnet-sdk-8.0
+          fi
           id builder >/dev/null 2>&1 || useradd -m -s /bin/bash builder
           chown -R builder: "$GITHUB_WORKSPACE"
           sudo -u builder -H \
