@@ -26,11 +26,22 @@ sets building the same way: a change to how the app is built goes into both file
 - `tizen.yml`: on pull requests that touch the app, pushes to `main` and Run workflow. Three
   TPKs, one per Tizen version group (see `TIZEN.md`).
 
-The Linux jobs run on the self-hosted runner (label `docker`) inside containers: `ghcr.io/catthehacker/ubuntu:act-24.04` for
-Flutter and Android, `ghcr.io/catthehacker/ubuntu:act-22.04` for Tizen.
-`tools/ci/setup-flutter.sh` installs the pinned Flutter (checked against its SHA-256), JDK 17
-and the Android SDK command-line tools; Gradle then fetches the rest. Flutter, the Android SDK,
-pub and Gradle are cached between runs when the runner has a cache.
+The Linux jobs run on the self-hosted runner (label `docker`) inside two local images, built
+once on the runner's Docker host so jobs don't install the same tools every run:
+
+| Image | Built from | Used by | Has |
+| --- | --- | --- | --- |
+| `liquiflux-flutter-ci:1` | `tools/ci/flutter-image/Dockerfile` (on `ghcr.io/catthehacker/ubuntu:act-24.04`) | `build.yml` test and android | Pinned Flutter, JDK 17, Android SDK, NDK and Gradle downloads |
+| `liquiflux-tizen-ci:1` | `tools/ci/tizen-image/Dockerfile` (on `ghcr.io/catthehacker/ubuntu:act-22.04`) | `tizen.yml` | Tizen SDK and packages for all three version groups, flutter-tizen at the pinned commit |
+
+Build them with `docker build -t <image> <folder with the Dockerfile>`. They aren't pushed to a
+registry; the runner uses the local copy. Rebuild with a new tag, and bump `image:` in the
+workflow, when `FLUTTER_VERSION`, `ANDROID_CMDLINE_TOOLS`, `FLUTTER_TIZEN_COMMIT` or the Tizen
+SDK change. A build needs about 15 GB free on the Docker host.
+
+`tools/ci/setup-flutter.sh` and `tools/ci/tizen-build.sh` only install what the image lacks, so
+pointing `image:` back at the catthehacker images still works (slower). Between runs the jobs
+cache only the pub packages and media_kit's libmpv jars.
 
 Artifacts use `https://code.forgejo.org/forgejo/upload-artifact`, Forgejo's build of the upload
 action (GitHub's newer upload-artifact versions don't work with Forgejo).

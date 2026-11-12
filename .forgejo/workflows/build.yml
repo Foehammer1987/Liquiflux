@@ -80,6 +80,9 @@ jobs:
     timeout-minutes: 60
     env:
       HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      # media_kit's libmpv download (a plain Java URL stream inside Gradle) has no timeout of its
+      # own and once hung a job for its whole hour on a stalled connection; fail it fast instead.
+      JAVA_TOOL_OPTIONS: -Dsun.net.client.defaultConnectTimeout=30000 -Dsun.net.client.defaultReadTimeout=120000
     steps:
       - uses: actions/checkout@v4
       # Only the pub packages: Flutter, the Android SDK and Gradle's downloads are in the image.
@@ -88,6 +91,13 @@ jobs:
           path: ~/.pub-cache
           key: pub-${{ env.FLUTTER_VERSION }}-android-${{ hashFiles('**/pubspec.lock') }}
           restore-keys: pub-${{ env.FLUTTER_VERSION }}-android-
+      # media_kit_libs_android_video downloads its libmpv .jar files from GitHub releases into
+      # the plugin's build folder on every build unless they're already there with the right
+      # MD5, so keep them between runs (a new media_kit version means new jars, hence the key).
+      - uses: actions/cache@v4
+        with:
+          path: app/build/media_kit_libs_android_video/v*
+          key: libmpv-android-${{ hashFiles('app/pubspec.lock') }}
       - name: Flutter and Android SDK
         run: tools/ci/setup-flutter.sh android
       - name: Signing key
