@@ -3,10 +3,17 @@
 # version group (see TIZEN.md and tools/build-tizen.sh), uploaded as the run's artifacts, never
 # released: Samsung TVs get Liquiflux from Samsung's store through Seller Office.
 #
-# Runs on the self-hosted runner (label `docker`) in an Ubuntu 22.04 container made for
-# Actions runners (it has sudo, node and the usual tools). The SDK refuses to install as root,
-# so tools/ci/tizen-build.sh runs as a normal user made in the job. flutter-tizen builds the TV
+# Runs on the self-hosted runner (label `docker`) in liquiflux-tizen-ci, a local image built
+# from tools/ci/tizen-image/Dockerfile on the runner's Docker host. It is the Ubuntu 22.04 runner
+# image (catthehacker act-22.04) with the apt packages, the `builder` user, the Tizen SDK and
+# packages for all three version groups and flutter-tizen already installed, so a job only
+# builds. The SDK refuses to run as root, so tools/ci/tizen-build.sh runs as `builder`; it
+# installs whatever the image lacks, so pointing `image:` back at
+# ghcr.io/catthehacker/ubuntu:act-22.04 still works (just slower). flutter-tizen builds the TV
 # app with the .NET SDK (Ubuntu's dotnet-sdk-8.0 package).
+#
+# When FLUTTER_TIZEN_COMMIT, TIZEN_SDK_URL or the matrix packages change, rebuild the image with
+# a new tag (see the Dockerfile) and bump `image:` below.
 #
 # Signing. Without secrets, each run makes a throwaway Tizen certificate, which proves the
 # build works but installs on no Samsung TV. For TVs and the store, add these secrets in
@@ -31,6 +38,7 @@ on:
       - packages/**
       - tools/build-tizen.sh
       - tools/ci/tizen-build.sh
+      - tools/ci/tizen-image/**
       - .forgejo/workflows/tizen.yml
   workflow_dispatch:
 
@@ -44,7 +52,7 @@ jobs:
   tpk:
     runs-on: docker
     container:
-      image: ghcr.io/catthehacker/ubuntu:act-22.04
+      image: liquiflux-tizen-ci:1
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -67,11 +75,15 @@ jobs:
           DISTRIBUTOR_P12: ${{ secrets.TIZEN_DISTRIBUTOR_P12_BASE64 }}
           DISTRIBUTOR_PASSWORD: ${{ secrets.TIZEN_DISTRIBUTOR_PASSWORD }}
         run: |
-          sudo add-apt-repository -y ppa:deadsnakes/ppa
-          sudo apt-get update
-          sudo apt-get install -y libncurses5 python3.8 libpython3.8 gettext \
-            libkf5itemmodels5 libkf5kiowidgets5 libkchart2 dbus-x11 gnome-keyring \
-            dotnet-sdk-8.0
+          if [ -f /etc/liquiflux-tizen-ci ]; then
+            echo "Prebuilt image: $(cat /etc/liquiflux-tizen-ci)"
+          else
+            sudo add-apt-repository -y ppa:deadsnakes/ppa
+            sudo apt-get update
+            sudo apt-get install -y libncurses5 python3.8 libpython3.8 gettext \
+              libkf5itemmodels5 libkf5kiowidgets5 libkchart2 dbus-x11 gnome-keyring \
+              dotnet-sdk-8.0
+          fi
           id builder >/dev/null 2>&1 || useradd -m -s /bin/bash builder
           chown -R builder: "$GITHUB_WORKSPACE"
           sudo -u builder -H \

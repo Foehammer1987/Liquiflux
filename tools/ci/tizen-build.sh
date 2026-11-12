@@ -13,25 +13,61 @@ root="$(cd "$(dirname "$0")/../.." && pwd)"
 work="$(mktemp -d)"
 trap 'rm -rf "$work" "$HOME/tizen-studio-data/keystore"' EXIT
 
+# Retries a network command a few times: one dropped DNS lookup shouldn't fail a 10-minute job.
+retry() {
+  local n
+  for n in 1 2 3; do
+    "$@" && return 0
+    [ "$n" -lt 3 ] && { echo "Attempt $n failed: $*; retrying in 10 s."; sleep 10; }
+  done
+  return 1
+}
+
+# The prebuilt CI image (tools/ci/tizen-image) already has the SDK, the packages and
+# flutter-tizen; each step below only does what is missing, so a plain image still works.
 echo "== Tizen SDK"
-curl -fsSL "$TIZEN_SDK_URL" -o "$work/install.bin"
-sha="$(sha256sum "$work/install.bin" | cut -d' ' -f1)"
-echo "Tizen SDK installer sha256: $sha"
-if [ -n "${TIZEN_SDK_SHA256:-}" ] && [ "$sha" != "$TIZEN_SDK_SHA256" ]; then
-  echo "::error::The Tizen SDK installer changed (expected $TIZEN_SDK_SHA256)."
-  exit 1
+pm="$HOME/tizen-studio/package-manager/package-manager-cli.bin"
+if [ -x "$pm" ]; then
+  echo "Tizen SDK already installed."
+else
+  retry curl -fsSL "$TIZEN_SDK_URL" -o "$work/install.bin"
+  sha="$(sha256sum "$work/install.bin" | cut -d' ' -f1)"
+  echo "Tizen SDK installer sha256: $sha"
+  if [ -n "${TIZEN_SDK_SHA256:-}" ] && [ "$sha" != "$TIZEN_SDK_SHA256" ]; then
+    echo "::error::The Tizen SDK installer changed (expected $TIZEN_SDK_SHA256)."
+    exit 1
+  fi
+  chmod +x "$work/install.bin"
+  "$work/install.bin" --accept-license "$HOME/tizen-studio"
+  rm "$work/install.bin"
 fi
-chmod +x "$work/install.bin"
-"$work/install.bin" --accept-license "$HOME/tizen-studio"
-rm "$work/install.bin"
-# shellcheck disable=SC2086
-"$HOME/tizen-studio/package-manager/package-manager-cli.bin" install $TIZEN_PACKAGES
+installed="$HOME/tizen-studio/.liquiflux-ci-packages"
+missing=""
+for p in $TIZEN_PACKAGES; do
+  grep -qxF "$p" "$installed" 2>/dev/null || missing="$missing $p"
+done
+if [ -n "$missing" ]; then
+  # shellcheck disable=SC2086
+  "$pm" install $missing
+  printf '%s\n' $missing >> "$installed"
+else
+  echo "Tizen packages already installed: $TIZEN_PACKAGES"
+fi
 export PATH="$HOME/tizen-studio/tools/ide/bin:$HOME/tizen-studio/tools:$PATH"
 
 echo "== flutter-tizen"
-git clone -q https://github.com/flutter-tizen/flutter-tizen.git "$HOME/flutter-tizen"
-git -C "$HOME/flutter-tizen" checkout -q --detach "$FLUTTER_TIZEN_COMMIT"
-export PATH="$HOME/flutter-tizen/bin:$PATH"
+ft="$HOME/flutter-tizen"
+if [ "$(git -C "$ft" rev-parse HEAD 2>/dev/null)" = "$FLUTTER_TIZEN_COMMIT" ]; then
+  echo "flutter-tizen already at $FLUTTER_TIZEN_COMMIT."
+else
+  [ -d "$ft/.git" ] || retry git clone -q https://github.com/flutter-tizen/flutter-tizen.git "$ft"
+  git -C "$ft" cat-file -e "$FLUTTER_TIZEN_COMMIT^{commit}" 2>/dev/null \
+    || retry git -C "$ft" fetch -q origin
+  git -C "$ft" checkout -q --detach "$FLUTTER_TIZEN_COMMIT"
+fi
+export PATH="$ft/bin:$PATH"
+# The first flutter-tizen call clones Flutter and downloads the Dart SDK when the image hasn't.
+retry flutter-tizen --version >/dev/null
 
 # Tizen's CLI keeps certificate passwords in the keyring, so everything runs in one D-Bus
 # session with an unlocked gnome-keyring.
