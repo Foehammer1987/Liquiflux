@@ -1,11 +1,11 @@
-# Collection pack report (2026-11-06)
+# Collection pack report (2026-11-12)
 
-50 collections, 9413 shows, 2182 without a TMDB id, 957 KB.
+50 collections, 9404 shows, 2193 without a TMDB id, 955 KB.
 
 ## Blocks
 
 - **Toonami** (List of programs broadcast by Toonami): headings: Animated series, Anime, Domestic and other animation, Movies and specials, Microseries, Specials, Animated movies, Live-action movies, Giant Robot Week, Adult Swim April Fools' Day 2012, Programs featured by block, Weekday Toonami on Cartoon Network, Weekday Toonami (1997–2004), Moltar's block (1997–'99), TOM's blocks (1999–2004), Midnight Run (2000–'03), Weekend Toonami on Cartoon Network, Saturday Toonami (1997–'99), Midnight Run (1999–2000), Rising Sun (2000–'01), Super Saturday (2001–'03), Toonami Saturday Night (2004–'08), Toonami lineups on Adult Swim, 2012–2019, 2020–present, Toonami Rewind, Toonami special blocks, See also, Notes, References, External links
-  - 254 rows, 157 shows, 13 series-like rows not on TVmaze
+  - 254 rows, 156 shows, 13 series-like rows not on TVmaze
     - not matched: Food Wars!: Shokugeki no Soma (Animated series / Anime)
     - not matched: Harlock Saga (Animated series / Anime)
     - not matched: Lupin the 3rd Part IV: The Italian Adventure (Animated series / Anime)
@@ -19,7 +19,7 @@
     - not matched: Tenchi Muyo! Ryo-Ohki (Programs featured by block / Weekday Toonami on Cartoon Network / Weekday Toonami (1997–2004) / TOM's blocks (1999–2004))
     - not matched: Tenchi Muyo! Ryo-Ohki (Programs featured by block / Weekday Toonami on Cartoon Network / Midnight Run (2000–'03))
     - not matched: Wulin Warriors (Programs featured by block / Weekend Toonami on Cartoon Network / Toonami Saturday Night (2004–'08))
-- **Adult Swim Originals** (List of programs broadcast by Adult Swim): headings: Current programming, Animated, Live-action, Toonami block, Acquired programming, Toonami block, Cartoon Network programming / Checkered Past block, Upcoming programming, Original programming, Former original programming, Animated, Live-action, Toonami block, Former acquired programming, Toonami block, Cartoon Network programming / Checkered Past block, Stunts and cross-promotional, Original online programming, Pilots and specials, Pilots, Original specials, Syndicated shorts and specials, Films, See also, Notes, References, External links
+- **Adult Swim Originals** (List of programs broadcast by Adult Swim): headings: Current programming, Animated, Toonami block, Live-action, Acquired programming, Toonami block, Cartoon Network programming / Checkered Past block, Upcoming programming, Original programming, Former original programming, Animated, Live-action, Toonami block, Former acquired programming, Toonami block, Cartoon Network programming / Checkered Past block, Stunts and cross-promotional, Original online programming, Pilots and specials, Pilots, Original specials, Syndicated shorts and specials, Films, See also, Notes, References, External links
   - 100 rows, 92 shows, 8 series-like rows not on TVmaze
     - not matched: Adult Swim Smalls (Current programming / Animated)
     - not matched: The Hollywood Reporter (Upcoming programming / Original programming)
@@ -29,8 +29,8 @@
     - not matched: Pregame Prognostifications from the Pigskin Wyzzard (Original online programming)
     - not matched: Toonami Pre-Flight (Original online programming)
     - not matched: Animation Magazine (Original online programming)
-- **Adult Swim Anime** (List of programs broadcast by Adult Swim): headings: Current programming, Animated, Live-action, Toonami block, Acquired programming, Toonami block, Cartoon Network programming / Checkered Past block, Upcoming programming, Original programming, Former original programming, Animated, Live-action, Toonami block, Former acquired programming, Toonami block, Cartoon Network programming / Checkered Past block, Stunts and cross-promotional, Original online programming, Pilots and specials, Pilots, Original specials, Syndicated shorts and specials, Films, See also, Notes, References, External links
-  - 268 rows, 93 shows, 20 series-like rows not on TVmaze
+- **Adult Swim Anime** (List of programs broadcast by Adult Swim): headings: Current programming, Animated, Toonami block, Live-action, Acquired programming, Toonami block, Cartoon Network programming / Checkered Past block, Upcoming programming, Original programming, Former original programming, Animated, Live-action, Toonami block, Former acquired programming, Toonami block, Cartoon Network programming / Checkered Past block, Stunts and cross-promotional, Original online programming, Pilots and specials, Pilots, Original specials, Syndicated shorts and specials, Films, See also, Notes, References, External links
+  - 269 rows, 92 shows, 20 series-like rows not on TVmaze
     - not matched: Adult Swim Smalls (Current programming / Animated)
     - not matched: Case Closed (Former acquired programming)
     - not matched: Code Geass: Lelouch of the Rebellion (Former acquired programming)
@@ -227,8 +227,8 @@
 ## Networks
 
 - **Adult Swim**: 136 shows
-- **Cartoon Network**: 204 shows
-- **Nickelodeon**: 229 shows
+- **Cartoon Network**: 203 shows
+- **Nickelodeon**: 230 shows
 - **Nick Jr.**: 39 shows
 - **Disney Channel**: 172 shows
 - **Disney XD**: 90 shows
