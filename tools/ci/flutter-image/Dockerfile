@@ -66,7 +66,7 @@ RUN set -eu; \
 # throw the project away. Only the downloads stay, in /opt/android-sdk and /root/.gradle.
 RUN set -eu; \
     cd /tmp; \
-    flutter create -q --platforms android --org dev.liquiflux warmup; \
+    flutter create --platforms android --org dev.liquiflux warmup >/dev/null; \
     cd warmup; \
     flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64; \
     (cd android && ./gradlew --stop >/dev/null 2>&1 || true); \
