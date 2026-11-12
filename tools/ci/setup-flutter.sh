@@ -77,8 +77,11 @@ if $want_android; then
   export ANDROID_HOME="$sdk" JAVA_HOME="$java_home"
   # Gradle fetches the platform, build tools and NDK the app asks for, once the licenses
   # are accepted.
-  yes | "$tools/bin/sdkmanager" --sdk_root="$sdk" --licenses >/dev/null || true
-  "$tools/bin/sdkmanager" --sdk_root="$sdk" "platform-tools" >/dev/null
+  # (The prebuilt CI image, tools/ci/flutter-image, has them already.)
+  if [ ! -d "$sdk/platform-tools" ]; then
+    yes | "$tools/bin/sdkmanager" --sdk_root="$sdk" --licenses >/dev/null || true
+    "$tools/bin/sdkmanager" --sdk_root="$sdk" "platform-tools" >/dev/null
+  fi
   flutter config --android-sdk "$sdk" >/dev/null
 fi
 

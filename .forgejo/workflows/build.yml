@@ -4,8 +4,13 @@
 # .github/workflows/release.yml for when the code is pushed to GitHub. Forgejo reads only
 # .forgejo/workflows once that folder exists, and GitHub never reads it, so the two don't clash.
 #
-# Runs on the self-hosted runner (label `docker`) in an Ubuntu 24.04 container;
-# tools/ci/setup-flutter.sh installs the pinned Flutter, JDK and Android SDK.
+# The Linux jobs run on the self-hosted runner (label `docker`) in liquiflux-flutter-ci, a local
+# image built from tools/ci/flutter-image/Dockerfile on the runner's Docker host: Ubuntu 24.04
+# (catthehacker act-24.04) with the pinned Flutter, JDK 17, the Android SDK and Gradle's downloads
+# already in it. tools/ci/setup-flutter.sh only installs what the image lacks, so pointing
+# `image:` back at ghcr.io/catthehacker/ubuntu:act-24.04 still works (just slower). Only the pub
+# packages are cached between runs. When FLUTTER_VERSION or ANDROID_CMDLINE_TOOLS change,
+# rebuild the image with a new tag (see the Dockerfile) and bump `image:` below.
 #
 # Android signing: add these secrets in Forgejo (the repository's Settings > Actions > Secrets)
 # so the APKs are signed with the same key as the PC builds and install as updates over them:
@@ -35,19 +40,19 @@ jobs:
     container:
       # Ubuntu 24.04 with Node.js for the actions. (flutter_tester crashed now and then on exit
       # in a Debian bookworm container.)
-      image: ghcr.io/catthehacker/ubuntu:act-24.04
+      image: liquiflux-flutter-ci:1
       # Docker's default 64 MB /dev/shm is too small for many test processes at once.
       options: --shm-size=2g
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      # Only the pub packages: Flutter is in the image. (A new key prefix, so the old bundles
+      # with /opt/flutter in them are never restored over the image's copy.)
       - uses: actions/cache@v4
         with:
-          path: |
-            /opt/flutter
-            ~/.pub-cache
-          key: flutter-${{ env.FLUTTER_VERSION }}-test-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: flutter-${{ env.FLUTTER_VERSION }}-test-
+          path: ~/.pub-cache
+          key: pub-${{ env.FLUTTER_VERSION }}-test-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: pub-${{ env.FLUTTER_VERSION }}-test-
       - name: Flutter
         run: tools/ci/setup-flutter.sh
       - name: console_core tests
@@ -71,22 +76,18 @@ jobs:
     container:
       # Ubuntu 24.04 with Node.js for the actions. (flutter_tester crashed now and then on exit
       # in a Debian bookworm container.)
-      image: ghcr.io/catthehacker/ubuntu:act-24.04
+      image: liquiflux-flutter-ci:1
     timeout-minutes: 60
     env:
       HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
+      # Only the pub packages: Flutter, the Android SDK and Gradle's downloads are in the image.
       - uses: actions/cache@v4
         with:
-          path: |
-            /opt/flutter
-            /opt/android-sdk
-            ~/.pub-cache
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: flutter-${{ env.FLUTTER_VERSION }}-android-${{ hashFiles('**/pubspec.lock', 'app/android/**/*.kts', 'app/android/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: flutter-${{ env.FLUTTER_VERSION }}-android-
+          path: ~/.pub-cache
+          key: pub-${{ env.FLUTTER_VERSION }}-android-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: pub-${{ env.FLUTTER_VERSION }}-android-
       - name: Flutter and Android SDK
         run: tools/ci/setup-flutter.sh android
       - name: Signing key
