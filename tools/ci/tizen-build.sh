@@ -70,9 +70,20 @@ export PATH="$ft/bin:$PATH"
 retry flutter-tizen --version >/dev/null
 
 # Tizen's CLI keeps certificate passwords in the keyring, so everything runs in one D-Bus
-# session with an unlocked gnome-keyring.
+# session with an unlocked gnome-keyring. Start from no keyring at all (a leftover login.keyring
+# made with another password reads as "invalid format"), and wait until the daemon owns the
+# secrets service before the CLI asks for it: on a busy runner the CLI could otherwise
+# D-Bus-activate a second daemon, store the passwords there, and the signing step then read
+# back a wrong one ("PKCS12 key store MAC invalid").
+rm -rf "$HOME/.local/share/keyrings"
 dbus-run-session -- bash -euo pipefail -c '
   echo tizen | gnome-keyring-daemon --unlock >/dev/null
+  for _ in $(seq 1 50); do
+    dbus-send --session --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus \
+      org.freedesktop.DBus.NameHasOwner string:org.freedesktop.secrets 2>/dev/null \
+      | grep -q "boolean true" && break
+    sleep 0.2
+  done
   keys="$0"
   if [ -n "${AUTHOR_P12:-}" ] && [ -n "${DISTRIBUTOR_P12:-}" ]; then
     echo "Signing with the repository'"'"'s Samsung certificate."
