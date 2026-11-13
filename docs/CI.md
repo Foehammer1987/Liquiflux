@@ -99,6 +99,9 @@ clone of the Forgejo repository (its `origin`). It:
 GitHub's `release.yml` then publishes a release when the app version is new: plain `v1.0.15`,
 never the Forgejo rc tags.
 
+WinGet: after a GitHub release, Sync fork on Foehammer1987/winget-pkgs, then Actions > WinGet >
+Run workflow with the version.
+
 So a new version reaches GitHub like this: bump the version on Forgejo, test it with
 `v1.0.15-rc1`, `-rc2`... (pre-releases on Forgejo only), then tag `v1.0.15` on the commit you
 want released. The next run pushes that commit, and GitHub makes its v1.0.15 release from it.
