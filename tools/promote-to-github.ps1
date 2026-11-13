@@ -8,8 +8,11 @@
     1. fetches Forgejo's main (the `origin` remote of this clone);
     2. picks the newest of its last 20 commits whose Forgejo checks all passed, including the
        build and tizen workflows;
-    3. fetches GitHub's main (read only) and stops if there is nothing new, or if GitHub's main
-       is not an ancestor of that commit (the histories have split: sort that out by hand);
+    3. fetches GitHub's main (read only). If that commit's app version differs from GitHub's,
+       the version must be released on Forgejo first: the commit tagged v<version> (not an rc
+       tag) is promoted instead, exactly that one, and it must be green and have that version.
+       No such tag yet: stop. Then stops if there is nothing new, or if GitHub's main is not an
+       ancestor (the histories have split: sort that out by hand);
     4. stops if the last promotion was less than -MinHours ago;
     5. checks the new commits before they go public: every author and committer email must be
        on the allow list, and no added line may contain a LAN address, a local path, this PC's
@@ -22,9 +25,10 @@
   GITHUB_PROMOTE_TOKEN (a fine-grained GitHub token; see docs/CI.md). The tokens are only
   passed to git and the API in memory: never written to disk, remotes or the log.
 
-  Exit codes: 0 pushed or nothing to do, 1 setup or git error, 2 not yet (no green commit or
-  too soon since the last promotion), 3 GitHub's main isn't an ancestor, 4 the scrub check
-  found something, 5 the push failed.
+  Exit codes: 0 pushed or nothing to do, 1 setup or git error, 2 not yet (no green commit, a
+  new version without its release tag, or too soon since the last promotion), 3 GitHub's main
+  isn't an ancestor, 4 the scrub check found something, 5 the push failed, 6 the release tag is
+  wrong (another version, or not on main).
 
 .PARAMETER DryRun
   Do every check but don't push or log.
@@ -139,26 +143,65 @@ GITHUB_PROMOTE_TOKEN is not set. To make one:
   # 2. The newest green commit.
   $api = $env:FORGEJO_URL.TrimEnd('/') + "/api/v1/repos/$ForgejoRepo"
   $headers = @{ Authorization = "token $env:FORGEJO_TOKEN" }
-  $candidate = $null
-  foreach ($sha in $commits) {
+  # '' when green, else why not ('failure', 'no checks, no tizen', ...).
+  function Get-CheckProblem([string]$sha) {
     try { $st = Invoke-RestMethod -Headers $headers -Uri "$api/commits/$sha/status" } catch { Stop-With 1 "Forgejo API: $($_.Exception.Message)" }
     $contexts = @($st.statuses | Where-Object { $_ } | ForEach-Object { $_.context })
     $hasBuild = @($contexts | Where-Object { $_ -match '^build\b' }).Count -gt 0
     $hasTizen = @($contexts | Where-Object { $_ -match '^tizen\b' }).Count -gt 0
-    $short = $sha.Substring(0, 8)
-    if ($st.state -eq 'success' -and $hasBuild -and $hasTizen) { $candidate = $sha; Say "Newest green commit: $short"; break }
-    Say ("  {0}: {1}{2}{3}" -f $short, $(if ($st.state) { $st.state } else { 'no checks' }),
+    if ($st.state -eq 'success' -and $hasBuild -and $hasTizen) { return '' }
+    return ('{0}{1}{2}' -f $(if ($st.state) { $st.state } else { 'no checks' }),
       $(if (-not $hasBuild) { ', no build' } else { '' }), $(if (-not $hasTizen) { ', no tizen' } else { '' }))
   }
+  # The app version at a commit: Full is 1.0.15+73, Name is 1.0.15.
+  function Get-AppVersion([string]$sha) {
+    $full = (Git show "${sha}:app/pubspec.yaml" | Where-Object { $_ -match '^version:\s*(\S+)' } | Select-Object -First 1) -replace '^version:\s*', ''
+    return @{ Full = $full; Name = ($full -split '\+')[0] }
+  }
+
+  $candidate = $null
+  foreach ($sha in $commits) {
+    $problem = Get-CheckProblem $sha
+    if (-not $problem) { $candidate = $sha; Say "Newest green commit: $($sha.Substring(0, 8))"; break }
+    Say "  $($sha.Substring(0, 8)): $problem"
+  }
   if (-not $candidate) { Stop-With 2 "None of the last $Depth commits on Forgejo's $Branch has passing build and tizen checks." }
-  $version = (Git show "${candidate}:app/pubspec.yaml" | Where-Object { $_ -match '^version:\s*(\S+)' } | Select-Object -First 1) -replace '^version:\s*', ''
 
   # 3. GitHub's main, read only.
   Say "Fetching $Branch from GitHub ($GitHubRepo)..."
   if ($ghAuth) { Set-GitEnvConfig @{ 'http.https://github.com/.extraheader' = $ghAuth; 'credential.helper' = '' } }
   try { Git fetch --quiet --no-tags $ghUrl "refs/heads/$Branch" | Out-Null } finally { Clear-GitEnvConfig }
   $ghSha = (Git rev-parse FETCH_HEAD | Select-Object -First 1)
-  Say "GitHub's ${Branch}: $($ghSha.Substring(0, 8))"
+  $ghVersion = Get-AppVersion $ghSha
+  Say "GitHub's ${Branch}: $($ghSha.Substring(0, 8)) (app version $($ghVersion.Full))"
+
+  # 3b. A new app version goes to GitHub only once it is released on Forgejo: the commit tagged
+  # v<version> (not an rc) is promoted, exactly that one, since GitHub publishes a release for
+  # each new version that reaches its main.
+  $candVersion = Get-AppVersion $candidate
+  if ($candVersion.Name -ne $ghVersion.Name) {
+    $tag = "v$($candVersion.Name)"
+    Say "App version changes ($($ghVersion.Name) -> $($candVersion.Name)): looking for the release tag $tag on Forgejo..."
+    $tagLines = @(Git ls-remote --tags origin "refs/tags/$tag")
+    if ($tagLines.Count -eq 0 -or -not $tagLines[0]) {
+      Stop-With 2 "$($candVersion.Name) isn't released on Forgejo yet: tag $tag (after rc testing) to let it go to GitHub. GitHub has $($ghVersion.Name)."
+    }
+    Git fetch --quiet --no-tags origin "refs/tags/$tag" | Out-Null
+    $tagged = (Git rev-parse 'FETCH_HEAD^{commit}' | Select-Object -First 1)
+    $taggedVersion = Get-AppVersion $tagged
+    if ($taggedVersion.Name -ne $candVersion.Name) {
+      Stop-With 6 "Tag $tag is on $($tagged.Substring(0, 8)), whose app version is $($taggedVersion.Full), not $($candVersion.Name). Fix the tag by hand."
+    }
+    Git -AllowFail merge-base --is-ancestor $tagged "origin/$Branch" | Out-Null
+    if ($script:GitExit -ne 0) { Stop-With 6 "Tag $tag ($($tagged.Substring(0, 8))) is not on Forgejo's $Branch." }
+    $problem = Get-CheckProblem $tagged
+    if ($problem) { Stop-With 2 "Tag $tag ($($tagged.Substring(0, 8))) isn't green on Forgejo: $problem." }
+    Say "Release tag ${tag}: $($tagged.Substring(0, 8)), green. Promoting that commit."
+    $candidate = $tagged
+    $candVersion = $taggedVersion
+  }
+  $version = $candVersion.Full
+
   Git -AllowFail merge-base --is-ancestor $candidate $ghSha | Out-Null
   if ($script:GitExit -eq 0) { Stop-With 0 "Nothing new: GitHub already has $($candidate.Substring(0, 8))." }
   Git -AllowFail merge-base --is-ancestor $ghSha $candidate | Out-Null

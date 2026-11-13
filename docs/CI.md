@@ -83,8 +83,11 @@ clone of the Forgejo repository (its `origin`). It:
 
 1. fetches Forgejo's `main` and picks the newest of its last 20 commits whose Forgejo checks all
    passed, including the `build` and `tizen` workflows;
-2. fetches GitHub's `main` (read only), stops if GitHub already has that commit, and stops if
-   GitHub's `main` isn't an ancestor of it (it never forces);
+2. fetches GitHub's `main` (read only). If the app version differs from GitHub's, that version
+   has to be released on Forgejo first: it promotes the commit tagged `v<version>` (the final
+   tag, not an rc), exactly that commit, which must be green and have that version. Without the
+   tag it stops and says which tag to make. Then it stops if GitHub already has that commit,
+   and if GitHub's `main` isn't an ancestor of it (it never forces);
 3. stops if the last promotion was less than 24 hours ago (`-MinHours`);
 4. checks the new commits: author and committer emails must be GitHub noreply addresses (or
    Claude's / the Actions bot's), and no added line may hold a LAN address, a local path, the
@@ -94,8 +97,17 @@ clone of the Forgejo repository (its `origin`). It:
    `%LOCALAPPDATA%\Liquiflux\promote.log`.
 
 GitHub's `release.yml` then publishes a release when the app version is new: plain `v1.0.15`,
-never the Forgejo rc tags. `-DryRun` does every check without pushing. Exit codes: 0 pushed or
-nothing to do, 1 setup error, 2 not yet, 3 histories split, 4 scrub check failed, 5 push failed.
+never the Forgejo rc tags.
+
+So a new version reaches GitHub like this: bump the version on Forgejo, test it with
+`v1.0.15-rc1`, `-rc2`... (pre-releases on Forgejo only), then tag `v1.0.15` on the commit you
+want released. The next run pushes that commit, and GitHub makes its v1.0.15 release from it.
+Until then, nothing after the bump goes to GitHub. Commits that don't change the version flow
+every day as usual.
+
+`-DryRun` does every check without pushing. Exit codes: 0 pushed or nothing to do, 1 setup
+error, 2 not yet (including a new version without its release tag), 3 histories split, 4 scrub
+check failed, 5 push failed, 6 the release tag is wrong (another version, or not on `main`).
 
 To run it daily, add a Task Scheduler task running
 `powershell -ExecutionPolicy Bypass -File <clone>\tools\promote-to-github.ps1`.
