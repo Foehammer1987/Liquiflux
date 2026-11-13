@@ -87,10 +87,13 @@ function Git {
   return $out
 }
 
-# Passes config to git through the environment (not the command line, not a file).
+# Passes config to git through the environment (not the command line, not a file). Values must
+# not be empty: Windows drops an environment variable set to '', and git then fails with
+# "missing config value". (An empty value, such as credential.helper=, goes on the command line.)
 function Set-GitEnvConfig([hashtable]$pairs) {
   $i = 0
   foreach ($k in $pairs.Keys) {
+    if ([string]::IsNullOrEmpty($pairs[$k])) { throw "Set-GitEnvConfig: empty value for $k" }
     Set-Item "env:GIT_CONFIG_KEY_$i" $k
     Set-Item "env:GIT_CONFIG_VALUE_$i" $pairs[$k]
     $i++
@@ -167,10 +170,9 @@ GITHUB_PROMOTE_TOKEN is not set. To make one:
   }
   if (-not $candidate) { Stop-With 2 "None of the last $Depth commits on Forgejo's $Branch has passing build and tizen checks." }
 
-  # 3. GitHub's main, read only.
+  # 3. GitHub's main, read only. The repository is public, so no token is used here.
   Say "Fetching $Branch from GitHub ($GitHubRepo)..."
-  if ($ghAuth) { Set-GitEnvConfig @{ 'http.https://github.com/.extraheader' = $ghAuth; 'credential.helper' = '' } }
-  try { Git fetch --quiet --no-tags $ghUrl "refs/heads/$Branch" | Out-Null } finally { Clear-GitEnvConfig }
+  Git -c credential.helper= fetch --quiet --no-tags $ghUrl "refs/heads/$Branch" | Out-Null
   $ghSha = (Git rev-parse FETCH_HEAD | Select-Object -First 1)
   $ghVersion = Get-AppVersion $ghSha
   Say "GitHub's ${Branch}: $($ghSha.Substring(0, 8)) (app version $($ghVersion.Full))"
@@ -264,8 +266,10 @@ GITHUB_PROMOTE_TOKEN is not set. To make one:
   # 6. Push.
   if ($DryRun) { Stop-With 0 "Dry run: would push $($candidate.Substring(0, 8)) (version $version) to GitHub's $Branch." }
   Say "Pushing $($candidate.Substring(0, 8)) to GitHub's $Branch..."
-  Set-GitEnvConfig @{ 'http.https://github.com/.extraheader' = $ghAuth; 'credential.helper' = '' }
-  try { $out = Git -AllowFail push --no-tags $ghUrl "${candidate}:refs/heads/$Branch" } finally { Clear-GitEnvConfig }
+  # The token goes in through the environment; credential.helper= (no helper) keeps git from
+  # asking a credential manager or saving anything.
+  Set-GitEnvConfig @{ 'http.https://github.com/.extraheader' = $ghAuth }
+  try { $out = Git -AllowFail -c credential.helper= push --no-tags $ghUrl "${candidate}:refs/heads/$Branch" } finally { Clear-GitEnvConfig }
   if ($script:GitExit -ne 0) {
     $out | ForEach-Object { Write-Host "  $_" }
     Stop-With 5 'git push to GitHub failed (token expired or missing permissions? see docs/CI.md).'
