@@ -24,6 +24,7 @@ class Settings {
     this.seerrUrl = '',
     this.seerrApiKey = '',
     this.seerrUsePlexLogin = true,
+    this.seerrEnabled = false,
     this.theme = 'dark',
     this.glass = true,
     this.homeTrailers = true,
@@ -39,6 +40,7 @@ class Settings {
     this.spoilers = const SpoilerPrefs(),
     this.watchName = '',
     this.xrayUrl = '',
+    this.xrayEnabled = false,
     this.plexHomeToken = '',
     this.plexOwnerId = '',
     this.plexUserId = '',
@@ -68,6 +70,10 @@ class Settings {
 
   /// Sign in to Seerr with the Plex account instead of an API key.
   final bool seerrUsePlexLogin;
+
+  /// Seerr is an add-on for people who run one: off until turned on in Settings. Off keeps
+  /// the address and sign-in but hides everything Seerr adds and never contacts it.
+  final bool seerrEnabled;
   final String theme;
 
   /// Frosted, floating surfaces (off = flat panels, lighter on old GPUs).
@@ -114,6 +120,12 @@ class Settings {
 
   /// Where the X-Ray scanner's who's-on-screen files are served from (empty = cast list only).
   final String xrayUrl;
+
+  /// The X-Ray server is an add-on too: off until turned on (the cast list needs only Plex).
+  final bool xrayEnabled;
+
+  /// The X-Ray server to ask, or empty while it's turned off.
+  String get xrayServer => xrayEnabled ? xrayUrl : '';
 
   /// The plex.tv token of the account that signed in, kept while another Plex Home user is
   /// in use so the Home can be listed and switched again. Empty = [plexTvToken] (no switch yet).
@@ -174,6 +186,7 @@ class Settings {
       seerrUrl: s.seerrUrl,
       seerrApiKey: s.seerrApiKey,
       seerrUsePlexLogin: s.seerrUsePlexLogin,
+      seerrEnabled: s.seerrEnabled,
       theme: s.theme,
       glass: s.glass,
       homeTrailers: s.homeTrailers,
@@ -189,6 +202,7 @@ class Settings {
       spoilers: s.spoilers,
       watchName: s.watchName,
       xrayUrl: s.xrayUrl,
+      xrayEnabled: s.xrayEnabled,
       askProfile: s.askProfile,
       profiles: s.profiles,
       clientId: s.clientId,
@@ -215,7 +229,7 @@ class Settings {
   /// What plex.tv services (Seerr's Plex sign-in, Watch Together) are given: the account
   /// token when we have it, else the server token (the same thing for the server's owner).
   String get plexTvToken => plexAccountToken.isNotEmpty ? plexAccountToken : plexToken;
-  bool get seerrReady => seerrUrl.isNotEmpty && (seerrApiKey.isNotEmpty || (seerrUsePlexLogin && plexToken.isNotEmpty));
+  bool get seerrReady => seerrEnabled && seerrUrl.isNotEmpty && (seerrApiKey.isNotEmpty || (seerrUsePlexLogin && plexToken.isNotEmpty));
 
   Settings copyWith({
     String? plexUrl,
@@ -226,6 +240,7 @@ class Settings {
     String? seerrUrl,
     String? seerrApiKey,
     bool? seerrUsePlexLogin,
+    bool? seerrEnabled,
     String? theme,
     bool? glass,
     bool? homeTrailers,
@@ -241,6 +256,7 @@ class Settings {
     SpoilerPrefs? spoilers,
     String? watchName,
     String? xrayUrl,
+    bool? xrayEnabled,
     String? plexHomeToken,
     String? plexOwnerId,
     String? plexUserId,
@@ -263,6 +279,7 @@ class Settings {
     spoilers: spoilers ?? this.spoilers,
     watchName: watchName ?? this.watchName,
     xrayUrl: xrayUrl ?? this.xrayUrl,
+    xrayEnabled: xrayEnabled ?? this.xrayEnabled,
     traktClientId: traktClientId ?? this.traktClientId,
     traktClientSecret: traktClientSecret ?? this.traktClientSecret,
     anilistClientId: anilistClientId ?? this.anilistClientId,
@@ -275,6 +292,7 @@ class Settings {
     seerrUrl: seerrUrl ?? this.seerrUrl,
     seerrApiKey: seerrApiKey ?? this.seerrApiKey,
     seerrUsePlexLogin: seerrUsePlexLogin ?? this.seerrUsePlexLogin,
+    seerrEnabled: seerrEnabled ?? this.seerrEnabled,
     theme: theme ?? this.theme,
     glass: glass ?? this.glass,
     homeTrailers: homeTrailers ?? this.homeTrailers,
@@ -406,6 +424,7 @@ class SettingsStore {
       final v = env[name];
       if (v != null) _fromEnv[field] = v;
     }
+    final seerrUrl = env['CONSOLE_SEERR_URL'] ?? _url(j, 'seerrUrl'), xrayUrl = _url(j, 'xrayUrl');
     final s = Settings(
       plexUrl: env['CONSOLE_PLEX_URL'] ?? _url(j, 'plexUrl'),
       plexToken: env['CONSOLE_PLEX_TOKEN'] ?? secrets['plexToken']!,
@@ -423,7 +442,9 @@ class SettingsStore {
       },
       plexServerName: _str(j, 'plexServerName') ?? '',
       plexMachineId: env['CONSOLE_PLEX_URL'] != null ? '' : RegExp(r'^[\w.-]{1,128}$').hasMatch(_str(j, 'plexMachineId') ?? '') ? _str(j, 'plexMachineId')! : '',
-      seerrUrl: env['CONSOLE_SEERR_URL'] ?? _url(j, 'seerrUrl'),
+      seerrUrl: seerrUrl,
+      // Files from before the switches: an add-on with an address saved stays on.
+      seerrEnabled: env['CONSOLE_SEERR_URL'] != null || (_bool(j, 'seerrEnabled') ?? seerrUrl.isNotEmpty),
       seerrApiKey: env['CONSOLE_SEERR_KEY'] ?? secrets['seerrApiKey']!,
       seerrUsePlexLogin: _bool(j, 'seerrUsePlexLogin') ?? true,
       theme: _str(j, 'theme') ?? 'dark',
@@ -440,7 +461,8 @@ class SettingsStore {
       pauseScreen: _bool(j, 'pauseScreen') ?? true,
       spoilers: SpoilerPrefs.fromJson(j['spoilers']),
       watchName: _str(j, 'watchName') ?? '',
-      xrayUrl: _url(j, 'xrayUrl'),
+      xrayUrl: xrayUrl,
+      xrayEnabled: _bool(j, 'xrayEnabled') ?? xrayUrl.isNotEmpty,
       clientId: clientId,
     );
     // An older file with a credential in it: move it to the credential store and rewrite
@@ -482,6 +504,7 @@ class SettingsStore {
       'plexMachineId': s.plexMachineId,
       'seerrUrl': s.seerrUrl,
       'seerrUsePlexLogin': s.seerrUsePlexLogin,
+      'seerrEnabled': s.seerrEnabled,
       'theme': s.theme,
       'glass': s.glass,
       'homeTrailers': s.homeTrailers,
@@ -494,6 +517,7 @@ class SettingsStore {
       'spoilers': s.spoilers.toJson(),
       'watchName': s.watchName,
       'xrayUrl': s.xrayUrl,
+      'xrayEnabled': s.xrayEnabled,
       'anilistClientId': s.anilistClientId,
       'plexOwnerId': s.plexOwnerId,
       'plexUserId': s.plexUserId,

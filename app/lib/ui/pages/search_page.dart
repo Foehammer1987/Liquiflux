@@ -129,12 +129,13 @@ class _SearchPageState extends State<SearchPage> {
                     children: [for (final r in requestable) SeerrCard(key: ValueKey('${r.mediaType}:${r.id}'), item: r, onRequested: _runSeerr)],
                   ),
           )
-        : noPlexHits
+        // Seerr turned on but not answering. Turned off, search is Plex alone and says nothing of it.
+        : noPlexHits && app.settings.seerrEnabled
         ? ConsolePanel(
             title: 'Request It',
             child: EmptyState(
-              title: "Seerr isn't set up",
-              body: "Connect Seerr in Settings to request titles that aren't in Plex.",
+              title: "Seerr isn't connected",
+              body: "Check the Seerr address and sign-in in Settings to request titles that aren't in Plex.",
               action: ConsoleButton(label: 'Open Settings', onPressed: () => ShellNav.of(context).go(const SettingsDest())),
             ),
           )

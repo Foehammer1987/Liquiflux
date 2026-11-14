@@ -377,7 +377,7 @@ class PlayerSheet extends StatelessWidget {
       if (scene.isNotEmpty) ...[_Heading('In This Scene', color: accent), for (final r in scene) row(r, i++)],
       _Heading(scene.isEmpty ? 'Cast' : 'Full Cast', color: accent),
       if (cast.isEmpty) const _Note('Plex has no cast for this title.') else for (final r in cast) row(r, i++),
-      if (!x.scanned && cast.isNotEmpty) _Note(isAnimated(session.item) ? 'Animated titles show the whole cast.' : 'Who’s in each scene shows here once the X-Ray scanner has been over this title.'),
+      if (!x.scanned && cast.isNotEmpty && (x.server.isNotEmpty || isAnimated(session.item))) _Note(isAnimated(session.item) ? 'Animated titles show the whole cast.' : 'Who’s in each scene shows here once the X-Ray scanner has been over this title.'),
     ];
   }
 

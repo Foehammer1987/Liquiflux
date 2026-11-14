@@ -248,7 +248,7 @@ class _CollectionPageState extends State<CollectionPage> {
     final nav = ShellNav.of(context);
     if (p.plex != null) {
       nav.push(ItemDest(p.plex!.ratingKey));
-    } else if (p.tmdb != null) {
+    } else if (p.tmdb != null && AppScope.read(context).seerr != null) {
       nav.push(SeerrDest('movie', p.tmdb!.id));
     }
   }

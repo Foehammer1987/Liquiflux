@@ -167,7 +167,7 @@ class _PersonPageState extends State<PersonPage> {
                       const SizedBox(height: Space.space3),
                       ConstrainedBox(constraints: const BoxConstraints(maxWidth: 820), child: ExpandableText(bio!.biography!, maxLines: 5)),
                     ],
-                    if (!seerrOn && bio == null) ...[const SizedBox(height: Space.space3), muted(context, 'Connect Seerr in Settings to see their biography and everything else they have been in.')],
+                    if (!seerrOn && bio == null && app.settings.seerrEnabled) ...[const SizedBox(height: Space.space3), muted(context, 'Connect Seerr in Settings to see their biography and everything else they have been in.')],
                   ],
                 ),
               ),

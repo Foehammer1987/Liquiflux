@@ -110,7 +110,7 @@ Player keys: Space or K play/pause, ←/→ (or J/L) skip, ↑/↓ volume, M mut
 
 ## Settings
 
-- **Servers**: Plex sign-in, Seerr, Discovery (Trakt, streaming region), sign out.
+- **Servers**: Plex sign-in, then the add-ons, each off until you switch it on: Seerr (address and sign-in), Discovery (Trakt, streaming region; shown with Seerr on) and the X-Ray server. Sign out.
 - **Playback**: streaming quality at home and away (picked by whether the server address is on your network), allow direct play and direct stream, skip steps, skip intro and credits (button, automatic or off), Up Next autoplay and countdown, what happens with a partly watched title (ask, resume or start over), the pause screen.
 - **Audio & Subtitles**: preferred audio language (commentary is passed over), subtitle mode (Plex default, off, forced only, foreign audio, always) and language, subtitle style, passthrough to an AV receiver, speaker layout, night mode, volume boost.
 - **Video**: hardware decoding, picture size, deinterlace, high quality scaling, debanding.

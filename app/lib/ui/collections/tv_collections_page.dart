@@ -91,7 +91,7 @@ class _TvCollectionsPageState extends State<TvCollectionsPage> {
   static String shelfTitle(TvShelf s) => '${s.collection.name}  ·  ${s.owned.length} of ${s.total} yours';
 }
 
-/// A show you don't have: its poster, dimmed, opening its Seerr page to request it.
+/// A show you don't have: its poster, dimmed, opening its Seerr page to request it (when Seerr is on).
 class MissingShowPoster extends StatelessWidget {
   const MissingShowPoster({super.key, required this.show, this.requested = false});
   final PackShow show;
@@ -106,12 +106,13 @@ class MissingShowPoster extends StatelessWidget {
       subtitle: [if (show.year != null) '${show.year}', requested ? 'Requested' : 'Not in your library'].join(' · '),
       imageUrl: show.poster,
       dimmed: true,
-      overlayIcon: requested ? LucideIcons.check : LucideIcons.download,
-      onTap: tmdb != null && app.seerr != null
+      // Without Seerr there's nothing to request: the poster just says what's missing.
+      overlayIcon: requested ? LucideIcons.check : (app.seerr != null ? LucideIcons.download : null),
+      onTap: app.seerr == null
+          ? () {}
+          : tmdb != null
           ? () => ShellNav.of(context).push(SeerrDest('tv', tmdb))
-          : () => ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-              SnackBar(content: Text(app.seerr == null ? 'Connect Seerr in Settings to request shows.' : 'Seerr can’t find ${show.title} to request it.')),
-            ),
+          : () => ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text('Seerr can’t find ${show.title} to request it.'))),
     );
   }
 }

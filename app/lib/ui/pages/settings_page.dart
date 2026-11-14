@@ -42,6 +42,8 @@ class _SettingsPageState extends State<SettingsPage> {
   final _region = TextEditingController();
   final _xray = TextEditingController();
   String? _discoveryMsg;
+  String? _xrayMsg;
+  bool _savingXray = false;
   String? _advancedMsg;
   bool _usePlexLogin = true;
   bool _manualPlex = false;
@@ -263,6 +265,40 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
+  /// Turns Seerr on or off. Off keeps the address and sign-in for next time, but nothing
+  /// asks Seerr anything and every row, page and button it adds goes away.
+  Future<void> _setSeerr(AppState app, bool on) async {
+    setState(() => _seerrMsg = null);
+    await app.update(app.settings.copyWith(seerrEnabled: on));
+  }
+
+  Future<void> _saveXray() async {
+    final app = AppScope.read(context);
+    final xray = _xray.text.trim();
+    if (xray.isNotEmpty && !isWebUrl(xray)) {
+      setState(() => _xrayMsg = 'The X-Ray server needs an http:// or https:// address');
+      return;
+    }
+    setState(() => _savingXray = true);
+    await app.setXray(url: xray);
+    var msg = xray.isEmpty ? 'Saved. Add an address to use it' : 'Saved';
+    final server = xray.isEmpty || app.plex == null ? null : XRayServer.shared(xray, app.settings.xraySignInToken);
+    if (server != null) {
+      if (mounted) setState(() => _xrayMsg = 'Checking X-Ray...');
+      try {
+        msg = await server.check() ? 'Saved, signed in to X-Ray' : (sendsCredentialsInClear(xray) ? 'Saved, but X-Ray outside your network needs https' : 'Saved (plain file server)');
+      } on ApiException catch (e) {
+        msg = 'Saved, but X-Ray: ${e.message}';
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _savingXray = false;
+        _xrayMsg = msg;
+      });
+    }
+  }
+
   Future<void> _saveSeerr() async {
     final app = AppScope.read(context);
     final url = tidyServerUrl(_seerrUrl.text);
@@ -301,7 +337,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Welcome', style: ConsoleText.display.copyWith(color: c.text100)),
-                    Text('Sign in with Plex to get started. Seerr is optional and adds requests.', style: ConsoleText.body.copyWith(color: c.text200)),
+                    Text('Sign in with Plex to get started. Add-ons like Seerr can be turned on in Settings later.', style: ConsoleText.body.copyWith(color: c.text200)),
                   ],
                 ),
               ),
@@ -312,7 +348,7 @@ class _SettingsPageState extends State<SettingsPage> {
             'Settings',
             style: ConsoleText.display.copyWith(fontSize: 32, fontWeight: FontWeight.w800, color: c.text100),
           ),
-          ConsoleSegmented<_Tab>(options: [for (final t in _Tab.values) (t, t.label)], value: _tab, onChanged: (t) => setState(() => _tab = t)),
+          ConsoleSegmented<_Tab>(options: [for (final t in _Tab.values) if (t != _Tab.notifications || s.seerrEnabled) (t, t.label)], value: _tab, onChanged: (t) => setState(() => _tab = t)),
         ],
         if (widget.welcome)
           ..._general(app, c, s, welcome: true)
@@ -323,7 +359,7 @@ class _SettingsPageState extends State<SettingsPage> {
             _Tab.audio => _audioSubs(app, s.playback),
             _Tab.video => _video(app, s.playback),
             _Tab.appearance => _appearance(app, s),
-            _Tab.notifications => _notifications(app, s),
+            _Tab.notifications => s.seerrEnabled ? _notifications(app, s) : const [],
             _Tab.tracking => [TrackingPanels(app: app)],
             _Tab.advanced => _advanced(app, c, s.playback),
           },
@@ -445,54 +481,66 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
         ),
       ),
-    ConsolePanel(
-      title: 'Seerr',
-      meta: app.seerrConn == Conn.ok ? StatusDot(app.seerrUser ?? 'Connected', tone: Tone.success, style: ConsoleText.small) : null,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SettingsField(label: 'Seerr Address', controller: _seerrUrl, mono: true, hint: 'http://192.168.1.10:5055', help: 'Works with Seerr, Overseerr and Jellyseerr.'),
-          const SizedBox(height: Space.space3),
-          Text('Sign In', style: ConsoleText.caption.copyWith(color: c.text200)),
-          const SizedBox(height: Space.space1),
-          ConsoleSegmented<bool>(options: const [(true, 'My Plex Account'), (false, 'API Key')], value: _usePlexLogin, onChanged: (v) => setState(() => _usePlexLogin = v)),
-          const SizedBox(height: Space.space1),
-          Text(
-            _usePlexLogin
-                ? 'Requests are filed under your own Seerr user and follow its approval rules.'
-                : 'Requests are filed under the API key owner, usually the admin, so they are approved automatically.',
-            style: ConsoleText.caption.copyWith(color: c.text300),
-          ),
-          if (!_usePlexLogin) ...[
-            const SizedBox(height: Space.space3),
-            SettingsField(
-              label: 'API Key',
-              controller: _seerrKey,
-              obscure: true,
-              mono: true,
-              hint: s.seerrApiKey.isNotEmpty ? 'Saved. Leave blank to keep it' : 'From Seerr, Settings, General',
-              onSubmitted: (_) => _saveSeerr(),
+    if (!welcome)
+      ConsolePanel(
+        title: 'Seerr',
+        meta: app.seerrConn == Conn.ok ? StatusDot(app.seerrUser ?? 'Connected', tone: Tone.success, style: ConsoleText.small) : null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _Row(
+              label: 'Use Seerr',
+              help: "Request titles that aren't in your library, and see Trending and suggestions. Needs your own Seerr, Overseerr or Jellyseerr server.",
+              control: ConsoleSwitch(value: s.seerrEnabled, onChanged: (v) => _setSeerr(app, v)),
+              last: !s.seerrEnabled,
             ),
-          ],
-          const SizedBox(height: Space.space3),
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: Space.space3,
-            runSpacing: Space.space2,
-            children: [
-              ConsoleButton(label: _savingSeerr ? 'Saving' : 'Save and Test', kind: ButtonKind.primary, onPressed: _usePlexLogin && !s.plexReady ? null : _unlessBusy(_savingSeerr, _saveSeerr)),
-              if (_seerrMsg != null) StatusDot(_seerrMsg!, tone: _seerrTone),
-              if (_usePlexLogin && !s.plexReady) muted(context, 'Sign in with Plex first.'),
+            if (s.seerrEnabled) ...[
+              const SizedBox(height: Space.space3),
+              SettingsField(label: 'Seerr Address', controller: _seerrUrl, mono: true, hint: 'http://192.168.1.10:5055', help: 'Works with Seerr, Overseerr and Jellyseerr.'),
+              const SizedBox(height: Space.space3),
+              Text('Sign In', style: ConsoleText.caption.copyWith(color: c.text200)),
+              const SizedBox(height: Space.space1),
+              ConsoleSegmented<bool>(options: const [(true, 'My Plex Account'), (false, 'API Key')], value: _usePlexLogin, onChanged: (v) => setState(() => _usePlexLogin = v)),
+              const SizedBox(height: Space.space1),
+              Text(
+                _usePlexLogin
+                    ? 'Requests are filed under your own Seerr user and follow its approval rules.'
+                    : 'Requests are filed under the API key owner, usually the admin, so they are approved automatically.',
+                style: ConsoleText.caption.copyWith(color: c.text300),
+              ),
+              if (!_usePlexLogin) ...[
+                const SizedBox(height: Space.space3),
+                SettingsField(
+                  label: 'API Key',
+                  controller: _seerrKey,
+                  obscure: true,
+                  mono: true,
+                  hint: s.seerrApiKey.isNotEmpty ? 'Saved. Leave blank to keep it' : 'From Seerr, Settings, General',
+                  onSubmitted: (_) => _saveSeerr(),
+                ),
+              ],
+              const SizedBox(height: Space.space3),
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: Space.space3,
+                runSpacing: Space.space2,
+                children: [
+                  ConsoleButton(label: _savingSeerr ? 'Saving' : 'Save and Test', kind: ButtonKind.primary, onPressed: _usePlexLogin && !s.plexReady ? null : _unlessBusy(_savingSeerr, _saveSeerr)),
+                  if (_seerrMsg != null) StatusDot(_seerrMsg!, tone: _seerrTone),
+                  if (_usePlexLogin && !s.plexReady) muted(context, 'Sign in with Plex first.'),
+                ],
+              ),
+              if (s.seerrReady && sendsCredentialsInClear(s.seerrUrl)) ...[
+                const SizedBox(height: Space.space3),
+                _Warning('Seerr is reached over plain http across the internet, so your ${s.seerrApiKey.isNotEmpty ? 'API key' : 'Plex sign-in'} travels unencrypted. Use an https address.'),
+              ],
             ],
-          ),
-          if (s.seerrReady && sendsCredentialsInClear(s.seerrUrl)) ...[
-            const SizedBox(height: Space.space3),
-            _Warning('Seerr is reached over plain http across the internet, so your ${s.seerrApiKey.isNotEmpty ? 'API key' : 'Plex sign-in'} travels unencrypted. Use an https address.'),
           ],
-        ],
+        ),
       ),
-    ),
     if (!welcome) ...[
+      // Trakt charts and the streaming region feed Trending, which comes from Seerr.
+      if (s.seerrEnabled)
       ConsolePanel(
         title: 'Discovery',
         child: Column(
@@ -518,14 +566,6 @@ class _SettingsPageState extends State<SettingsPage> {
               child: SettingsField(label: 'Streaming Region', controller: _region, mono: true, hint: 'US', help: 'Two-letter country code for the "Popular on Netflix" rows.'),
             ),
             const SizedBox(height: Space.space3),
-            SettingsField(
-              label: 'X-Ray Server (optional)',
-              controller: _xray,
-              mono: true,
-              hint: 'http://homeserver:8089',
-              help: "Your Liquiflux X-Ray server: at home (http://homeserver:8089) or through Cloudflare Tunnel (https://...). Liquiflux signs in with your Plex account. With it, pausing shows who's in the scene; without it, the whole cast.",
-            ),
-            const SizedBox(height: Space.space3),
             Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: Space.space3,
@@ -535,29 +575,53 @@ class _SettingsPageState extends State<SettingsPage> {
                   kind: ButtonKind.primary,
                   onPressed: () async {
                     final region = _region.text.trim().toUpperCase();
-                    final xray = _xray.text.trim();
-                    if (xray.isNotEmpty && !isWebUrl(xray)) {
-                      setState(() => _discoveryMsg = 'The X-Ray server needs an http:// or https:// address');
-                      return;
-                    }
-                    await app.setDiscovery(traktClientId: _trakt.text.trim(), region: RegExp(r'^[A-Z]{2}$').hasMatch(region) ? region : 'US', xrayUrl: xray);
-                    var msg = 'Saved';
-                    final plex = app.plex;
-                    final server = xray.isEmpty || plex == null ? null : XRayServer.shared(xray, app.settings.xraySignInToken);
-                    if (server != null) {
-                      if (mounted) setState(() => _discoveryMsg = 'Checking X-Ray...');
-                      try {
-                        msg = await server.check() ? 'Saved, signed in to X-Ray' : (sendsCredentialsInClear(xray) ? 'Saved, but X-Ray outside your network needs https' : 'Saved (plain file server)');
-                      } on ApiException catch (e) {
-                        msg = 'Saved, but X-Ray: ${e.message}';
-                      }
-                    }
-                    if (mounted) setState(() => _discoveryMsg = msg);
+                    await app.setDiscovery(traktClientId: _trakt.text.trim(), region: RegExp(r'^[A-Z]{2}$').hasMatch(region) ? region : 'US');
+                    if (mounted) setState(() => _discoveryMsg = 'Saved');
                   },
                 ),
-                if (_discoveryMsg != null) StatusDot(_discoveryMsg!, tone: _discoveryMsg!.startsWith('Saved') && !_discoveryMsg!.contains(' but ') ? Tone.success : Tone.warning),
+                if (_discoveryMsg != null) StatusDot(_discoveryMsg!, tone: Tone.success),
               ],
             ),
+          ],
+        ),
+      ),
+      ConsolePanel(
+        title: 'X-Ray Server',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _Row(
+              label: 'Use an X-Ray Server',
+              help: "Pausing shows who's in the scene. Needs your own Liquiflux X-Ray server. Without one, X-Ray shows the whole cast from Plex.",
+              control: ConsoleSwitch(
+                value: s.xrayEnabled,
+                onChanged: (v) {
+                  setState(() => _xrayMsg = null);
+                  app.setXray(enabled: v);
+                },
+              ),
+              last: !s.xrayEnabled,
+            ),
+            if (s.xrayEnabled) ...[
+              const SizedBox(height: Space.space3),
+              SettingsField(
+                label: 'X-Ray Server Address',
+                controller: _xray,
+                mono: true,
+                hint: 'http://homeserver:8089',
+                help: 'At home (http://homeserver:8089) or through Cloudflare Tunnel (https://...). Liquiflux signs in with your Plex account.',
+              ),
+              const SizedBox(height: Space.space3),
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: Space.space3,
+                runSpacing: Space.space2,
+                children: [
+                  ConsoleButton(label: _savingXray ? 'Saving' : 'Save and Test', kind: ButtonKind.primary, onPressed: _unlessBusy(_savingXray, _saveXray)),
+                  if (_xrayMsg != null) StatusDot(_xrayMsg!, tone: _xrayMsg!.startsWith('Saved') && !_xrayMsg!.contains(' but ') ? Tone.success : Tone.warning),
+                ],
+              ),
+            ],
           ],
         ),
       ),

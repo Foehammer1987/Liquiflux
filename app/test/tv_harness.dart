@@ -210,7 +210,7 @@ Future<AppState> tvApp(WidgetTester t, {int settle = 60, void Function(AppState)
   t.view.devicePixelRatio = 2;
   addTearDown(t.view.reset);
   final state = AppState(SettingsStore(secrets: _NoSecrets()), channels: ChannelStore(disk: false), tvPack: fakeTvPack())
-    ..settings = const Settings(clientId: 'c', plexUrl: 'http://plex.test:32400', plexToken: 'tok', seerrUrl: 'http://seerr.test', seerrApiKey: 'key')
+    ..settings = const Settings(clientId: 'c', plexUrl: 'http://plex.test:32400', plexToken: 'tok', seerrUrl: 'http://seerr.test', seerrApiKey: 'key', seerrEnabled: true)
     ..plex = PlexClient(baseUrl: 'http://plex.test:32400', token: 'tok', clientId: 'c', http: JsonHttp(client: fakeServers()))
     ..seerr = SeerrClient(baseUrl: 'http://seerr.test', apiKey: 'key', http: JsonHttp(client: fakeServers()))
     ..plexConn = Conn.ok

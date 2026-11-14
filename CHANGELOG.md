@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.15
+
+Seerr and the X-Ray server are now add-ons you switch on, since they need a server of your own. Off (the default for a new install), Liquiflux is Plex alone and looks finished that way.
+
+- Settings > Servers: a **Use Seerr** switch and a new **X-Ray Server** panel with a **Use an X-Ray Server** switch. The address, sign-in and Save and Test show once a switch is on. Off keeps what was entered, so switching back on picks up where it was.
+- Updating from 1.0.14: an add-on with an address saved stays on, so nothing changes for anyone already using it.
+- With Seerr off: no Trending or Requests in the sidebar, no Seerr rows on Home (Top 10 Not in Your Library, Because You Watched, Trending), no Notifications tab or Discovery panel in Settings, no "Seerr isn't set up" panel in search or "Connect Seerr" line on actor pages, no download badge or Seerr page on missing shows and films in collections, and no connection to Seerr at all.
+- With the X-Ray server off: the player never contacts it and X-Ray shows the cast from Plex, without the note about the scanner.
+- The first-run Welcome page is Plex sign-in only; add-ons are in Settings afterwards.
+- Version 1.0.15+73 (Samsung packages 1.0.1500, 1.0.1501, 1.0.1502).
+
 ## 1.0.14
 
 Builds on a self-hosted Forgejo, so day-to-day work doesn't depend on GitHub. No change to the app itself.

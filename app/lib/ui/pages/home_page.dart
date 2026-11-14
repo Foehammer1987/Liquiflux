@@ -189,7 +189,8 @@ class _HomePageState extends State<HomePage> with RouteAware {
     if (seerr == null || library == null) return;
     try {
       final r = await Future.wait([seerr.trending(), seerr.topRated('movie'), seerr.topRated('tv')]);
-      if (!mounted) return;
+      // Seerr was turned off (or changed) while these loaded.
+      if (!mounted || !identical(seerr, AppScope.read(context).seerr)) return;
       setState(() {
         _trending = r[0].where((t) => !library.owns(t)).take(20).toList();
         _missing = topMissing([...r[1], ...r[2]], library);
@@ -269,6 +270,12 @@ class _HomePageState extends State<HomePage> with RouteAware {
     if (!_started && app.plexConn == Conn.ok) {
       _started = true;
       WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    }
+    // Seerr turned off in Settings: its rows go, and come back fresh if it's turned on again.
+    if (app.seerrConn == Conn.off && _seerrStarted) {
+      _seerrStarted = false;
+      _trending = const [];
+      _missing = const [];
     }
     if (!_seerrStarted && app.seerrConn == Conn.ok) {
       _seerrStarted = true;
@@ -355,7 +362,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                       ),
                     ],
                     // Because You Watched… (sits out until Seerr and your history are in).
-                    TasteRows(onHighlight: (item, on) => _hoverFor(item)(on)),
+                    if (app.settings.seerrEnabled) TasteRows(onHighlight: (item, on) => _hoverFor(item)(on)),
                     if (_recent?.isNotEmpty ?? false) ...[
                       const SizedBox(height: Space.space8),
                       Shelf(

@@ -189,4 +189,26 @@ void main() {
     await file.writeAsString(jsonEncode({...await saved(), 'xrayUrl': 'file:///etc/passwd'}));
     expect((await store(secrets).load()).xrayUrl, '');
   });
+
+  test('Seerr and X-Ray start off, and older files that set them up keep them on', () async {
+    final secrets = FakeSecrets();
+    final fresh = await store(secrets).load();
+    expect(fresh.seerrEnabled, isFalse);
+    expect(fresh.xrayEnabled, isFalse);
+    // From before the switches: an address saved means it was in use.
+    await file.writeAsString(jsonEncode({'seerrUrl': 'http://192.168.1.10:5055', 'xrayUrl': 'http://192.168.1.30:8089', 'clientId': 'console-abc'}));
+    final old = await store(secrets).load();
+    expect(old.seerrEnabled, isTrue);
+    expect(old.xrayEnabled, isTrue);
+    expect(old.xrayServer, 'http://192.168.1.30:8089');
+    // Turned off, the addresses stay for next time.
+    final s = store(secrets);
+    await s.save(old.copyWith(seerrEnabled: false, xrayEnabled: false));
+    final off = await store(secrets).load();
+    expect(off.seerrEnabled, isFalse);
+    expect(off.xrayEnabled, isFalse);
+    expect(off.seerrUrl, 'http://192.168.1.10:5055');
+    expect(off.xrayUrl, 'http://192.168.1.30:8089');
+    expect(off.xrayServer, '');
+  });
 }

@@ -145,9 +145,11 @@ version is out.
 
 1. **Sign In with Plex.** Your browser opens to approve the app, and Liquiflux finds your server
    and the fastest secure way to reach it.
-2. **Add Seerr** (optional) in Settings > Servers. It signs in with your Plex account, so requests
-   are filed under your own name.
-3. **Add an X-Ray server** (optional) in Settings to get the "who's in this scene" panel.
+2. **Turn on Seerr** (optional) in Settings > Servers if you run one, then enter its address. It
+   signs in with your Plex account, so requests are filed under your own name. Until it's on,
+   Liquiflux is Plex alone: no request buttons, Trending or Requests pages.
+3. **Turn on an X-Ray server** (optional) in Settings > Servers to get the "who's in this scene"
+   panel. Without one, X-Ray shows the whole cast from Plex.
 
 The [user guide](docs/GUIDE.md) covers every page and setting.
 
