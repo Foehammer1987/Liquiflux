@@ -39,7 +39,18 @@ group_index() {
 
 mkdir -p "$root/dist"
 original="$(cat "$manifest")"
-trap 'printf "%s\n" "$original" > "$manifest"' EXIT
+# The store build leaves out the TV Networks page (app_info.dart tvNetworksInBuild), so it
+# ships an empty collection pack too: no network or block names inside the TPK. The real
+# pack comes back when the script ends.
+pack="$app/assets/collections/tv-pack.json"
+pack_saved="$(mktemp)"
+cp "$pack" "$pack_saved"
+restore() {
+  printf "%s\n" "$original" > "$manifest"
+  cp "$pack_saved" "$pack" && rm -f "$pack_saved"
+}
+trap restore EXIT
+printf '%s\n' '{"format":1,"built":"2000-01-01T00:00:00Z","shows":[],"collections":[]}' > "$pack"
 
 for api in "${groups[@]}"; do
   n="$(group_index "$api")"

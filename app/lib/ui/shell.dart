@@ -404,6 +404,8 @@ class _ShellState extends State<Shell> {
     MoodsDest() => const MoodsPage(),
     ChannelsDest() => const ChannelsPage(),
     CollectionsDest() => const CollectionsPage(),
+    // The Samsung store build has no TV Networks page (AppState.tvNetworks).
+    TvCollectionsDest() || TvCollectionDest() when !AppScope.read(context).tvNetworks => const HomePage(),
     TvCollectionsDest() => const TvCollectionsPage(),
     TvCollectionDest(:final id) => TvCollectionPage(key: ValueKey('tv:$id'), id: id),
     CollectionDest(:final franchise) => CollectionPage(key: ValueKey(franchise.key), franchise: franchise),
@@ -1188,7 +1190,8 @@ class _RailState extends State<_Rail> {
         // Trending and Requests come from Seerr: without one set up they'd only say so.
         if (app.settings.seerrReady) item('trending', LucideIcons.flame, 'Trending', const TrendingDest()),
         item('collections', LucideIcons.layers, 'Collections', const CollectionsDest()),
-        item('tv-networks', LucideIcons.satelliteDish, 'TV Networks', const TvCollectionsDest()),
+        // Not in the Samsung store build (AppState.tvNetworks).
+        if (app.tvNetworks) item('tv-networks', LucideIcons.satelliteDish, 'TV Networks', const TvCollectionsDest()),
         item('moods', LucideIcons.sparkles, 'Moods', const MoodsDest()),
         action('shuffle', LucideIcons.shuffle, 'Shuffle Play', () => showShuffle(context)),
         item('channels', LucideIcons.radioTower, 'Channels', const ChannelsDest()),

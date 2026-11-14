@@ -106,7 +106,7 @@ class _ChannelEditorState extends State<ChannelEditor> {
       ]);
       final lib = await app.library().then<List<PlexItem>>((l) => [for (final x in l.bySection) ...x], onError: (Object _) => const <PlexItem>[]);
       // TV networks and blocks you own at least one show from.
-      final packs = await app.tvCollections().then<List<TvShelf>>((t) => tvShelves(t.pack, t.shows), onError: (Object _) => const <TvShelf>[]);
+      final packs = !app.tvNetworks ? const <TvShelf>[] : await app.tvCollections().then<List<TvShelf>>((t) => tvShelves(t.pack, t.shows), onError: (Object _) => const <TvShelf>[]);
       final shows = lib.where((i) => i.type == 'show').toList()..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
       if (!mounted) return;
       int byLabel(SourceChoice a, SourceChoice b) => a.label.toLowerCase().compareTo(b.label.toLowerCase());
@@ -201,7 +201,12 @@ class _ChannelEditorState extends State<ChannelEditor> {
 
   /// Opens the picker; focus comes back to the Add button after.
   Future<void> _add() async {
-    final picked = await showSourcePicker(context, choices: _choices, chosen: _sources);
+    final picked = await showSourcePicker(
+      context,
+      choices: _choices,
+      chosen: _sources,
+      kinds: widget.app.tvNetworks ? const ['show', 'collection', 'pack', 'label', 'section'] : const ['show', 'collection', 'label', 'section'],
+    );
     if (!mounted) return;
     if (picked != null) _setSources(picked);
     _addButton.requestFocus();

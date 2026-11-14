@@ -32,6 +32,9 @@ TV yet**. See [Testing](#testing) for what needs a real TV.
   YouTube trailers and extras, the Trakt and AniList developer pages) are left out.
 - **No updater.** Samsung's store updates the app. The Samsung build is a store build
   (`LIQUIFLUX_STORE=samsung`): no update check, no Updates panel.
+- **No TV Networks.** The TV Networks page and the Networks & Blocks channel sources are left
+  out (real network and block names, and posters of shows you may not own, are a risk in store
+  review). `tools/build-tizen.sh` swaps in an empty collection pack while it builds.
 - **Samsung's key rules.**
   - Return goes back a page. On Home it first goes to the top of Home, and from there it asks
     "Exit Liquiflux?" (No is focused; only Yes closes the app). Return on a popup closes it.

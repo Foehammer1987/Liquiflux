@@ -205,11 +205,12 @@ class _NoSecrets implements SecretStore {
 /// The app as a TV lays it out (1920x1080 at 2x, drawn on the 1440-wide canvas), on Home with
 /// everything loaded. Run with CONSOLE_TV=1 for the TV's own behaviour too (focus on arrival,
 /// the rail hidden until Left); without it the shell behaves as on a desktop.
-Future<AppState> tvApp(WidgetTester t, {int settle = 60, void Function(AppState)? before}) async {
+/// [tvNetworks] false is the Samsung store build (no TV Networks page or pack sources).
+Future<AppState> tvApp(WidgetTester t, {int settle = 60, void Function(AppState)? before, bool tvNetworks = true}) async {
   t.view.physicalSize = const Size(1920, 1080);
   t.view.devicePixelRatio = 2;
   addTearDown(t.view.reset);
-  final state = AppState(SettingsStore(secrets: _NoSecrets()), channels: ChannelStore(disk: false), tvPack: fakeTvPack())
+  final state = AppState(SettingsStore(secrets: _NoSecrets()), channels: ChannelStore(disk: false), tvPack: fakeTvPack(), tvNetworks: tvNetworks)
     ..settings = const Settings(clientId: 'c', plexUrl: 'http://plex.test:32400', plexToken: 'tok', seerrUrl: 'http://seerr.test', seerrApiKey: 'key', seerrEnabled: true)
     ..plex = PlexClient(baseUrl: 'http://plex.test:32400', token: 'tok', clientId: 'c', http: JsonHttp(client: fakeServers()))
     ..seerr = SeerrClient(baseUrl: 'http://seerr.test', apiKey: 'key', http: JsonHttp(client: fakeServers()))

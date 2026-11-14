@@ -29,15 +29,21 @@ enum Conn { unknown, ok, failed, off }
 
 /// App-wide state: settings, the Plex and Seerr clients, and the live request list.
 class AppState extends ChangeNotifier {
-  AppState(this._store, {Updater? updater, Scrobbler? scrobbler, ChannelStore? channels, TvPackStore? tvPack})
+  AppState(this._store, {Updater? updater, Scrobbler? scrobbler, ChannelStore? channels, TvPackStore? tvPack, bool? tvNetworks})
     : updater = updater ?? Updater(),
       scrobbler = scrobbler ?? Scrobbler(),
       channels = channels ?? ChannelStore(),
-      tvPack = tvPack ?? TvPackStore();
+      tvPack = tvPack ?? TvPackStore(),
+      tvNetworks = tvNetworks ?? (tvNetworksInBuild && !isTizen);
   final SettingsStore _store;
 
   /// TV networks and programming blocks (TV Collections page, Channels).
   final TvPackStore tvPack;
+
+  /// Whether the TV Networks page and the Networks & Blocks channel sources exist here. Off
+  /// on Samsung TVs (the store build): no rail item, no pack read or fetched, and a channel's
+  /// "pack" source plays nothing.
+  final bool tvNetworks;
 
   /// Newer Liquiflux releases on GitHub (Settings > Advanced > Updates).
   final Updater updater;
@@ -120,6 +126,7 @@ class AppState extends ChangeNotifier {
 
   /// The collection pack and the library's shows, ready to match.
   Future<({CollectionPack pack, ShowMatcher shows})> tvCollections() async {
+    if (!tvNetworks) return (pack: CollectionPack(built: DateTime.utc(2000), collections: const []), shows: ShowMatcher(const []));
     final pack = tvPack.load();
     final lib = await library();
     if (!identical(_showMatcherFor, lib.bySection)) {
@@ -131,6 +138,7 @@ class AppState extends ChangeNotifier {
 
   /// The shows you own from a TV network or block of the pack (a channel's "pack" source).
   Future<List<PlexItem>> packShows(String collectionId) async {
+    if (!tvNetworks) return const [];
     final t = await tvCollections();
     final c = t.pack.byId(collectionId);
     return c == null ? const [] : TvShelf.build(c, t.shows).owned;

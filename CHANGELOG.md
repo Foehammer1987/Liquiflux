@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.16
+
+The Samsung TV build leaves out TV Networks, for the Samsung store review: that page shows real network and block names and posters of shows you may not own. Every other platform is unchanged.
+
+- Samsung TVs (`LIQUIFLUX_STORE=samsung`): no TV Networks item in the sidebar and no TV Networks page, no Networks & Blocks tab in Channels > Choose What Plays, and the collection pack is never read or fetched. `tools/build-tizen.sh` packs an empty collection pack into the TPKs, so no network or block names ship inside them.
+- `AppState.tvNetworks` says whether TV Networks exist in a build (`tvNetworksInBuild` in `app_info.dart`, and never on Tizen).
+- Version 1.0.16+74 (Samsung packages 1.0.1600, 1.0.1601, 1.0.1602).
+
 ## 1.0.15
 
 Seerr and the X-Ray server are now add-ons you switch on, since they need a server of your own. Off (the default for a new install), Liquiflux is Plex alone and looks finished that way.
