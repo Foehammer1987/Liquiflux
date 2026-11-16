@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.18
+
+Fire TV / Android TV: the remote no longer gets stuck on the search bar on the first-run sign-in page; search is hidden until Plex is set up, and the sign-in page always gets focus.
+
+- Version 1.0.18+76.
+
 ## 1.0.16
 
 The Samsung TV build leaves out TV Networks, for the Samsung store review: that page shows real network and block names and posters of shows you may not own. Every other platform is unchanged.

@@ -57,6 +57,9 @@ class _ShellState extends State<Shell> {
   // On a TV the D-pad lands on the search pill as a button; Select starts typing.
   final _searchFocus = FocusNode(debugLabel: 'search field', skipTraversal: isTv);
   final _searchButton = FocusNode(debugLabel: 'search');
+  // The sign-in page shown before Plex is set up. It isn't a route, so the page-focus helpers
+  // (which look at the Navigator's top route) can't find it on their own.
+  final _welcome = FocusScopeNode(debugLabel: 'welcome');
   final _search = TextEditingController();
   final _backdrop = BackdropController();
   Dest _top = const HomeDest();
@@ -176,6 +179,7 @@ class _ShellState extends State<Shell> {
     Notifier.instance.onAction = null;
     _searchFocus.dispose();
     _searchButton.dispose();
+    _welcome.dispose();
     super.dispose();
   }
 
@@ -541,6 +545,13 @@ class _ShellState extends State<Shell> {
 
   /// From the rail back to the page, where focus was before.
   void _toPage() {
+    // Before sign-in there is no Navigator, only the welcome page: focus its first control.
+    // Without this, focus that reached the search pill (or got lost) on a TV had nowhere to go,
+    // and the remote was stuck there (seen on Fire TV, 1.0.17).
+    if (_welcome.context?.mounted == true) {
+      (_firstIn(_welcome) ?? _welcome).requestFocus();
+      return;
+    }
     final ctx = _pages.current?.subtreeContext;
     if (ctx == null) return;
     final scope = FocusScope.of(ctx);
@@ -636,9 +647,9 @@ class _ShellState extends State<Shell> {
                       !app.loaded
                           ? const SizedBox()
                           : needsSetup
-                          ? const Padding(
-                              padding: EdgeInsets.only(top: _chromeHeight),
-                              child: SettingsPage(welcome: true),
+                          ? Padding(
+                              padding: const EdgeInsets.only(top: _chromeHeight),
+                              child: _WelcomeFocus(scope: _welcome, child: const SettingsPage(welcome: true)),
                             )
                           : Actions(
                               // Left from the edge of a page opens the rail; Up from its top goes to search.
@@ -665,7 +676,9 @@ class _ShellState extends State<Shell> {
                         left: 0,
                         right: 0,
                         top: 0,
-                        child: _TopChrome(search: _search, searchFocus: _searchFocus, searchButton: _searchButton, onSearch: _submitSearch, toPage: _toPage),
+                        // No search before sign-in: there's nothing to search yet, and on a TV the pill was a
+                        // focus trap above the welcome page.
+                        child: _TopChrome(search: _search, searchFocus: _searchFocus, searchButton: _searchButton, onSearch: _submitSearch, toPage: _toPage, showSearch: !needsSetup),
                       ),
                       if (_toasts.isNotEmpty)
                         Positioned(
@@ -715,6 +728,50 @@ class _ShellState extends State<Shell> {
       ),
     );
   }
+}
+
+/// The welcome (sign-in) page's focus scope. On a TV it makes sure one of its controls has
+/// focus once it is on screen, as [_PageFocus] does for routed pages: the Sign In button's
+/// autofocus alone wasn't always enough (Fire TV).
+class _WelcomeFocus extends StatefulWidget {
+  const _WelcomeFocus({required this.scope, required this.child});
+  final FocusScopeNode scope;
+  final Widget child;
+
+  @override
+  State<_WelcomeFocus> createState() => _WelcomeFocusState();
+}
+
+class _WelcomeFocusState extends State<_WelcomeFocus> {
+  final _timers = <Timer>[];
+
+  @override
+  void initState() {
+    super.initState();
+    if (!isTv) return;
+    for (final ms in const [200, 700, 1500, 3000]) {
+      _timers.add(Timer(Duration(milliseconds: ms), () {
+        if (!mounted) return;
+        final p = FocusManager.instance.primaryFocus;
+        // Something on the page already has focus (the user may have moved): leave it.
+        if (p != null && p != widget.scope && p.ancestors.contains(widget.scope)) return;
+        // A dialog or another route has focus: leave it too.
+        if (p != null && !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+        (_firstIn(widget.scope) ?? widget.scope).requestFocus();
+      }));
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final t in _timers) {
+      t.cancel();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => FocusScope(node: widget.scope, child: widget.child);
 }
 
 /// "/" jumps to search, except while typing, when it's just a slash (a server address, "AC/DC").
@@ -872,7 +929,8 @@ class _TopTracker extends NavigatorObserver {
 const _chromeHeight = 44.0;
 
 class _TopChrome extends StatelessWidget {
-  const _TopChrome({required this.search, required this.searchFocus, required this.searchButton, required this.onSearch, required this.toPage});
+  const _TopChrome({required this.search, required this.searchFocus, required this.searchButton, required this.onSearch, required this.toPage, this.showSearch = true});
+  final bool showSearch;
   final TextEditingController search;
   final FocusNode searchFocus;
   final FocusNode searchButton;
@@ -899,7 +957,7 @@ class _TopChrome extends StatelessWidget {
           child: Row(
             children: [
               Expanded(child: customTitleBar ? const DragToMoveArea(child: SizedBox.expand()) : const SizedBox()),
-              _SearchBox(controller: search, focus: searchFocus, button: searchButton, onSubmit: onSearch, toPage: toPage),
+              if (showSearch) _SearchBox(controller: search, focus: searchFocus, button: searchButton, onSubmit: onSearch, toPage: toPage),
               const SizedBox(width: Space.space3),
               if (customTitleBar) const WindowButtons(height: _chromeHeight) else const SizedBox(width: Space.space3),
             ],

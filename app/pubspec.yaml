@@ -1,7 +1,7 @@
 name: console_app
 description: "Liquiflux, a Plex client with Seerr requests built in."
 publish_to: none
-version: 1.0.16+74
+version: 1.0.18+76
 
 environment:
   sdk: ^3.8.0
