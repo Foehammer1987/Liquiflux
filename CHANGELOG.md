@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.19
+
+Settings: example addresses in the Seerr/X-Ray fields now use generic hostnames (seerr.local, xray.local) instead of private-network IPs.
+
+- Version 1.0.19+77.
+
 ## 1.0.18
 
 Fire TV / Android TV: the remote no longer gets stuck on the search bar on the first-run sign-in page; search is hidden until Plex is set up, and the sign-in page always gets focus.

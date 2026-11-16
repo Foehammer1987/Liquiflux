@@ -496,7 +496,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             if (s.seerrEnabled) ...[
               const SizedBox(height: Space.space3),
-              SettingsField(label: 'Seerr Address', controller: _seerrUrl, mono: true, hint: 'http://192.168.1.10:5055', help: 'Works with Seerr, Overseerr and Jellyseerr.'),
+              SettingsField(label: 'Seerr Address', controller: _seerrUrl, mono: true, hint: 'http://seerr.local:5055', help: 'Works with Seerr, Overseerr and Jellyseerr.'),
               const SizedBox(height: Space.space3),
               Text('Sign In', style: ConsoleText.caption.copyWith(color: c.text200)),
               const SizedBox(height: Space.space1),
