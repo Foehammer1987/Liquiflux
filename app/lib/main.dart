@@ -5,6 +5,7 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:console_core/console_core.dart';
 import 'package:console_ui/console_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -23,6 +24,7 @@ import 'ui/back_key.dart';
 import 'ui/intro.dart';
 import 'ui/tv_focus.dart';
 import 'ui/shell.dart';
+import 'ui/touch.dart';
 
 /// Windows draws its own charcoal title bar (the app bar doubles as one).
 final bool customTitleBar = Platform.isWindows;
@@ -73,6 +75,12 @@ Future<void> _main() async {
     PaintingBinding.instance.imageCache
       ..maximumSizeBytes = 48 << 20
       ..maximumSize = 300;
+  }
+  // Phones and tablets draw behind the status and navigation bars (Android 15 and later
+  // insist on it); pages keep clear of them with the screen's padding.
+  if (isTouch) {
+    unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Color(0x00000000), systemNavigationBarColor: Color(0x00000000), statusBarIconBrightness: Brightness.light));
   }
   await GpuMemory.init();
   GpuMemory.showHidden = showHidden;
@@ -125,7 +133,8 @@ class ConsoleApp extends StatelessWidget {
           // Left / Right stay in their row (see [TvTraversalPolicy]), on every platform.
           // On a desktop the player has a layer of its own over the app, to shrink into a
           // corner of (see [PlayerDock]).
-          final page = FocusTraversalGroup(policy: TvTraversalPolicy(), child: isTv ? TvCanvas(child: child!) : (PlayerDock.enabled ? PlayerDockHost(child: child!) : child!));
+          // On a phone the design system lays out compactly (see [TouchDensity]).
+          final page = FocusTraversalGroup(policy: TvTraversalPolicy(), child: isTv ? TvCanvas(child: child!) : (PlayerDock.enabled ? PlayerDockHost(child: child!) : TouchDensity(child: child!)));
           return IntroGate(enabled: _intro, child: Platform.isAndroid ? BackKeyGuard(child: page) : page);
         },
         home: const Shell(),

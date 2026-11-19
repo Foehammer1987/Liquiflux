@@ -5,6 +5,8 @@ import 'package:console_core/console_core.dart';
 import 'package:console_ui/console_ui.dart';
 import 'package:flutter/material.dart';
 
+import '../common.dart';
+
 import '../../state/app_state.dart';
 import '../../state/scope.dart';
 import '../home/rows.dart';
@@ -126,9 +128,8 @@ class _TrendingPageState extends State<TrendingPage> {
   Widget _heading(String title, String note) {
     final c = context.c;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(48, Space.space10, 48, Space.space4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      padding: EdgeInsets.fromLTRB(ConsoleDensity.inset(context), Space.space10, ConsoleDensity.inset(context), Space.space4),
+      child: HeaderRow(
         children: [
           Text(
             title,
@@ -182,9 +183,8 @@ class _TrendingPageState extends State<TrendingPage> {
       padding: const EdgeInsets.only(bottom: Space.space10),
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(48, Space.space4, 48, 0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          padding: EdgeInsets.fromLTRB(ConsoleDensity.inset(context), Space.space4, ConsoleDensity.inset(context), 0),
+          child: HeaderRow(
             children: [
               Expanded(
                 child: Column(
@@ -192,7 +192,7 @@ class _TrendingPageState extends State<TrendingPage> {
                   children: [
                     Text(
                       'Trending',
-                      style: ConsoleText.display.copyWith(fontSize: 40, height: 1.1, fontWeight: FontWeight.w800, color: c.text100),
+                      style: ConsoleText.display.copyWith(fontSize: ConsoleDensity.compactOf(context) ? 30 : 40, height: 1.1, fontWeight: FontWeight.w800, color: c.text100),
                     ),
                     const SizedBox(height: Space.space1),
                     Text("What people are watching right now. Anything you don't have can be requested here.", style: ConsoleText.body.copyWith(color: c.text200)),
@@ -223,7 +223,7 @@ class _TrendingPageState extends State<TrendingPage> {
         ],
         _heading('By Genre', _fromTrakt ? 'Live from Trakt: what people are watching right now.' : "TMDB's popularity, updated daily. Add a Trakt Client ID in Settings for live charts."),
         if (genres.isEmpty && _genresFailed >= trendingGenres.length)
-          const Padding(padding: EdgeInsets.symmetric(horizontal: 48), child: ErrorNote('Couldn’t load the genre charts from Seerr.'))
+          Padding(padding: EdgeInsets.symmetric(horizontal: ConsoleDensity.inset(context)), child: ErrorNote('Couldn’t load the genre charts from Seerr.'))
         else if (genres.isEmpty)
           const LoadingNote(label: 'Finding what people are watching'),
         for (final (i, (name, items)) in genres.indexed) ...[if (i > 0) gap(), _shelf(name, items)],

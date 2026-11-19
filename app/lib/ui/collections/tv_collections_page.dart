@@ -43,15 +43,14 @@ class _TvCollectionsPageState extends State<TvCollectionsPage> {
       itemBuilder: (context, i) {
         if (i == 0) {
           return Padding(
-            padding: const EdgeInsets.fromLTRB(48, Space.space4, 48, Space.space6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
+            padding: EdgeInsets.fromLTRB(ConsoleDensity.inset(context), Space.space4, ConsoleDensity.inset(context), Space.space6),
+            child: HeaderRow(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('TV Networks', style: ConsoleText.display.copyWith(fontSize: 40, height: 1.1, fontWeight: FontWeight.w800, color: c.text100)),
+                      Text('TV Networks', style: ConsoleText.display.copyWith(fontSize: ConsoleDensity.compactOf(context) ? 30 : 40, height: 1.1, fontWeight: FontWeight.w800, color: c.text100)),
                       const SizedBox(height: Space.space1),
                       Text(
                         'Shows by the channel or programming block they aired on. Yours come first; request the ones you’re missing.',
@@ -67,7 +66,7 @@ class _TvCollectionsPageState extends State<TvCollectionsPage> {
         }
         if (i == shelves.length + 1) {
           return Padding(
-            padding: const EdgeInsets.fromLTRB(48, Space.space8, 48, 0),
+            padding: EdgeInsets.fromLTRB(ConsoleDensity.inset(context), Space.space8, ConsoleDensity.inset(context), 0),
             child: Text(pack.credits ?? '', style: ConsoleText.caption.copyWith(color: c.text300)),
           );
         }
@@ -190,11 +189,11 @@ class _TvCollectionPageState extends State<TvCollectionPage> {
     final missing = _all ? s.allMissing : s.missing;
     final requestable = [for (final m in missing) if (m.tmdb != null && !_requested.contains(m.tmdb)) m];
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(48, Space.space4, 48, Space.space10),
+      padding: EdgeInsets.fromLTRB(ConsoleDensity.inset(context), Space.space4, ConsoleDensity.inset(context), Space.space10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(col.name, style: ConsoleText.display.copyWith(fontSize: 40, height: 1.1, fontWeight: FontWeight.w800, color: c.text100)),
+          Text(col.name, style: ConsoleText.display.copyWith(fontSize: ConsoleDensity.compactOf(context) ? 30 : 40, height: 1.1, fontWeight: FontWeight.w800, color: c.text100)),
           const SizedBox(height: Space.space1),
           Text(
             [

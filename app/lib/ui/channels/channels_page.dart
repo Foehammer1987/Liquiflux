@@ -4,6 +4,8 @@ import 'package:console_core/console_core.dart';
 import 'package:console_ui/console_ui.dart';
 import 'package:flutter/material.dart';
 
+import '../common.dart';
+
 import '../../services/channels.dart';
 import '../../state/scope.dart';
 import '../play.dart';
@@ -83,10 +85,9 @@ class _ChannelsPageState extends State<ChannelsPage> {
     return ListenableBuilder(
       listenable: store ?? const AlwaysStoppedAnimation(0),
       builder: (context, _) => ListView(
-        padding: const EdgeInsets.fromLTRB(48, Space.space4, 48, Space.space10),
+        padding: EdgeInsets.fromLTRB(ConsoleDensity.inset(context), Space.space4, ConsoleDensity.inset(context), Space.space10),
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          HeaderRow(
             children: [
               Expanded(
                 child: Column(
@@ -94,7 +95,7 @@ class _ChannelsPageState extends State<ChannelsPage> {
                   children: [
                     Text(
                       'Channels',
-                      style: ConsoleText.display.copyWith(fontSize: 40, height: 1.1, fontWeight: FontWeight.w800, color: c.text100),
+                      style: ConsoleText.display.copyWith(fontSize: ConsoleDensity.compactOf(context) ? 30 : 40, height: 1.1, fontWeight: FontWeight.w800, color: c.text100),
                     ),
                     const SizedBox(height: Space.space1),
                     Text(

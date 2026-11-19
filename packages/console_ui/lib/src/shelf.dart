@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import 'density.dart';
 import 'focusable.dart';
 import 'glass.dart';
 import 'theme.dart';
@@ -67,6 +68,11 @@ class _ShelfState extends State<Shelf> {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
+    // A phone: narrower margins and cards, a smaller heading (see [ConsoleDensity]).
+    final compact = ConsoleDensity.compactOf(context);
+    final inset = compact ? 16.0 : widget.inset;
+    final itemWidth = widget.itemWidth == null ? null : (compact ? (widget.itemWidth! * ConsoleDensity.compactScale).roundToDouble() : widget.itemWidth);
+    final spacing = compact ? widget.spacing * 0.5 : widget.spacing;
     return MouseRegion(
       onEnter: (_) => _hover.value = true,
       onExit: (_) => _hover.value = false,
@@ -75,7 +81,7 @@ class _ShelfState extends State<Shelf> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(widget.inset, 0, widget.inset, 0),
+            padding: EdgeInsets.fromLTRB(inset, 0, inset, 0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -83,7 +89,7 @@ class _ShelfState extends State<Shelf> {
                   child: Text(
                     widget.title,
                     style: ConsoleText.titleLg.copyWith(
-                      fontSize: 21,
+                      fontSize: compact ? 17 : 21,
                       fontWeight: FontWeight.w700,
                       color: c.text100,
                       shadows: Theme.of(context).brightness == Brightness.dark ? const [Shadow(color: Color(0x99000000), blurRadius: 12)] : null,
@@ -108,13 +114,13 @@ class _ShelfState extends State<Shelf> {
                   controller: _scroll,
                   scrollDirection: Axis.horizontal,
                   clipBehavior: Clip.hardEdge,
-                  padding: EdgeInsets.fromLTRB(widget.inset, Space.space3, widget.inset, Space.space4),
+                  padding: EdgeInsets.fromLTRB(inset, compact ? Space.space2 : Space.space3, inset, compact ? Space.space3 : Space.space4),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       for (var i = 0; i < widget.children.length; i++) ...[
-                        if (i > 0) SizedBox(width: widget.spacing),
-                        widget.itemWidth == null ? widget.children[i] : SizedBox(width: widget.itemWidth, child: widget.children[i]),
+                        if (i > 0) SizedBox(width: spacing),
+                        itemWidth == null ? widget.children[i] : SizedBox(width: itemWidth, child: widget.children[i]),
                       ],
                     ],
                   ),

@@ -426,6 +426,7 @@ class _SpotlightState extends State<Spotlight> with SingleTickerProviderStateMix
       item,
       image: (p, w, h) => widget.plex.imageUrl(p, width: w, height: h),
     );
+    if (ConsoleDensity.compactOf(context)) return _compact(context, item, detail);
     final art = widget.plex.imageUrl(item.art ?? item.thumb, width: _artWidth, height: _artHeight);
     final showVideo = _videoOn && _clipFor == item.ratingKey && _video != null;
 
@@ -572,6 +573,134 @@ class _SpotlightState extends State<Spotlight> with SingleTickerProviderStateMix
   }
 }
 
+/// The phone spotlight: the title's poster across the screen (its backdrop when the phone is
+/// on its side), the name and Play / More Info centred at the bottom, swiped sideways to the
+/// next title. No trailer clips (they'd use mobile data); the pager dots show where you are.
+extension on _SpotlightState {
+  Widget _compact(BuildContext context, PlexItem item, TitleDetail detail) {
+    final base = context.c.surface000;
+    final size = MediaQuery.sizeOf(context);
+    final portrait = size.height >= size.width;
+    final art = portrait ? widget.plex.imageUrl(item.posterPath ?? item.art, width: 720, height: 1080) : widget.plex.imageUrl(item.art ?? item.thumb, width: 1280, height: 720);
+    final logo = widget.plex.imageUrl(item.clearLogo, width: 720, height: 288);
+    final series = item.type == 'show' || item.type == 'season' || item.type == 'episode';
+    final resumeMs = item.isPlayable ? (item.viewOffset ?? 0) : 0;
+    final meta = <String>[
+      if (detail.year != null) '${detail.year}',
+      ...detail.genres.take(2),
+      if (item.type == 'show' && (item.childCount ?? 0) > 0) '${item.childCount} Season${item.childCount == 1 ? '' : 's'}' else if (detail.runtimeMs != null) formatDuration(detail.runtimeMs),
+    ];
+    final title = Text(
+      detail.title,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      textAlign: portrait ? TextAlign.center : TextAlign.start,
+      style: ConsoleText.display.copyWith(fontSize: portrait ? 34 : 26, height: 1.05, fontWeight: FontWeight.w800, letterSpacing: -0.8, color: Colors.white, shadows: _shadow),
+    );
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => widget.onInfo(item),
+      // A swipe sideways moves to the next (or last) title.
+      onHorizontalDragEnd: widget.items.length < 2
+          ? null
+          : (d) {
+              final v = d.primaryVelocity ?? 0;
+              if (v.abs() < 150) return;
+              _go(_index + (v < 0 ? 1 : -1));
+            },
+      child: SizedBox(
+        height: widget.height,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              layoutBuilder: (current, previous) => Stack(fit: StackFit.expand, children: [...previous, ?current]),
+              child: art == null
+                  ? const SizedBox.expand()
+                  : ArtImage(art, key: ValueKey(art), fit: BoxFit.cover, alignment: portrait ? Alignment.topCenter : Alignment.center, gaplessPlayback: true, errorBuilder: (_, _, _) => const SizedBox()),
+            ),
+            if (!portrait)
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [Colors.black.withValues(alpha: 0.8), Colors.black.withValues(alpha: 0)], stops: const [0, 0.6]),
+                ),
+              ),
+            // Shade under the status bar at the top, and into the page at the bottom.
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black.withValues(alpha: 0.55), Colors.black.withValues(alpha: 0), base.withValues(alpha: 0), base.withValues(alpha: 0.85), base],
+                  stops: const [0, 0.2, 0.45, 0.8, 1],
+                ),
+              ),
+            ),
+            Positioned(
+              left: Space.space5,
+              // On its side the details keep to the left half, over a darker edge.
+              right: portrait ? Space.space5 : size.width - Space.space5 - (size.width * 0.5).clamp(0, 400),
+              bottom: portrait ? Space.space6 : Space.space4,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 350),
+                layoutBuilder: (current, previous) => Stack(alignment: portrait ? Alignment.bottomCenter : Alignment.bottomLeft, children: [...previous, ?current]),
+                child: Column(
+                  key: ValueKey(item.ratingKey),
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: portrait ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const ConsoleLogo(height: 14, ink: LogoInk.white),
+                        const SizedBox(width: Space.space2),
+                        Text(
+                          series ? 'SERIES' : 'FILM',
+                          style: ConsoleText.caption.copyWith(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 2.8, color: Colors.white.withValues(alpha: 0.85), shadows: _shadow),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: Space.space2),
+                    if (logo != null)
+                      ConstrainedBox(
+                        constraints: BoxConstraints(maxHeight: portrait ? 84 : 56, maxWidth: 280),
+                        child: ArtImage(logo, fit: BoxFit.contain, alignment: portrait ? Alignment.center : Alignment.centerLeft, errorBuilder: (_, _, _) => title),
+                      )
+                    else
+                      title,
+                    const SizedBox(height: Space.space2),
+                    Text(
+                      meta.join('  ·  '),
+                      textAlign: portrait ? TextAlign.center : TextAlign.start,
+                      style: ConsoleText.bodyStrong.copyWith(fontSize: 13, color: Colors.white.withValues(alpha: 0.9), shadows: _shadow),
+                    ),
+                    const SizedBox(height: Space.space4),
+                    Row(
+                      children: [
+                        Expanded(child: _PillButton(label: resumeMs > 0 ? 'Resume' : 'Play', icon: LucideIcons.play, solid: true, focusNode: _playNode, onTap: () => _play(item), center: true)),
+                        const SizedBox(width: Space.space3),
+                        Expanded(child: _PillButton(label: 'More Info', icon: LucideIcons.info, focusNode: _infoNode, onTap: () => widget.onInfo(item), center: true)),
+                      ],
+                    ),
+                    if (portrait && widget.items.length > 1 && _previewing == null) ...[
+                      const SizedBox(height: Space.space3),
+                      AnimatedBuilder(
+                        animation: _clock,
+                        builder: (context, _) => _Pager(count: widget.items.length, index: _index, progress: _clock.value, dim: false, tint: Colors.white, onTap: _go),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 const _shadow = [Shadow(color: Color(0xAA000000), blurRadius: 18, offset: Offset(0, 2))];
 
 class _HeroInfo extends StatelessWidget {
@@ -688,8 +817,11 @@ class _HeroInfo extends StatelessWidget {
 
 /// Netflix-style big pill: white solid for Play, frosted for the rest.
 class _PillButton extends StatelessWidget {
-  const _PillButton({required this.label, required this.icon, required this.onTap, this.focusNode, this.solid = false});
+  const _PillButton({required this.label, required this.icon, required this.onTap, this.focusNode, this.solid = false, this.center = false});
   final FocusNode? focusNode;
+
+  /// Centred in a full-width button (the phone spotlight).
+  final bool center;
   final String label;
   final IconData icon;
   final VoidCallback onTap;
@@ -712,6 +844,7 @@ class _PillButton extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           height: 46,
+          width: center ? double.infinity : null,
           padding: const EdgeInsets.symmetric(horizontal: Space.space6),
           decoration: BoxDecoration(
             color: bg,
@@ -721,6 +854,7 @@ class _PillButton extends StatelessWidget {
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: center ? MainAxisAlignment.center : MainAxisAlignment.start,
             children: [
               Icon(icon, size: 20, color: fg, fill: solid ? 1 : 0),
               const SizedBox(width: Space.space2),

@@ -1,0 +1,63 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The phone and tablet build's manifest (flutter build apk -P liquiflux.form=mobile, with
+         --dart-define=LIQUIFLUX_FORM=mobile; tools/build-android.ps1 -Mobile). build.gradle.kts
+         uses it in place of src/main/AndroidManifest.xml, so keep the two in step. What differs
+         from the TV build:
+         - any orientation (the player turns the picture landscape itself), resizable for split
+           screen, foldables and Android 16's large-screen rules;
+         - picture-in-picture for the player;
+         - no leanback launcher or TV banner, and no sleep timer accessibility service (a phone's
+           screen just times out; Google Play only allows that API for accessibility tools);
+         - Impeller instead of Skia, and no 256 MB Dart heap cap: both were for 2 GB TVs. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- In-app updates from GitHub releases (AppUpdater.kt). A Play build adds
+         -P liquiflux.store=play, whose src/store/AndroidManifest.xml removes this. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
+    <application
+        android:label="Liquiflux"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:allowBackup="false">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:resizeableActivity="true"
+            android:supportsPictureInPicture="true"
+            android:windowSoftInputMode="adjustResize">
+            <meta-data
+              android:name="io.flutter.embedding.android.NormalTheme"
+              android:resource="@style/NormalTheme"
+              />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <!-- The measuring probe's door (services/probe.dart), as in the TV build. -->
+        <activity-alias
+            android:name=".Probe"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
+        <!-- Don't delete the meta-data below.
+             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+    </application>
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT"/>
+            <data android:mimeType="text/plain"/>
+        </intent>
+    </queries>
+</manifest>

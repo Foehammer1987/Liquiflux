@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' show AppLifecycleListener;
 
 import '../app_info.dart';
+import '../platform.dart';
 
 /// Puts an Android TV to sleep when the sleep timer runs out (SleepService.kt). An app can
 /// only do that through an accessibility service the person switches on once (Android TV has
@@ -14,7 +14,7 @@ import '../app_info.dart';
 abstract final class TvSleep {
   static const _channel = MethodChannel('liquiflux/sleep');
 
-  static bool get supported => !kIsWeb && Platform.isAndroid && storeBuild.isEmpty;
+  static bool get supported => !kIsWeb && isAndroidTv && storeBuild.isEmpty;
 
   /// Known after the first [check]; null before, and off Android.
   static final allowed = ValueNotifier<bool?>(null);

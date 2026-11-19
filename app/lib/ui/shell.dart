@@ -26,6 +26,7 @@ import 'player/player_dock.dart';
 import 'notice_toast.dart';
 import 'shuffle/shuffle_dialog.dart';
 import 'tv_focus.dart';
+import 'touch.dart';
 import 'tv_popups.dart';
 import 'window_buttons.dart';
 import 'channels/channels_page.dart';
@@ -397,9 +398,15 @@ class _ShellState extends State<Shell> {
   /// Home runs to the top edge; other pages leave room for the floating search and window buttons.
   Widget _pageFor(Dest d) => d is HomeDest || d is CollectionDest
       ? _page(d)
-      : Padding(
-          padding: EdgeInsets.only(top: _chromeHeight + Space.space2, left: d is TrendingDest || d is MoodsDest || d is CollectionsDest || d is TvCollectionsDest || d is ChannelsDest ? 0 : Space.space4),
-          child: _page(d),
+      : Builder(
+          // On a phone or tablet the search strip sits below the status bar, and pages below that.
+          builder: (context) => Padding(
+            padding: EdgeInsets.only(
+              top: (isTouch ? MediaQuery.paddingOf(context).top : 0) + _chromeHeight + Space.space2,
+              left: d is TrendingDest || d is MoodsDest || d is CollectionsDest || d is TvCollectionsDest || d is ChannelsDest || ConsoleDensity.compactOf(context) ? 0 : Space.space4,
+            ),
+            child: _page(d),
+          ),
         );
 
   Widget _page(Dest d) => switch (d) {
@@ -562,6 +569,12 @@ class _ShellState extends State<Shell> {
   /// Up from the top of a page or the rail: the search pill.
   void _toSearch() => (isTv ? _searchButton : _searchFocus).requestFocus();
 
+  /// The bottom bar's Search: the cursor in the search field, so the keyboard comes up.
+  void _touchSearch() {
+    _searchFocus.requestFocus();
+    SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+  }
+
   /// Back from the top of Home leaves the app on Android, like any TV app. A Samsung TV asks
   /// first (Samsung's Return key policy): only Yes closes the app.
   void _back() {
@@ -651,7 +664,10 @@ class _ShellState extends State<Shell> {
                               padding: const EdgeInsets.only(top: _chromeHeight),
                               child: _WelcomeFocus(scope: _welcome, child: const SettingsPage(welcome: true)),
                             )
-                          : Actions(
+                          : Padding(
+                              // Pages end above the bottom bar on a phone or tablet.
+                              padding: EdgeInsets.only(bottom: isTouch ? touchBarHeight + MediaQuery.paddingOf(context).bottom : 0),
+                              child: Actions(
                               // Left from the edge of a page opens the rail; Up from its top goes to search.
                               actions: {DirectionalFocusIntent: _EdgeAction(left: () => _rail.currentState?.enter(), up: _toSearch, empty: _toPage)},
                               child: FocusTraversalGroup(
@@ -671,6 +687,7 @@ class _ShellState extends State<Shell> {
                                 ),
                               ),
                             ),
+                            ),
                       // No bar: search and the window buttons float over the page.
                       Positioned(
                         left: 0,
@@ -678,12 +695,13 @@ class _ShellState extends State<Shell> {
                         top: 0,
                         // No search before sign-in: there's nothing to search yet, and on a TV the pill was a
                         // focus trap above the welcome page.
-                        child: _TopChrome(search: _search, searchFocus: _searchFocus, searchButton: _searchButton, onSearch: _submitSearch, toPage: _toPage, showSearch: !needsSetup),
+                        child: _TopChrome(search: _search, searchFocus: _searchFocus, searchButton: _searchButton, onSearch: _submitSearch, toPage: _toPage, showSearch: !needsSetup, onLogo: () => go(const HomeDest())),
                       ),
                       if (_toasts.isNotEmpty)
                         Positioned(
-                          right: Space.space6,
-                          bottom: Space.space6,
+                          right: isTouch ? Space.space3 : Space.space6,
+                          left: ConsoleDensity.compactOf(context) ? Space.space3 : null,
+                          bottom: isTouch ? touchBarHeight + MediaQuery.paddingOf(context).bottom + Space.space3 : Space.space6,
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.end,
@@ -711,7 +729,14 @@ class _ShellState extends State<Shell> {
                             ],
                           ),
                         ),
-                      if (!needsSetup)
+                      if (!needsSetup && isTouch)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: TouchBar(app: app, current: _top.railId, go: go, search: _touchSearch, profiles: _profiles),
+                        ),
+                      if (!needsSetup && !isTouch)
                         Positioned(
                           left: 0,
                           top: 0,
@@ -929,8 +954,11 @@ class _TopTracker extends NavigatorObserver {
 const _chromeHeight = 44.0;
 
 class _TopChrome extends StatelessWidget {
-  const _TopChrome({required this.search, required this.searchFocus, required this.searchButton, required this.onSearch, required this.toPage, this.showSearch = true});
+  const _TopChrome({required this.search, required this.searchFocus, required this.searchButton, required this.onSearch, required this.toPage, this.showSearch = true, this.onLogo});
   final bool showSearch;
+
+  /// The logo at the left on a phone or tablet goes Home.
+  final VoidCallback? onLogo;
   final TextEditingController search;
   final FocusNode searchFocus;
   final FocusNode searchButton;
@@ -938,7 +966,7 @@ class _TopChrome extends StatelessWidget {
   final VoidCallback toPage;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
+  Widget build(BuildContext context) => isTouch ? _touch(context) : SizedBox(
     height: _chromeHeight + 28,
     child: Stack(
       children: [
@@ -968,11 +996,58 @@ class _TopChrome extends StatelessWidget {
   );
 }
 
+extension on _TopChrome {
+  /// Phones and tablets: below the status bar, the logo (Home) at the left and the search
+  /// field across the rest (the whole width on a phone).
+  Widget _touch(BuildContext context) {
+    final top = MediaQuery.paddingOf(context).top;
+    final compact = ConsoleDensity.compactOf(context);
+    return SizedBox(
+      height: top + _chromeHeight + 28,
+      child: Stack(
+        children: [
+          IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withValues(alpha: 0.6), Colors.black.withValues(alpha: 0)]),
+              ),
+              child: const SizedBox.expand(),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.only(top: top + 6),
+            child: SizedBox(
+              height: _chromeHeight - 6,
+              child: Row(
+                children: [
+                  const SizedBox(width: Space.space4),
+                  GestureDetector(
+                    onTap: onLogo,
+                    behavior: HitTestBehavior.opaque,
+                    child: const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: ConsoleLogo(height: 24, ink: LogoInk.white)),
+                  ),
+                  const SizedBox(width: Space.space4),
+                  const Spacer(),
+                  if (this.showSearch) Flexible(flex: compact ? 6 : 1, child: _SearchBox(controller: search, focus: searchFocus, button: searchButton, onSubmit: onSearch, toPage: toPage, fill: true)),
+                  const SizedBox(width: Space.space4),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Frosted, see-through search pill; it widens while you type. On a TV it is a button first:
 /// the D-pad stops on it (outlined, not typing yet), Select opens the keyboard, Down goes back
 /// to the page.
 class _SearchBox extends StatelessWidget {
-  const _SearchBox({required this.controller, required this.focus, required this.button, required this.onSubmit, required this.toPage});
+  const _SearchBox({required this.controller, required this.focus, required this.button, required this.onSubmit, required this.toPage, this.fill = false});
+
+  /// Takes the width it's given (phones and tablets) instead of its own.
+  final bool fill;
   final TextEditingController controller;
   final FocusNode focus;
   final FocusNode button;
@@ -1006,8 +1081,9 @@ class _SearchBox extends StatelessWidget {
         final pill = AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
-          width: on ? 360 : 260,
-          height: 32,
+          width: fill ? null : (on ? 360 : 260),
+          constraints: fill ? BoxConstraints(maxWidth: on ? 480 : 360) : null,
+          height: fill ? 36 : 32,
           padding: const EdgeInsets.symmetric(horizontal: Space.space3),
           decoration: BoxDecoration(
             color: on ? Colors.black.withValues(alpha: 0.55) : Colors.black.withValues(alpha: 0.28),

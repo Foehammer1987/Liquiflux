@@ -6,6 +6,8 @@ import 'package:console_core/console_core.dart';
 import 'package:console_ui/console_ui.dart';
 import 'package:flutter/material.dart';
 
+import '../common.dart';
+
 import '../../state/scope.dart';
 import '../nav.dart';
 import '../play.dart';
@@ -188,7 +190,7 @@ class _CollectionPageState extends State<CollectionPage> {
                               height: 168,
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
-                                padding: const EdgeInsets.symmetric(horizontal: 48),
+                                padding: EdgeInsets.symmetric(horizontal: ConsoleDensity.inset(context)),
                                 itemCount: _faces!.length,
                                 separatorBuilder: (_, _) => const SizedBox(width: Space.space5),
                                 itemBuilder: (context, i) {
@@ -260,7 +262,7 @@ class _Heading extends StatelessWidget {
   final String sub;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(48, 0, 48, Space.space4),
+    padding: EdgeInsets.fromLTRB(ConsoleDensity.inset(context), 0, ConsoleDensity.inset(context), Space.space4),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.baseline,
       textBaseline: TextBaseline.alphabetic,
@@ -570,7 +572,7 @@ class _Timeline extends StatelessWidget {
         height: 440,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 48),
+          padding: EdgeInsets.symmetric(horizontal: ConsoleDensity.inset(context)),
           itemCount: parts.length,
           itemBuilder: (context, i) {
             final p = parts[i];
@@ -824,11 +826,10 @@ class _Ratings extends StatelessWidget {
     return DistinctTints(
       urls: [for (final p in franchise.parts) SeriesArt.poster(p, plex)],
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 48),
+        padding: EdgeInsets.symmetric(horizontal: ConsoleDensity.inset(context)),
         child: SizedBox(
           height: 190,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          child: HeaderRow(
             children: [
               for (final p in parts)
                 ConstrainedBox(

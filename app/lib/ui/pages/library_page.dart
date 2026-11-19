@@ -99,6 +99,20 @@ class _LibraryPageState extends State<LibraryPage> {
     final section = app.sections.where((s) => s.key == widget.sectionKey).firstOrNull;
     final noun = section?.type == 'show' ? (_total == 1 ? 'Show' : 'Shows') : (_total == 1 ? 'Title' : 'Titles');
     const pad = Space.space3;
+    final compact = ConsoleDensity.compactOf(context);
+    final sorts = Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onKeyEvent: _sortKey,
+      child: ConsoleSegmented<String>(
+        options: _sorts,
+        value: _sort,
+        onChanged: (v) {
+          setState(() => _sort = v);
+          _load(reset: true);
+        },
+      ),
+    );
     return NotificationListener<ScrollNotification>(
       // The next page loads as you near the bottom.
       onNotification: (n) {
@@ -113,21 +127,12 @@ class _LibraryPageState extends State<LibraryPage> {
               child: ConsolePanel(
                 title: section?.title ?? 'Library',
                 meta: _total > 0 ? muted(context, '$_total $noun') : null,
-                trailing: Focus(
-                  canRequestFocus: false,
-                  skipTraversal: true,
-                  onKeyEvent: _sortKey,
-                  child: ConsoleSegmented<String>(
-                    options: _sorts,
-                    value: _sort,
-                    onChanged: (v) {
-                      setState(() => _sort = v);
-                      _load(reset: true);
-                    },
-                  ),
-                ),
+                // A phone has no room beside the title: the sort choices go on a line of their own.
+                trailing: compact ? null : sorts,
                 padding: EdgeInsets.zero,
-                child: const SizedBox(height: Space.space4),
+                child: compact
+                    ? SingleChildScrollView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.fromLTRB(Space.space4, Space.space2, Space.space4, Space.space4), child: sorts)
+                    : const SizedBox(height: Space.space4),
               ),
             ),
           ),
@@ -144,10 +149,11 @@ class _LibraryPageState extends State<LibraryPage> {
           else ...[
             // Only the posters on screen are built and loaded.
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(pad + Space.space4, Space.space4, pad + Space.space4, 0),
+              padding: EdgeInsets.fromLTRB(compact ? pad : pad + Space.space4, Space.space4, compact ? pad : pad + Space.space4, 0),
               sliver: SliverLayoutBuilder(
                 builder: (context, box) {
-                  const minWidth = 132.0;
+                  // Three across on a phone.
+                  final minWidth = compact ? 96.0 : 132.0;
                   final cols = (box.crossAxisExtent / (minWidth + Space.space3)).floor().clamp(2, 12);
                   final w = (box.crossAxisExtent - Space.space3 * (cols - 1)) / cols;
                   return SliverGrid(

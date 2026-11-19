@@ -54,9 +54,8 @@ class _MoodsPageState extends State<MoodsPage> {
   Widget _heading(String title, String note) {
     final c = context.c;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(48, Space.space10, 48, Space.space4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      padding: EdgeInsets.fromLTRB(ConsoleDensity.inset(context), Space.space10, ConsoleDensity.inset(context), Space.space4),
+      child: HeaderRow(
         children: [
           Text(
             title,
@@ -90,9 +89,8 @@ class _MoodsPageState extends State<MoodsPage> {
       padding: const EdgeInsets.only(bottom: Space.space10),
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(48, Space.space4, 48, 0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          padding: EdgeInsets.fromLTRB(ConsoleDensity.inset(context), Space.space4, ConsoleDensity.inset(context), 0),
+          child: HeaderRow(
             children: [
               Expanded(
                 child: Column(
@@ -100,7 +98,7 @@ class _MoodsPageState extends State<MoodsPage> {
                   children: [
                     Text(
                       'Moods',
-                      style: ConsoleText.display.copyWith(fontSize: 40, height: 1.1, fontWeight: FontWeight.w800, color: c.text100),
+                      style: ConsoleText.display.copyWith(fontSize: ConsoleDensity.compactOf(context) ? 30 : 40, height: 1.1, fontWeight: FontWeight.w800, color: c.text100),
                     ),
                     const SizedBox(height: Space.space1),
                     Text('Your library by mood and genre. Each visit shows a different mix.', style: ConsoleText.body.copyWith(color: c.text200)),
@@ -119,11 +117,11 @@ class _MoodsPageState extends State<MoodsPage> {
           ),
         ),
         if (_error != null)
-          Padding(padding: const EdgeInsets.all(48), child: ErrorNote('Couldn’t read your Plex library: $_error'))
+          Padding(padding: EdgeInsets.all(ConsoleDensity.inset(context)), child: ErrorNote('Couldn’t read your Plex library: $_error'))
         else if (_all == null)
           const Padding(padding: EdgeInsets.only(top: Space.space10), child: LoadingNote(label: 'Reading your library'))
         else if (_moods.isEmpty && _genres.isEmpty)
-          const Padding(padding: EdgeInsets.all(48), child: ErrorNote('Not enough titles here for mood rows yet.'))
+          Padding(padding: EdgeInsets.all(ConsoleDensity.inset(context)), child: ErrorNote('Not enough titles here for mood rows yet.'))
         else ...[
           if (_moods.isNotEmpty) ...[
             _heading('By Mood', 'Built from Plex genres, years, length, ratings and what you’ve watched.'),

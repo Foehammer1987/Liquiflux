@@ -1,6 +1,9 @@
 package com.foehammer.console_app
 
+import android.annotation.TargetApi
 import android.content.pm.ApplicationInfo
+import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
 import android.os.Process
 import android.util.Log
@@ -20,6 +23,7 @@ class MainActivity : FlutterActivity() {
     private var reconnectPending = false
     private var updater: AppUpdater? = null
     private var displayModes: DisplayModes? = null
+    private var pip: PictureInPicture? = null
 
     /**
      * Measuring switches for one launch, from adb (services/probe.dart):
@@ -102,6 +106,8 @@ class MainActivity : FlutterActivity() {
         updater = AppUpdater(this, updateChannel).also { updateChannel.setMethodCallHandler(it::onMethodCall) }
         val displayChannel = MethodChannel(messenger, DisplayModes.CHANNEL)
         displayModes = DisplayModes(this).also { displayChannel.setMethodCallHandler(it::onMethodCall) }
+        val pipChannel = MethodChannel(messenger, PictureInPicture.CHANNEL)
+        pip = PictureInPicture(this, pipChannel).also { pipChannel.setMethodCallHandler(it::onMethodCall) }
         MethodChannel(messenger, "liquiflux/probe").setMethodCallHandler { call, result ->
             if (call.method == "flags") result.success(probe) else result.notImplemented()
         }
@@ -112,7 +118,19 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        pip?.onUserLeaveHint()
+    }
+
+    @TargetApi(Build.VERSION_CODES.O)
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        pip?.onModeChanged(isInPictureInPictureMode)
+    }
+
     override fun onDestroy() {
+        pip = null
         updater?.dispose()
         updater = null
         displayModes?.dispose()

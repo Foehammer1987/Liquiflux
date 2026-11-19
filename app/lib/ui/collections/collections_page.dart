@@ -46,14 +46,14 @@ class CollectionsPage extends StatelessWidget {
     return CustomScrollView(
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(48, Space.space4, 48, 0),
+          padding: EdgeInsets.fromLTRB(ConsoleDensity.inset(context), Space.space4, ConsoleDensity.inset(context), 0),
           sliver: SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Collections',
-                  style: ConsoleText.display.copyWith(fontSize: 40, height: 1.1, fontWeight: FontWeight.w800, color: c.text100),
+                  style: ConsoleText.display.copyWith(fontSize: ConsoleDensity.compactOf(context) ? 30 : 40, height: 1.1, fontWeight: FontWeight.w800, color: c.text100),
                 ),
                 const SizedBox(height: Space.space1),
                 Text('Film series you have, in release order. Request the films you’re missing.', style: ConsoleText.body.copyWith(color: c.text200)),
@@ -70,7 +70,7 @@ class CollectionsPage extends StatelessWidget {
         // As many columns as fit at about 400px each, filling the width. Only the cards in
         // view are built, so a long list costs no more than a short one.
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(48, 0, 48, Space.space10),
+          padding: EdgeInsets.fromLTRB(ConsoleDensity.inset(context), 0, ConsoleDensity.inset(context), Space.space10),
           sliver: SliverLayoutBuilder(
             builder: (context, box) {
               final cols = ((box.crossAxisExtent + gap) / (400 + gap)).floor().clamp(1, 6);

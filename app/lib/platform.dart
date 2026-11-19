@@ -10,13 +10,40 @@ final bool isTizen = tizenEnvironment(Platform.environment);
 /// Whether [env] is a Tizen app's environment.
 bool tizenEnvironment(Map<String, String> env) => env.containsKey('TIZEN_API_VERSION');
 
-/// A desktop window (Windows, Linux, macOS): window_manager, the mouse, a title bar.
-final bool isDesktop = (Platform.isWindows || Platform.isLinux || Platform.isMacOS) && !isTizen;
+/// Which Android build this is: 'mobile' for the phone and tablet one (built with
+/// `--dart-define=LIQUIFLUX_FORM=mobile -P liquiflux.form=mobile`, see tools/build-android.ps1
+/// -Mobile), empty for the TV one.
+const formBuild = String.fromEnvironment('LIQUIFLUX_FORM');
 
-/// The 10-foot TV layout and remote-control behaviour: every Android build (Shield, Google
+/// A phone or tablet: touch first, no window, no remote. The Android phone/tablet build
+/// ([formBuild] 'mobile'), an iPhone or iPad, or a desktop dev build started with
+/// CONSOLE_TOUCH=1 to try the touch layout in a window.
+///
+/// Everything touch-specific asks this, never Platform.isAndroid, so the same layout serves
+/// iOS. Phone or tablet is then a matter of screen size (see [compactWidth]).
+final bool isTouch = touchBuild(android: Platform.isAndroid, ios: Platform.isIOS, flavor: formBuild, env: Platform.environment);
+
+/// Whether a build with these traits is a phone/tablet one.
+bool touchBuild({required bool android, required bool ios, required String? flavor, required Map<String, String> env}) =>
+    ios || (android && flavor == 'mobile') || env['CONSOLE_TOUCH'] == '1';
+
+/// Below this many logical pixels on the screen's short side a touch device gets the phone
+/// layout (bottom bar, compact rows); from it up, the tablet one. Android's own phone/tablet
+/// line (600 dp).
+const compactWidth = 600.0;
+
+/// A desktop window (Windows, Linux, macOS): window_manager, the mouse, a title bar.
+final bool isDesktop = (Platform.isWindows || Platform.isLinux || Platform.isMacOS) && !isTizen && !isTouch;
+
+/// The 10-foot TV layout and remote-control behaviour: every Android TV build (Shield, Google
 /// TV, Fire TV), every Samsung TV, or a desktop dev build started with CONSOLE_TV=1 to try it
-/// out with the arrow keys, Enter and Esc.
-final bool isTv = Platform.isAndroid || isTizen || Platform.environment['CONSOLE_TV'] == '1';
+/// out with the arrow keys, Enter and Esc. Not the Android phone/tablet build ([isTouch]).
+final bool isTv = (Platform.isAndroid || isTizen || Platform.environment['CONSOLE_TV'] == '1') && !isTouch;
+
+/// The Android TV build (Shield, Google TV, Fire TV): the Android features only a TV has,
+/// such as the accessibility sleep service, refresh-rate and resolution switching, leaving
+/// with Back from Home.
+final bool isAndroidTv = Platform.isAndroid && isTv;
 
 /// A 32-bit Android system: Fire TV sticks on Fire OS 8, budget boxes, and the 2019 Nvidia
 /// Shield Tube (32-bit Android on a 64-bit chip).

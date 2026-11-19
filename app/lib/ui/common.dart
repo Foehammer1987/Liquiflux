@@ -119,3 +119,26 @@ class PlexPoster extends StatelessWidget {
 }
 
 Text muted(BuildContext context, String s) => Text(s, style: ConsoleText.small.copyWith(color: context.c.text200));
+
+/// A page heading's row (title and blurb on the left, a switch or button on the right),
+/// stacked on a phone, where there's no room beside the title.
+class HeaderRow extends StatelessWidget {
+  const HeaderRow({super.key, required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!ConsoleDensity.compactOf(context)) return Row(crossAxisAlignment: CrossAxisAlignment.end, children: children);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final ch in children)
+          switch (ch) {
+            Flexible(:final child) => child,
+            SizedBox(:final width?) when ch.child == null && width > 0 => const SizedBox(height: Space.space2),
+            _ => Padding(padding: const EdgeInsets.only(top: Space.space3), child: ch),
+          },
+      ],
+    );
+  }
+}

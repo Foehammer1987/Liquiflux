@@ -288,7 +288,11 @@ class _HomePageState extends State<HomePage> with RouteAware {
 
     return LayoutBuilder(
       builder: (context, box) {
-        final heroH = (box.maxHeight * 0.74).clamp(440.0, 820.0).roundToDouble();
+        // A phone: the poster across the screen, as tall as it can be while the first row still peeks in.
+        final compact = ConsoleDensity.compactOf(context);
+        final heroH = compact
+            ? (box.maxWidth < box.maxHeight ? min(box.maxWidth * 1.3, box.maxHeight * 0.78) : box.maxHeight * 0.86).roundToDouble()
+            : (box.maxHeight * 0.74).clamp(440.0, 820.0).roundToDouble();
         return SingleChildScrollView(
           controller: _scroll,
           padding: const EdgeInsets.only(bottom: Space.space10),
@@ -302,7 +306,8 @@ class _HomePageState extends State<HomePage> with RouteAware {
                 active: !_covered && !_rootCovered && !_dockBusy && _heroOnScreen,
                 plex: plex,
                 trailers: _trailers!,
-                trailersOn: trailersSupported && (homeTrailersSupported ? app.settings.homeTrailers : app.settings.spotlightTrailers || Probe.has('trailers')),
+                // Not on a phone: the clips would eat mobile data, and the phone spotlight has no room for them.
+                trailersOn: !compact && trailersSupported && (homeTrailersSupported ? app.settings.homeTrailers : app.settings.spotlightTrailers || Probe.has('trailers')),
                 focusOnly: !homeTrailersSupported,
                 onPlay: _play,
                 onInfo: _info,
@@ -311,7 +316,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
               ),
               // Rows ride up over the bottom of the spotlight.
               Transform.translate(
-                offset: Offset(0, -heroH * 0.14),
+                offset: Offset(0, compact ? -Space.space2 : -heroH * 0.14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -323,7 +328,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                       ),
                     // Top 10 on the server takes the ranked slot when there's enough watching to rank.
                     if (_mostWatched.length >= 5) ...[
-                      const SizedBox(height: Space.space8),
+                      SizedBox(height: compact ? Space.space4 : Space.space8),
                       DistinctTints(
                         urls: [for (final t in _mostWatched) app.plex?.imageUrl(t.posterPath, width: 240, height: 360)],
                         child: Shelf(
@@ -336,7 +341,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                       ),
                     ] else if (_top.length >= 5) ...[
                       // Keyed by the set so a re-roll scrolls back to the start.
-                      const SizedBox(height: Space.space8),
+                      SizedBox(height: compact ? Space.space4 : Space.space8),
                       // Each number gets its own colour from its poster, clearly apart from its neighbours.
                       DistinctTints(
                         urls: [for (final t in _top) app.plex?.imageUrl(t.posterPath, width: 240, height: 360)],
@@ -350,7 +355,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                       ),
                     ],
                     if (_missing.length >= 5) ...[
-                      const SizedBox(height: Space.space8),
+                      SizedBox(height: compact ? Space.space4 : Space.space8),
                       DistinctTints(
                         urls: [for (final t in _missing) t.posterUrl()],
                         child: Shelf(
@@ -364,7 +369,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                     // Because You Watched… (sits out until Seerr and your history are in).
                     if (app.settings.seerrEnabled) TasteRows(onHighlight: (item, on) => _hoverFor(item)(on)),
                     if (_recent?.isNotEmpty ?? false) ...[
-                      const SizedBox(height: Space.space8),
+                      SizedBox(height: compact ? Space.space4 : Space.space8),
                       Shelf(
                         title: 'Recently Added',
                         children: [for (final i in _recent!) PlexPoster(item: i, onHighlight: _hoverFor(i))],
@@ -372,7 +377,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                     ],
                     // Feel-Good Comedies, Dark Sci-Fi… (more on the Moods page).
                     for (final m in _moods) ...[
-                      const SizedBox(height: Space.space8),
+                      SizedBox(height: compact ? Space.space4 : Space.space8),
                       Shelf(
                         key: ValueKey(m.name),
                         title: m.name,
@@ -380,7 +385,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                       ),
                     ],
                     if (_trending.isNotEmpty) ...[
-                      const SizedBox(height: Space.space8),
+                      SizedBox(height: compact ? Space.space4 : Space.space8),
                       Shelf(
                         title: 'Trending, Not in Your Library',
                         children: [for (final r in _trending) SeerrCard(key: ValueKey('${r.mediaType}:${r.id}'), item: r)],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'art_image.dart';
+import 'density.dart';
 import 'focusable.dart';
 import 'glass.dart';
 import 'theme.dart';
@@ -167,7 +168,9 @@ class PosterGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, box) {
-      final cols = (box.maxWidth / (minWidth + Space.space3)).floor().clamp(2, 12);
+      // Three across on a phone.
+      final min = ConsoleDensity.compactOf(context) ? minWidth.clamp(0.0, 96.0) : minWidth;
+      final cols = (box.maxWidth / (min + Space.space3)).floor().clamp(2, 12);
       final w = (box.maxWidth - Space.space3 * (cols - 1)) / cols;
       return SizedBox(
         width: box.maxWidth,

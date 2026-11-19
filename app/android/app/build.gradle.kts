@@ -62,6 +62,15 @@ android {
     if ((project.findProperty("liquiflux.store") as String?)?.isNotEmpty() == true) {
         sourceSets.getByName("release").manifest.srcFile("src/store/AndroidManifest.xml")
     }
+
+    // The phone and tablet build (flutter build apk -P liquiflux.form=mobile, with
+    // --dart-define=LIQUIFLUX_FORM=mobile; tools/build-android.ps1 -Mobile): its own manifest
+    // in place of the TV one (rotation, picture-in-picture, Impeller, no leanback launcher or
+    // sleep service). Same app id, so one store listing covers both; without the property the
+    // build is the TV one, exactly as before.
+    if (project.findProperty("liquiflux.form") == "mobile") {
+        sourceSets.getByName("main").manifest.srcFile("src/mobile/AndroidManifest.xml")
+    }
 }
 
 kotlin {

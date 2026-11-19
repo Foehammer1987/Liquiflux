@@ -6,18 +6,22 @@
 #   tools\build-android.ps1 -Install 192.168.1.50   ...then install on the TV at that address
 #   tools\build-android.ps1 -Store amazon       the app-store build: no in-app updater and no
 #                                               sleep-timer accessibility service
+#   tools\build-android.ps1 -Mobile             the phone and tablet build (touch layout,
+#                                               rotation, picture-in-picture, Impeller)
 param(
   # IP address of the TV to install on over the network (ADB debugging must be on).
   [string]$Install,
   # An app store to build for (amazon). Leave out for the GitHub build.
   [ValidateSet('amazon')]
-  [string]$Store = ''
+  [string]$Store = '',
+  # The phone and tablet build instead of the TV one.
+  [switch]$Mobile
 )
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path (Join-Path $PSScriptRoot '..')
 Set-Location (Join-Path $root 'app')
 $version = ((Select-String -Path pubspec.yaml -Pattern '^version:\s*(\S+)').Matches[0].Groups[1].Value -split '\+')[0]
-Write-Host "Building Liquiflux $version for Android TV"
+Write-Host ("Building Liquiflux $version for " + $(if ($Mobile) { "Android phones and tablets" } else { "Android TV" }))
 
 if (-not (Get-Command flutter -ErrorAction SilentlyContinue)) { throw 'Flutter is not on PATH.' }
 
@@ -109,14 +113,17 @@ flutter pub get
 # One APK per CPU type keeps each one small. Trimming unused icons corrupts the Lucide icon
 # font, so keep it whole.
 $storeArgs = if ($Store) { @("--dart-define=LIQUIFLUX_STORE=$Store", "--android-project-arg=liquiflux.store=$Store") } else { @() }
-flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64 --no-tree-shake-icons @storeArgs
+$formArgs = if ($Mobile) { @('--dart-define=LIQUIFLUX_FORM=mobile', '--android-project-arg=liquiflux.form=mobile') } else { @() }
+flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64 --no-tree-shake-icons @storeArgs @formArgs
 if ($LASTEXITCODE -ne 0) { throw 'The Android build failed.' }
 
 $dist = Join-Path $root 'dist'
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
 $apks = @{}
 foreach ($abi in 'arm64-v8a', 'armeabi-v7a') {
-  $suffix = if ($Store) { "-$Store" } else { '' }
+  $suffix = ''
+  if ($Mobile) { $suffix += '-mobile' }
+  if ($Store) { $suffix += "-$Store" }
   $to = Join-Path $dist "Liquiflux-$version-$abi$suffix.apk"
   Copy-Item "build\app\outputs\flutter-apk\app-$abi-release.apk" $to -Force
   $apks[$abi] = $to

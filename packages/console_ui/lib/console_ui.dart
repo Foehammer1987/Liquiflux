@@ -2,6 +2,7 @@
 library;
 
 export 'src/tokens.dart';
+export 'src/density.dart';
 export 'src/theme.dart';
 export 'src/glass.dart';
 export 'src/focusable.dart';

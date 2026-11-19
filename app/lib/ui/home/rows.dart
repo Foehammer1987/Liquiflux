@@ -60,16 +60,19 @@ class RankedPoster extends StatefulWidget {
 }
 
 class _RankedPosterState extends State<RankedPoster> {
-  static const _posterWidth = 168.0;
-  static const _imageHeight = _posterWidth * 1.5; // posters are 2:3
-  static const _gap = Space.space2;
+  static const _wideWidth = 168.0;
   bool _hot = false;
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
+    // Everything scales down together on a phone.
+    final k = ConsoleDensity.compactOf(context) ? 0.62 : 1.0;
+    final posterWidth = _wideWidth * k;
+    final imageHeight = posterWidth * 1.5; // posters are 2:3
+    final gap = Space.space2 * k;
     final text = '${widget.rank}';
-    final numeral = ConsoleText.display.copyWith(fontSize: 210, height: 1, fontWeight: FontWeight.w900, letterSpacing: widget.rank >= 10 ? -14 : 0);
+    final numeral = ConsoleText.display.copyWith(fontSize: 210 * k, height: 1, fontWeight: FontWeight.w900, letterSpacing: widget.rank >= 10 ? -14 * k : 0);
     // Measure so the number sits fully beside the poster with its baseline on the poster's bottom edge.
     final tp = TextPainter(
       text: TextSpan(text: text, style: numeral),
@@ -84,7 +87,7 @@ class _RankedPosterState extends State<RankedPoster> {
       children: [
         SizedBox(
           width: width,
-          height: _imageHeight,
+          height: imageHeight,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
@@ -93,7 +96,7 @@ class _RankedPosterState extends State<RankedPoster> {
                 top: 0,
                 // Baseline puts the number's foot exactly on the poster's bottom edge.
                 child: Baseline(
-                  baseline: _imageHeight,
+                  baseline: imageHeight,
                   baselineType: TextBaseline.alphabetic,
                   child: ArtTint(
                     url: widget.imageUrl,
@@ -125,7 +128,7 @@ class _RankedPosterState extends State<RankedPoster> {
                             style: numeral.copyWith(
                               foreground: Paint()
                                 ..style = PaintingStyle.stroke
-                                ..strokeWidth = 3
+                                ..strokeWidth = 3 * k
                                 ..color = tint.withValues(alpha: _hot ? 1 : 0.85),
                               shadows: [
                                 Shadow(
@@ -144,9 +147,9 @@ class _RankedPosterState extends State<RankedPoster> {
             ],
           ),
         ),
-        const SizedBox(width: _gap),
+        SizedBox(width: gap),
         SizedBox(
-          width: _posterWidth,
+          width: posterWidth,
           child: PosterCard(
             title: widget.title,
             subtitle: widget.subtitle,

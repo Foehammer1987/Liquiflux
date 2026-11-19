@@ -12,6 +12,7 @@ import '../../main.dart' show customTitleBar;
 import '../../platform.dart';
 import '../../services/avplay_player.dart';
 import '../../services/network_watch.dart';
+import '../../services/pip.dart';
 import '../../services/channels.dart';
 import '../../state/scope.dart';
 import '../player/app_subtitles.dart';
@@ -78,6 +79,9 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
 
   // A big play / pause mark that pops in the middle when you toggle.
   IconData? _pulse;
+
+  /// Android phones and tablets: in the floating picture-in-picture window, where no controls show.
+  bool _pip = false;
   Timer? _pulseTimer;
 
   // After a few seconds paused, the title, synopsis and cast fade in over the picture.
@@ -163,6 +167,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     }
     if (PlayerDock.enabled) PlayerDock.instance.addListener(_dockChanged);
     if (isTizen) NetworkWatch.instance.online.addListener(_networkChanged);
+    if (isTouch) _touchStart();
     _live.add(this);
     _poke();
   }
@@ -219,6 +224,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
       FocusManager.instance.removeListener(_keepFocus);
     }
     _live.remove(this);
+    if (isTouch) _touchEnd();
     if (isDesktop && _live.isEmpty && _closing == null) unawaited(windowManager.setPreventClose(false).catchError((Object e) => debugPrint('prevent close: $e')));
     for (final n in [_sleepFocus, _playFocus, _seekFocus, _togetherFocus, _cardArea, ..._sheetButtons.values, ..._sheetTabs.values]) {
       n.dispose();
@@ -244,6 +250,77 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
   void _restoreWindow() {
     if (isDesktop && _fullscreen && _ownsFullscreen) unawaited(windowManager.setFullScreen(false));
     _ownsFullscreen = false;
+  }
+
+  // ------------------------------------------------------------ phones and tablets
+
+  StreamSubscription<bool>? _touchPlaying;
+
+  /// The player on a phone or tablet: turned on its side and full screen (the status and
+  /// navigation bars come back with a swipe), and on Android it floats in a picture-in-picture
+  /// window when you go Home while it plays.
+  void _touchStart() {
+    unawaited(SystemChrome.setPreferredOrientations(const [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]));
+    unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky));
+    Pip.active.addListener(_pipChanged);
+    _touchPlaying = _s.player.stream.playing.listen((on) => unawaited(Pip.playing(on, aspect: _videoAspect)));
+  }
+
+  void _touchEnd() {
+    Pip.active.removeListener(_pipChanged);
+    unawaited(_touchPlaying?.cancel());
+    // Only once the last player has gone (Up Next can open the next one first).
+    if (_live.isNotEmpty) return;
+    unawaited(Pip.playing(false));
+    unawaited(SystemChrome.setPreferredOrientations(const []));
+    unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
+  }
+
+  double? get _videoAspect {
+    final w = _s.player.state.width, h = _s.player.state.height;
+    return w == null || h == null || w <= 0 || h <= 0 ? null : w / h;
+  }
+
+  void _pipChanged() {
+    if (!mounted) return;
+    setState(() {
+      _pip = Pip.active.value;
+      if (_pip) _closePanelsQuietly();
+    });
+  }
+
+  void _closePanelsQuietly() {
+    _sheet = null;
+    _together = false;
+    _info = false;
+  }
+
+  /// A tap on the picture shows the controls, or hides them if they're up. (A mouse click
+  /// still pauses, as on a desktop.)
+  void _touchTap(bool shown) {
+    if (!shown) return _poke();
+    _hide?.cancel();
+    setState(() => _visible = false);
+  }
+
+  Offset? _doubleTapAt;
+
+  /// Double-tap the left or right third of the picture to skip back or forward, the middle
+  /// to pause or play.
+  void _touchDoubleTap(double width) {
+    final x = _doubleTapAt?.dx ?? width / 2;
+    final p = _s.prefs;
+    if (x < width / 3 || x > width * 2 / 3) {
+      final back = x < width / 3;
+      _s.seekBy(back ? -p.skipBack : p.skipForward);
+      _pulseTimer?.cancel();
+      setState(() => _pulse = back ? LucideIcons.rotateCcw : LucideIcons.rotateCw);
+      _pulseTimer = Timer(const Duration(milliseconds: 500), () {
+        if (mounted) setState(() => _pulse = null);
+      });
+      return;
+    }
+    _toggle();
   }
 
   // ------------------------------------------------------------ mini player
@@ -766,7 +843,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     final app = AppScope.of(context);
     final offer = _s.resumeOffer;
     final mini = _mini;
-    final showChrome = (_visible || _keepVisible) && !_paused && !_dismissed && offer == null && !mini;
+    final showChrome = (_visible || _keepVisible) && !_paused && !_dismissed && offer == null && !mini && !_pip;
     _s.setControlsShown(showChrome);
     if (isTv && _chromeShown && !showChrome) WidgetsBinding.instance.addPostFrameCallback((_) => _focusPicture());
     // Paused, the controls stay up, and the D-pad moves between them from Play. With the
@@ -786,11 +863,14 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
             PlayerDock.instance.expand();
           } else if (_sheet != null || _together) {
             _closePanels();
+          } else if (isTouch) {
+            _touchTap(showChrome);
           } else {
             _toggle();
           }
         },
-        onDoubleTap: isDesktop && !mini ? _toggleFullscreen : null,
+        onDoubleTapDown: isTouch ? (d) => _doubleTapAt = d.localPosition : null,
+        onDoubleTap: isTouch ? () => _touchDoubleTap(MediaQuery.sizeOf(context).width) : (isDesktop && !mini ? _toggleFullscreen : null),
         child: switch (_s.video) {
           final video? => Video(controller: video, controls: NoVideoControls, fill: Colors.black, fit: fitFor(_s.aspect), subtitleViewConfiguration: const SubtitleViewConfiguration(visible: false)),
           // Video plane: the picture is on a surface behind the app, seen through here.
@@ -821,6 +901,11 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
         : Stack(
       children: [
         picture,
+        // Controls keep clear of a phone's camera cutout and rounded corners; the picture doesn't.
+        Positioned.fill(
+          child: SafeArea(
+            child: Stack(
+              children: [
         // Direct video output: mpv draws no subtitles, so text ones are drawn here.
         if (_s.direct) Positioned.fill(child: IgnorePointer(child: AppSubtitles(session: _s))),
         if (!_s.ready || _s.player.state.buffering)
@@ -861,9 +946,9 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
         // The pause screen: what you're watching, over a dimmed, softened picture.
         Positioned.fill(
           child: IgnorePointer(
-            ignoring: !_paused,
+            ignoring: !_paused || _pip,
             child: AnimatedOpacity(
-              opacity: _paused ? 1 : 0,
+              opacity: _paused && !_pip ? 1 : 0,
               duration: Duration(milliseconds: _paused ? 900 : 250),
               curve: Curves.easeOut,
               onEnd: () {
@@ -908,6 +993,10 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
                         const SizedBox(width: Space.space2),
                         _RoundButton(icon: LucideIcons.info, label: 'Playback Info (I)', on: _info, tint: tint, onTap: () => setState(() => _info = !_info)),
                         const SizedBox(width: Space.space2),
+                        if (Pip.supported) ...[
+                          _RoundButton(icon: LucideIcons.pictureInPicture2, label: 'Picture in Picture', tint: tint, onTap: offer == null ? () => unawaited(Pip.enter(aspect: _videoAspect)) : null),
+                          const SizedBox(width: Space.space2),
+                        ],
                         if (PlayerDock.enabled) ...[
                           _RoundButton(icon: LucideIcons.pictureInPicture2, label: 'Mini Player (B)', tint: tint, onTap: offer == null ? _minimize : null),
                           const SizedBox(width: Space.space2),
@@ -1143,6 +1232,10 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
             top: 96,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [ErrorNote(_s.error!)]),
           ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
 
@@ -1351,8 +1444,8 @@ class _BottomBar extends StatelessWidget {
                 _RoundButton(icon: LucideIcons.skipBack, label: 'Previous Episode (P)', onTap: s.previous == null ? null : s.playPrevious),
                 _RoundButton(icon: LucideIcons.skipForward, label: 'Next Episode (N)', onTap: s.next == null ? null : s.playNext),
               ],
-              const SizedBox(width: Space.space2),
-              _Volume(session: s, tint: tint, accent: accent),
+              // A phone or tablet has volume buttons of its own.
+              if (!isTouch) ...[const SizedBox(width: Space.space2), _Volume(session: s, tint: tint, accent: accent)],
               const SizedBox(width: Space.space3),
               Expanded(
                 child: StreamBuilder<Duration>(

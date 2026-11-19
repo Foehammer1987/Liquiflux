@@ -1,4 +1,4 @@
-# Day-to-day CI on Forgejo: tests and Android TV builds for every pull request, every push to
+# Day-to-day CI on Forgejo: tests, Android TV and phone/tablet builds for every pull request, every push to
 # main, and by hand (Run workflow). Builds only, nothing is published: the APKs are the run's
 # artifacts. Public releases (Windows installer, APKs, WinGet) stay in
 # .github/workflows/release.yml for when the code is pushed to GitHub. Forgejo reads only
@@ -132,6 +132,11 @@ jobs:
           for abi in armeabi-v7a arm64-v8a; do
             cp "build/app/outputs/flutter-apk/app-$abi-release.apk" "../dist/Liquiflux-$v-android-tv-$abi.apk"
           done
+          # The phone and tablet build: same app id, its own manifest (see android/app/src/mobile).
+          # 64-bit only: every phone Google Play still serves new apps to is 64-bit.
+          flutter build apk --release --split-per-abi --target-platform android-arm64 --no-tree-shake-icons \
+            --dart-define=LIQUIFLUX_FORM=mobile --android-project-arg=liquiflux.form=mobile
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "../dist/Liquiflux-$v-android-mobile-arm64-v8a.apk"
           (cd ../dist && sha256sum *.apk > SHA256SUMS.txt && cat SHA256SUMS.txt)
       - name: Remove the signing key
         if: always()
@@ -139,7 +144,14 @@ jobs:
       - uses: https://code.forgejo.org/forgejo/upload-artifact@v4
         with:
           name: liquiflux-android-tv
-          path: dist/*
+          path: |
+            dist/*-android-tv-*.apk
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+      - uses: https://code.forgejo.org/forgejo/upload-artifact@v4
+        with:
+          name: liquiflux-android-mobile
+          path: dist/*-android-mobile-*.apk
           if-no-files-found: error
 
   windows:

@@ -14,11 +14,11 @@ import '../platform.dart';
 class DisplayMatch {
   static const _channel = MethodChannel('liquiflux/display');
 
-  static bool get supported => Platform.isAndroid || Platform.isWindows;
+  static bool get supported => isAndroidTv || isDesktop && Platform.isWindows;
 
   /// A TV changes resolution cleanly; a PC desktop would rearrange its windows, so Windows
   /// only ever changes the refresh rate.
-  static bool get resolutionSupported => Platform.isAndroid;
+  static bool get resolutionSupported => isAndroidTv;
 
   /// What the setting means here: [PlaybackPrefs.displayMatch] 'auto' is on for TVs, where
   /// films on a 60 Hz output judder, and off on a PC, whose monitor may run other things.
