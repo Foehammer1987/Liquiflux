@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- The phone and tablet build's manifest (flutter build apk -P liquiflux.form=mobile, with
-         --dart-define=LIQUIFLUX_FORM=mobile; tools/build-android.ps1 -Mobile). build.gradle.kts
+         dart-define LIQUIFLUX_FORM=mobile; tools/build-android.ps1 -Mobile). build.gradle.kts
          uses it in place of src/main/AndroidManifest.xml, so keep the two in step. What differs
          from the TV build:
          - any orientation (the player turns the picture landscape itself), resizable for split
