@@ -210,16 +210,21 @@ class _Frame {
   final Size size;
   final double ms, leave, rise;
 
+  /// What everything is sized by: the screen's height on a TV or desktop, but no more than
+  /// a little over its width, so on a phone held upright the logo and the name (about 0.8
+  /// of this wide) still fit across the screen. Everything stays centred on the screen.
+  double get unit => min(size.height, size.width * 1.1);
+
   /// Grows a little and rises to make room for the name.
-  double get logoHeight => size.height * Intro.heightShare * (1 + 0.12 * rise);
+  double get logoHeight => unit * Intro.heightShare * (1 + 0.12 * rise);
   double get logoWidth => logoHeight * _Ribbon.box.width / _Ribbon.box.height;
-  Offset get logoCentre => Offset(size.width / 2, size.height / 2 - size.height * 0.11 * rise);
+  Offset get logoCentre => Offset(size.width / 2, size.height / 2 - unit * 0.11 * rise);
   Rect get logoRect => Rect.fromCenter(center: logoCentre, width: logoWidth, height: logoHeight);
   double get zoom => 1 + 0.08 * leave;
-  double get fontSize => size.height * 0.074;
-  double get textY => size.height * 0.665;
+  double get fontSize => unit * 0.074;
+  double get textY => size.height / 2 + unit * 0.165;
   double get lineY => textY + fontSize * 0.95;
-  double get lineWidth => size.height * 0.62 * _span(ms, _riseStart + 450, _riseEnd + 500, Curves.easeOutCubic);
+  double get lineWidth => unit * 0.62 * _span(ms, _riseStart + 450, _riseEnd + 500, Curves.easeOutCubic);
 }
 
 /// One of the logo's two ribbons: where it flies in from ([lead], from off screen to just

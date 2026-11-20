@@ -8,6 +8,7 @@ Liquiflux for Android phones and tablets: a second Android build with a touch la
 - Phones (screen's short side under 600 dp): a bottom bar (Home, Search, Library, Collections, More) replaces the side rail; the More sheet holds Trending, TV Networks, Moods, Shuffle Play, Channels, Requests, Switch Profile and Settings. Home opens on a poster-sized spotlight you swipe through, with Play and More Info; rows, Top 10 numbers and page margins shrink to fit; libraries show three posters across; page headings stack. No Home trailer clips on phones (mobile data).
 - Tablets: the desktop layout with the same bottom bar, edge to edge.
 - Player on phones and tablets: turns landscape and full screen; tap shows or hides the controls; double-tap left or right to skip back or forward, the middle to pause; a picture-in-picture button, and going Home mid-video floats it (Android 8+). The volume slider is left to the device's buttons.
+- The logo intro fits any screen: on portrait phones it sizes itself by the screen's width, so the logo and name stay whole and centred. Landscape screens and TVs look as before.
 - `isTouch` in `platform.dart` (also true on iOS, for the coming iPhone/iPad build) decides the touch layout; `CONSOLE_TOUCH=1` tries it on a desktop. `isAndroidTv` now gates the sleep service, display mode switching and refresh-rate matching.
 - Version 1.0.20+78.
 
