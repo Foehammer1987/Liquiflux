@@ -5,7 +5,7 @@
 <h1 align="center">Liquiflux</h1>
 
 <p align="center">
-  A clean, modern Plex client for Windows and Android TV, with requests built in.<br>
+  A clean, modern Plex client for your TV, phone and PC, with requests built in.<br>
   <a href="https://github.com/Foehammer1987/Liquiflux/releases/latest"><b>Download the latest release</b></a>
   &nbsp;·&nbsp; <a href="docs/GUIDE.md">User guide</a>
   &nbsp;·&nbsp; <a href="ANDROID-TV.md">Android TV setup</a>
@@ -20,6 +20,18 @@ plays without the server converting it.
 It also brings [Seerr](https://github.com/seerr-team/seerr) (or Overseerr / Jellyseerr) into the
 same app. Search once: what you have plays, and what you don't gets a Request button with a live
 download bar.
+
+<h3 align="center">Where it runs</h3>
+
+<table align="center">
+  <tr><th align="left">Available now</th><td>Windows · Android TV and Google TV · Android phones and tablets ·
+    <a href="https://channelstore.roku.com/details/5c7db39cdc10618da1c9599e3b2988e2:4419b83c47a04ec0d12617a93c6ba985/liquiflux">Roku</a> ·
+    Fire TV (sideload for now; Amazon Appstore coming)</td></tr>
+  <tr><th align="left">In store review</th><td>Samsung TV</td></tr>
+  <tr><th align="left">Coming soon</th><td>iPhone and iPad · Mac · Apple TV · LG TV</td></tr>
+</table>
+
+<p align="center"><a href="https://liquiflux.app">liquiflux.app</a></p>
 
 <p align="center">
   <img src="docs/screenshots/home.jpg" alt="Home with the Spotlight playing a trailer">
