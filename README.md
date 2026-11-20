@@ -131,8 +131,10 @@ Grab the files from the [latest release](https://github.com/Foehammer1987/Liquif
 | Windows 10 / 11 | `Liquiflux-Setup-x64.exe` (installer, no admin needed) or `Liquiflux-windows-x64.zip` (portable) |
 | 2019 Nvidia Shield, Fire TV, older Android TV boxes | `Liquiflux-android-tv-armeabi-v7a.apk` |
 | Chromecast with Google TV, most Google TV devices | `Liquiflux-android-tv-arm64-v8a.apk` |
+| Android phones and tablets | `Liquiflux-android-mobile-arm64-v8a.apk` |
 
-If you're not sure which APK your TV needs, use `armeabi-v7a`: it runs on every device.
+If you're not sure which APK your TV needs, use `armeabi-v7a`: it runs on every TV device. Phones and
+tablets take the `mobile` APK (64-bit Android 7 or later); open it on the device to install.
 [ANDROID-TV.md](ANDROID-TV.md) walks through sideloading on the Shield, Google TV and Fire TV.
 
 After that, Liquiflux keeps itself up to date. It looks for a new release when it starts (at most

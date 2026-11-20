@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 import '../app_info.dart';
+import '../platform.dart' show formBuild;
 import 'safe_file.dart';
 
 /// Where releases come from. Only this repository's releases are ever downloaded.
@@ -67,12 +68,15 @@ bool isNewer(String candidate, String current) {
 
 /// The release file for this device: the installer on Windows, the APK for this system's
 /// ABI on Android (armeabi-v7a on a 32-bit system like the 2019 Shield, even on a 64-bit chip,
-/// since that's what is installed), nothing elsewhere.
-String? assetNameFor({required String os, required Abi abi}) {
+/// since that's what is installed), nothing elsewhere. The phone/tablet build ([mobile]) takes
+/// its own APK, never a TV one, which would swap its layout and manifest for the TV build's;
+/// that APK is 64-bit only, so a 32-bit phone gets no update offer.
+String? assetNameFor({required String os, required Abi abi, bool mobile = false}) {
   switch (os) {
     case 'windows':
       return 'Liquiflux-Setup-x64.exe';
     case 'android':
+      if (mobile) return abi == Abi.androidArm64 ? 'Liquiflux-android-mobile-arm64-v8a.apk' : null;
       return switch (abi) {
         Abi.androidArm => 'Liquiflux-android-tv-armeabi-v7a.apk',
         Abi.androidArm64 => 'Liquiflux-android-tv-arm64-v8a.apk',
@@ -272,7 +276,7 @@ class Updater extends ChangeNotifier {
       } else {
         final j = jsonDecode(r.body);
         if (j is! Map<String, dynamic>) throw const FormatException('unexpected answer');
-        available = parseRelease(j, current: currentVersion, assetName: assetNameFor(os: _os, abi: _abi));
+        available = parseRelease(j, current: currentVersion, assetName: assetNameFor(os: _os, abi: _abi, mobile: formBuild == 'mobile'));
       }
       _checkedAt = DateTime.now();
       unawaited(_save());

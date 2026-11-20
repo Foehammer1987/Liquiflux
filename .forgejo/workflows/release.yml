@@ -1,4 +1,4 @@
-# Forgejo releases. Pushing a tag v<version> builds the Android TV APKs, the Windows zip and
+# Forgejo releases. Pushing a tag v<version> builds the Android TV and phone/tablet APKs, the Windows zip and
 # installer and the three Samsung TPKs, signed like build.yml and tizen.yml, and publishes them
 # with one SHA256SUMS.txt as a release on this Forgejo:
 #   v1.0.15-rc1, v1.0.15-rc2, ...  a pre-release (test builds of a version)
@@ -116,6 +116,11 @@ jobs:
           for abi in armeabi-v7a arm64-v8a; do
             cp "build/app/outputs/flutter-apk/app-$abi-release.apk" "../dist/Liquiflux-$v-android-tv-$abi.apk"
           done
+          # The phone and tablet build: same app id, its own manifest (see android/app/src/mobile).
+          # 64-bit only: every phone Google Play still serves new apps to is 64-bit.
+          flutter build apk --release --split-per-abi --target-platform android-arm64 --no-tree-shake-icons \
+            --dart-define=LIQUIFLUX_FORM=mobile --android-project-arg=liquiflux.form=mobile
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "../dist/Liquiflux-$v-android-mobile-arm64-v8a.apk"
       - name: Remove the signing key
         if: always()
         run: rm -rf "$RUNNER_TEMP/signing"

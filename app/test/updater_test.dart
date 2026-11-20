@@ -37,6 +37,9 @@ void main() {
     // The 2019 Shield runs 32-bit Android on a 64-bit chip: the 32-bit APK is what's installed.
     expect(assetNameFor(os: 'android', abi: Abi.androidArm), 'Liquiflux-android-tv-armeabi-v7a.apk');
     expect(assetNameFor(os: 'android', abi: Abi.androidArm64), 'Liquiflux-android-tv-arm64-v8a.apk');
+    expect(assetNameFor(os: 'android', abi: Abi.androidArm64, mobile: true), 'Liquiflux-android-mobile-arm64-v8a.apk');
+    expect(assetNameFor(os: 'android', abi: Abi.androidArm, mobile: true), isNull);
+    expect(assetNameFor(os: 'windows', abi: Abi.windowsX64, mobile: true), 'Liquiflux-Setup-x64.exe');
     expect(assetNameFor(os: 'android', abi: Abi.androidX64), isNull);
     expect(assetNameFor(os: 'linux', abi: Abi.linuxX64), isNull);
   });

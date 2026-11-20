@@ -9,6 +9,7 @@ Liquiflux for Android phones and tablets: a second Android build with a touch la
 - Tablets: the desktop layout with the same bottom bar, edge to edge.
 - Player on phones and tablets: turns landscape and full screen; tap shows or hides the controls; double-tap left or right to skip back or forward, the middle to pause; a picture-in-picture button, and going Home mid-video floats it (Android 8+). The volume slider is left to the device's buttons.
 - The logo intro fits any screen: on portrait phones it sizes itself by the screen's width, so the logo and name stay whole and centred. Landscape screens and TVs look as before.
+- Releases (Forgejo and GitHub) now carry `Liquiflux-android-mobile-arm64-v8a.apk` next to the TV APKs, and the README and download guide list it. The phone/tablet build's updater takes that APK only, so it never turns itself into the TV build.
 - `isTouch` in `platform.dart` (also true on iOS, for the coming iPhone/iPad build) decides the touch layout; `CONSOLE_TOUCH=1` tries it on a desktop. `isAndroidTv` now gates the sleep service, display mode switching and refresh-rate matching.
 - Version 1.0.20+78.
 
