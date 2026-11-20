@@ -3,23 +3,23 @@ import 'dart:async';
 import 'package:console_core/console_core.dart';
 import 'package:flutter/foundation.dart';
 
-/// X-Ray for the title playing: its whole cast (with the show's, for an episode) and, when the
+/// Riptide for the title playing: its whole cast (with the show's, for an episode) and, when the
 /// scanner has been over it, who's on screen at any moment.
-class XRay extends ChangeNotifier {
-  /// [token] is what to sign in to the X-Ray server with (the plex.tv account token when the
+class Riptide extends ChangeNotifier {
+  /// [token] is what to sign in to the Riptide server with (the plex.tv account token when the
   /// app has one, so the server can tell who it is); the Plex server's token when not given.
-  XRay({required this.plex, required this.server, String? token, JsonHttp? http}) : _xray = XRayServer.shared(server, token ?? plex.token, http: http);
+  Riptide({required this.plex, required this.server, String? token, JsonHttp? http}) : _riptide = RiptideServer.shared(server, token ?? plex.token, http: http);
   final PlexClient plex;
 
-  /// The X-Ray server from Settings; empty means the cast list only.
+  /// The Riptide server from Settings; empty means the cast list only.
   final String server;
 
-  /// Signs in to the X-Ray server with this Plex account (shared by every title played).
-  final XRayServer? _xray;
+  /// Signs in to the Riptide server with this Plex account (shared by every title played).
+  final RiptideServer? _riptide;
 
   PlexItem? _item;
   PlexItem? _show;
-  XRayTimeline? _timeline;
+  RiptideTimeline? _timeline;
   bool _disposed = false;
 
   /// The show, for an episode (its cast, logo and directors).
@@ -82,19 +82,19 @@ class XRay extends ChangeNotifier {
   Future<void> _loadTimeline(PlexItem item) async {
     // Animated titles are never scanned; a show's genres are on the show.
     if (isAnimated(item)) return;
-    final xray = _xray;
-    if (xray == null) return;
+    final riptide = _riptide;
+    if (riptide == null) return;
     try {
-      final body = await xray.timeline(item.ratingKey);
+      final body = await riptide.timeline(item.ratingKey);
       if (_disposed || _item?.ratingKey != item.ratingKey || body == null) return;
-      final t = XRayTimeline.fromJson(body);
+      final t = RiptideTimeline.fromJson(body);
       // A poor or stale scan isn't used at all: the cast list shows instead.
       if (!t.usableFor([for (final r in item.roles) if (r.id != null) r.id!])) return;
       _timeline = t;
       notifyListeners();
     } catch (e) {
       // The server is off, or won't let this account in: the cast list still works.
-      debugPrint('xray: ${errorText(e)}');
+      debugPrint('riptide: ${errorText(e)}');
     }
   }
 

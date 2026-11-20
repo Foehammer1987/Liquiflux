@@ -130,7 +130,7 @@ runs Linux. Forgejo's own runner has no Windows build, so it's Gitea's runner
 its repositories) with the single label `windows:host`, capacity 1, started at logon by a
 scheduled task ("Forgejo runner") as the PC's user. It needs Git, Node.js, Flutter, Visual
 Studio's C++ tools, Inno Setup 6 (found on PATH or in its default install folders) and, for
-X-Ray Desktop, 64-bit Python 3.12. While the PC is off, Windows jobs wait in the queue.
+Riptide Desktop, 64-bit Python 3.12. While the PC is off, Windows jobs wait in the queue.
 
 Host mode has no container: a workflow runs as that user, with everything that user can reach.
 Keep it to private repositories that only trusted people push to.

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.2
+
+X-Ray is now **Riptide**: the same "who's on screen" panel, under a new name.
+
+- The player button is *Riptide (R)*. X still opens it too. The pause screen hint and the panel say Riptide.
+- Settings > Servers > **Riptide Server**, with *Use a Riptide Server* and *Riptide Server Address*.
+- Existing settings carry over: the address and the switch saved by earlier versions (`xrayUrl`, `xrayEnabled` in settings.json) are read and saved again as `riptideUrl` and `riptideEnabled`.
+- Works with X-Ray servers and Riptide servers alike. The sign-in and timeline API are unchanged.
+- The server and desktop scanner are now [liquiflux-riptide-server](https://github.com/Foehammer1987/liquiflux-riptide-server) and [Liquiflux-riptide-ML-PC](https://github.com/Foehammer1987/Liquiflux-riptide-ML-PC).
+- Version 1.1.2+79 (Samsung packages 1.1.200, 1.1.201, 1.1.202).
+
 ## 1.1.0
 
 Liquiflux 1.1: phones and tablets. This release adds an Android build for phones and tablets with a touch layout, and rounds up everything since 1.0.14:

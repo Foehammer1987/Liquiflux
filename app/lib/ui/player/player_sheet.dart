@@ -9,7 +9,7 @@ import '../../platform.dart';
 import '../../services/tv_sleep.dart';
 import 'player_session.dart';
 import 'remote.dart';
-import 'xray.dart';
+import 'riptide.dart';
 
 enum SheetTab {
   audio('Audio', LucideIcons.audioLines),
@@ -19,7 +19,7 @@ enum SheetTab {
   chapters('Chapters', LucideIcons.listVideo),
 
   /// Who's in it; a panel of its own, opened from the bar or Down on the pause screen.
-  xray('X-Ray', LucideIcons.users);
+  riptide('Riptide', LucideIcons.users);
 
   const SheetTab(this.label, this.icon);
   final String label;
@@ -28,7 +28,7 @@ enum SheetTab {
 
 /// The frosted panel on the right of the player with every in-playback setting.
 class PlayerSheet extends StatelessWidget {
-  const PlayerSheet({super.key, required this.session, required this.tint, required this.accent, required this.tab, required this.onTab, required this.onClose, required this.imageUrl, this.tabFocus, this.xray, this.onPerson});
+  const PlayerSheet({super.key, required this.session, required this.tint, required this.accent, required this.tab, required this.onTab, required this.onClose, required this.imageUrl, this.tabFocus, this.riptide, this.onPerson});
   final PlayerSession session;
   final SheetTab tab;
   final ValueChanged<SheetTab> onTab;
@@ -38,8 +38,8 @@ class PlayerSheet extends StatelessWidget {
   /// Focus for each tab's button, so the player can put the D-pad on the open tab.
   final Map<SheetTab, FocusNode>? tabFocus;
 
-  /// The cast for the X-Ray panel, and what picking someone does (opens their page).
-  final XRay? xray;
+  /// The cast for the Riptide panel, and what picking someone does (opens their page).
+  final Riptide? riptide;
   final ValueChanged<PlexTag>? onPerson;
 
   final Color tint;
@@ -50,7 +50,7 @@ class PlayerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final tabs = [
       for (final t in SheetTab.values)
-        if (t != SheetTab.xray && (t != SheetTab.chapters || session.chapters.isNotEmpty)) t,
+        if (t != SheetTab.riptide && (t != SheetTab.chapters || session.chapters.isNotEmpty)) t,
     ];
     return GlassSurface(
       radius: Radii.radiusLg + 4,
@@ -70,7 +70,7 @@ class PlayerSheet extends StatelessWidget {
               ],
             ),
           ),
-          if (tab != SheetTab.xray)
+          if (tab != SheetTab.riptide)
           Padding(
             padding: const EdgeInsets.fromLTRB(Space.space3, Space.space2, Space.space3, Space.space2),
             child: Row(
@@ -94,7 +94,7 @@ class PlayerSheet extends StatelessWidget {
                   SheetTab.video => _video(context),
                   SheetTab.playback => _playback(context),
                   SheetTab.chapters => _chapters(context),
-                  SheetTab.xray => _xray(context),
+                  SheetTab.riptide => _riptide(context),
                 },
               ),
             ),
@@ -356,11 +356,11 @@ class PlayerSheet extends StatelessWidget {
     ];
   }
 
-  List<Widget> _xray(BuildContext context) {
-    final x = xray;
+  List<Widget> _riptide(BuildContext context) {
+    final x = riptide;
     if (x == null) return const [];
     final scene = x.inScene(session.position);
-    final first = tabFocus?[SheetTab.xray];
+    final first = tabFocus?[SheetTab.riptide];
     Widget row(PlexTag r, int i) => _PersonRow(
       name: r.tag,
       role: r.role,
@@ -377,7 +377,7 @@ class PlayerSheet extends StatelessWidget {
       if (scene.isNotEmpty) ...[_Heading('In This Scene', color: accent), for (final r in scene) row(r, i++)],
       _Heading(scene.isEmpty ? 'Cast' : 'Full Cast', color: accent),
       if (cast.isEmpty) const _Note('Plex has no cast for this title.') else for (final r in cast) row(r, i++),
-      if (!x.scanned && cast.isNotEmpty && (x.server.isNotEmpty || isAnimated(session.item))) _Note(isAnimated(session.item) ? 'Animated titles show the whole cast.' : 'Who’s in each scene shows here once the X-Ray scanner has been over this title.'),
+      if (!x.scanned && cast.isNotEmpty && (x.server.isNotEmpty || isAnimated(session.item))) _Note(isAnimated(session.item) ? 'Animated titles show the whole cast.' : 'Who’s in each scene shows here once the Riptide scanner has been over this title.'),
     ];
   }
 

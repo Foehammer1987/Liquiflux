@@ -23,7 +23,7 @@ import '../player/pause_screen.dart';
 import '../player/player_sheet.dart';
 import '../player/remote.dart';
 import '../player/resume_prompt.dart';
-import '../player/xray.dart';
+import '../player/riptide.dart';
 import '../nav.dart';
 import '../together/together_link.dart';
 import '../../services/open_party.dart';
@@ -93,7 +93,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
   StreamSubscription<bool>? _playingSub;
 
   /// Who's in it, and who's on screen when the scanner has been over it.
-  late final XRay _xray;
+  late final Riptide _riptide;
 
   // Watch Together: the link to the room, and its side panel.
   late final TogetherLink _link;
@@ -140,7 +140,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
       server: app.server?.machineIdentifier ?? '',
       scrobbler: app.scrobbler,
     )..addListener(_changed);
-    _xray = XRay(plex: app.plex!, server: app.settings.xrayServer, token: app.settings.xraySignInToken)
+    _riptide = Riptide(plex: app.plex!, server: app.settings.riptideServer, token: app.settings.riptideSignInToken)
       ..follow(widget.item)
       ..addListener(_changed);
     ArtMemory.releaseAll.addListener(_changed);
@@ -192,7 +192,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
 
   void _changed() {
     if (!mounted) return;
-    _xray.follow(_s.item);
+    _riptide.follow(_s.item);
     setState(() {});
     _sleepFocusFollows();
   }
@@ -236,7 +236,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     _hide?.cancel();
     _pulseTimer?.cancel();
     _focus.dispose();
-    _xray
+    _riptide
       ..removeListener(_changed)
       ..dispose();
     _s
@@ -582,7 +582,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
   /// the controls up through [_onKeyboard] when they do something.
   bool _anyKey(KeyEvent e) {
     if (!playerKeys.contains(e.logicalKey)) return false;
-    // Noted before the key ends the pause screen, for Down there to open X-Ray.
+    // Noted before the key ends the pause screen, for Down there to open Riptide.
     if (e is KeyDownEvent) _keyOnPauseScreen = _paused;
     if (e is! KeyUpEvent && mounted && _route?.isCurrent == true) _poke();
     return false;
@@ -672,10 +672,10 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
       goBack: !Platform.isAndroid,
     );
     if (a == null) return _onKeyboard(e);
-    // Down on the pause screen opens X-Ray, the way Prime's does.
-    if (_keyOnPauseScreen && e.logicalKey == LogicalKeyboardKey.arrowDown && _xray.cast.isNotEmpty) {
+    // Down on the pause screen opens Riptide, the way Prime's does.
+    if (_keyOnPauseScreen && e.logicalKey == LogicalKeyboardKey.arrowDown && _riptide.cast.isNotEmpty) {
       if (e is KeyUpEvent) _keyOnPauseScreen = false;
-      if (e is KeyDownEvent) _openSheet(SheetTab.xray);
+      if (e is KeyDownEvent) _openSheet(SheetTab.riptide);
       return KeyEventResult.handled;
     }
     // Left or Right on the pause screen only brings the controls back, with Play focused.
@@ -781,7 +781,9 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
       LogicalKeyboardKey.mediaTrackPrevious: _s.playPrevious,
       LogicalKeyboardKey.keyI: () => setState(() => _info = !_info),
       if (PlayerDock.enabled) LogicalKeyboardKey.keyB: _minimize,
-      LogicalKeyboardKey.keyX: () => _xray.cast.isNotEmpty ? _openSheet(SheetTab.xray) : null,
+      LogicalKeyboardKey.keyR: () => _riptide.cast.isNotEmpty ? _openSheet(SheetTab.riptide) : null,
+      // X opened it while it was called X-Ray; it still does.
+      LogicalKeyboardKey.keyX: () => _riptide.cast.isNotEmpty ? _openSheet(SheetTab.riptide) : null,
       LogicalKeyboardKey.bracketLeft: () => unawaited(_stepRate(-0.25)),
       LogicalKeyboardKey.bracketRight: () => unawaited(_stepRate(0.25)),
       LogicalKeyboardKey.home: () => _s.seekTo(Duration.zero),
@@ -959,7 +961,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: _toggle,
-                  child: PauseScreen(session: _s, xray: _xray, tint: tint, accent: accent),
+                  child: PauseScreen(session: _s, riptide: _riptide, tint: tint, accent: accent),
                 ),
               ),
             ),
@@ -1108,7 +1110,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
                   showRemaining: _showRemaining,
                   fullscreen: _fullscreen,
                   sheet: _sheet,
-                  hasCast: _xray.cast.isNotEmpty,
+                  hasCast: _riptide.cast.isNotEmpty,
                   onToggleRemaining: () => setState(() => _showRemaining = !_showRemaining),
                   onPlayPause: _toggle,
                   onFullscreen: _toggleFullscreen,
@@ -1182,7 +1184,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
                       onClose: _closePanels,
                       imageUrl: (path, w, h) => _s.plex.imageUrl(path, width: w, height: h),
                       tabFocus: _sheetTabs,
-                      xray: _xray,
+                      riptide: _riptide,
                       onPerson: _openPerson,
                     ),
             ),
@@ -1366,7 +1368,7 @@ class _BottomBar extends StatelessWidget {
   final bool fullscreen;
   final SheetTab? sheet;
 
-  /// Plex has a cast for the title, so X-Ray has something to show.
+  /// Plex has a cast for the title, so Riptide has something to show.
   final bool hasCast;
   final VoidCallback onToggleRemaining;
   final VoidCallback onPlayPause;
@@ -1479,7 +1481,7 @@ class _BottomBar extends StatelessWidget {
                 onTap: () => onSheet(SheetTab.subtitles),
               ),
               _RoundButton(icon: LucideIcons.audioLines, label: 'Audio (A)', on: sheet == SheetTab.audio, tint: tint, focusNode: sheetFocus[SheetTab.audio], onTap: () => onSheet(SheetTab.audio)),
-              if (hasCast) _RoundButton(icon: LucideIcons.users, label: 'X-Ray (X)', on: sheet == SheetTab.xray, tint: tint, focusNode: sheetFocus[SheetTab.xray], onTap: () => onSheet(SheetTab.xray)),
+              if (hasCast) _RoundButton(icon: LucideIcons.users, label: 'Riptide (R)', on: sheet == SheetTab.riptide, tint: tint, focusNode: sheetFocus[SheetTab.riptide], onTap: () => onSheet(SheetTab.riptide)),
               if (s.chapters.isNotEmpty)
                 _RoundButton(
                   icon: LucideIcons.listVideo,

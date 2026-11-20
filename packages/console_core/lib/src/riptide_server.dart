@@ -3,7 +3,7 @@ import 'dart:async';
 import 'http_json.dart';
 import 'security.dart';
 
-/// Reads timelines from a Liquiflux X-Ray server (tools/xray-server). It signs in with a
+/// Reads timelines from a Liquiflux Riptide server (tools/riptide-server). It signs in with a
 /// Plex token Liquiflux already has, the way Seerr's Plex sign-in works, so there's nothing
 /// to set up beyond the address: the server checks with Plex that the account can use this
 /// Plex server and gives back a session, which every timeline request then carries. The
@@ -11,12 +11,12 @@ import 'security.dart';
 /// the Plex server's own token also works where the server allows it.
 ///
 /// A plain folder of `<ratingKey>.json` files behind any web server (the setup before the
-/// X-Ray server) still works: when the server has no sign-in, files are read directly.
+/// Riptide server) still works: when the server has no sign-in, files are read directly.
 ///
 /// The Plex token only ever goes over https, or over http to an address on this network;
 /// never in a URL, and only to the sign-in endpoint.
-class XRayServer {
-  XRayServer._(this.base, this._plexToken, {JsonHttp? http, DateTime Function()? now}) : _http = http ?? JsonHttp(timeout: const Duration(seconds: 8)), _now = now ?? DateTime.now;
+class RiptideServer {
+  RiptideServer._(this.base, this._plexToken, {JsonHttp? http, DateTime Function()? now}) : _http = http ?? JsonHttp(timeout: const Duration(seconds: 8)), _now = now ?? DateTime.now;
 
   /// The server's address, without a trailing slash.
   final String base;
@@ -31,18 +31,18 @@ class XRayServer {
   String? _refusal;
   Future<void>? _signingIn;
 
-  static final _shared = <String, XRayServer>{};
+  static final _shared = <String, RiptideServer>{};
 
   /// One per server address and Plex account, kept for the app's life so the session is
   /// shared by every title played. Null when [server] isn't a usable web address.
-  static XRayServer? shared(String server, String plexToken, {JsonHttp? http, DateTime Function()? now}) {
+  static RiptideServer? shared(String server, String plexToken, {JsonHttp? http, DateTime Function()? now}) {
     final base = server.trim().replaceAll(RegExp(r'/+$'), '');
     if (base.isEmpty || safeExternalUri(base) == null) return null;
     final key = '$base|${plexToken.hashCode}';
     return _shared.putIfAbsent(key, () {
       // A new account (signed out and in again) doesn't need the old one's sessions.
       _shared.removeWhere((k, _) => k.startsWith('$base|'));
-      return XRayServer._(base, plexToken, http: http, now: now);
+      return RiptideServer._(base, plexToken, http: http, now: now);
     });
   }
 
@@ -93,16 +93,16 @@ class XRayServer {
 
   Future<void> _signIn() async {
     final until = _refusedUntil;
-    if (until != null && _now().isBefore(until)) throw ApiException(403, _refusal ?? 'X-Ray server refused this account');
+    if (until != null && _now().isBefore(until)) throw ApiException(403, _refusal ?? 'Riptide server refused this account');
     if (sendsCredentialsInClear(base) || _plexToken.isEmpty) {
       // Never send a Plex token in the clear across the internet: plain files only.
       _plainFiles = true;
       return;
     }
     try {
-      final j = JsonHttp.object(await _http.send('POST', _uri('/api/v1/auth/plex'), body: {'plexToken': _plexToken}), 'The X-Ray server answered with something unexpected');
+      final j = JsonHttp.object(await _http.send('POST', _uri('/api/v1/auth/plex'), body: {'plexToken': _plexToken}), 'The Riptide server answered with something unexpected');
       final token = j['token'], exp = DateTime.tryParse('${j['expiresAt']}');
-      if (token is! String || !token.startsWith('xr1.') || exp == null) throw ApiException(0, 'The X-Ray server answered with something unexpected');
+      if (token is! String || !token.startsWith('xr1.') || exp == null) throw ApiException(0, 'The Riptide server answered with something unexpected');
       _session = token;
       _expires = exp;
       _refusal = null;

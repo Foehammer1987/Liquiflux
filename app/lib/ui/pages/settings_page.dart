@@ -40,10 +40,10 @@ class _SettingsPageState extends State<SettingsPage> {
   final _seerrKey = TextEditingController();
   final _trakt = TextEditingController();
   final _region = TextEditingController();
-  final _xray = TextEditingController();
+  final _riptide = TextEditingController();
   String? _discoveryMsg;
-  String? _xrayMsg;
-  bool _savingXray = false;
+  String? _riptideMsg;
+  bool _savingRiptide = false;
   String? _advancedMsg;
   bool _usePlexLogin = true;
   bool _manualPlex = false;
@@ -91,7 +91,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   void dispose() {
-    for (final c in [_plexUrl, _plexToken, _seerrUrl, _seerrKey, _trakt, _region, _xray, _mpv]) {
+    for (final c in [_plexUrl, _plexToken, _seerrUrl, _seerrKey, _trakt, _region, _riptide, _mpv]) {
       c.dispose();
     }
     _tick?.cancel();
@@ -111,7 +111,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (_plexUrl.text.isEmpty) _plexUrl.text = s.plexUrl;
     if (_trakt.text.isEmpty) _trakt.text = s.traktClientId;
     if (_region.text.isEmpty) _region.text = s.region;
-    if (_xray.text.isEmpty) _xray.text = s.xrayUrl;
+    if (_riptide.text.isEmpty) _riptide.text = s.riptideUrl;
     if (_seerrUrl.text.isEmpty) _seerrUrl.text = s.seerrUrl;
     _usePlexLogin = s.seerrApiKey.isEmpty && s.seerrUsePlexLogin;
     if (_mpv.text.isEmpty) _mpv.text = s.playback.mpvOptions;
@@ -212,7 +212,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   /// The plex.tv token from the last sign-in on this page, kept with the server's own token
-  /// so the X-Ray server can check the account with plex.tv.
+  /// so the Riptide server can check the account with plex.tv.
   String _accountToken = '';
 
   Future<void> _useServer(PlexServerResource s) async {
@@ -272,29 +272,29 @@ class _SettingsPageState extends State<SettingsPage> {
     await app.update(app.settings.copyWith(seerrEnabled: on));
   }
 
-  Future<void> _saveXray() async {
+  Future<void> _saveRiptide() async {
     final app = AppScope.read(context);
-    final xray = _xray.text.trim();
-    if (xray.isNotEmpty && !isWebUrl(xray)) {
-      setState(() => _xrayMsg = 'The X-Ray server needs an http:// or https:// address');
+    final riptide = _riptide.text.trim();
+    if (riptide.isNotEmpty && !isWebUrl(riptide)) {
+      setState(() => _riptideMsg = 'The Riptide server needs an http:// or https:// address');
       return;
     }
-    setState(() => _savingXray = true);
-    await app.setXray(url: xray);
-    var msg = xray.isEmpty ? 'Saved. Add an address to use it' : 'Saved';
-    final server = xray.isEmpty || app.plex == null ? null : XRayServer.shared(xray, app.settings.xraySignInToken);
+    setState(() => _savingRiptide = true);
+    await app.setRiptide(url: riptide);
+    var msg = riptide.isEmpty ? 'Saved. Add an address to use it' : 'Saved';
+    final server = riptide.isEmpty || app.plex == null ? null : RiptideServer.shared(riptide, app.settings.riptideSignInToken);
     if (server != null) {
-      if (mounted) setState(() => _xrayMsg = 'Checking X-Ray...');
+      if (mounted) setState(() => _riptideMsg = 'Checking Riptide...');
       try {
-        msg = await server.check() ? 'Saved, signed in to X-Ray' : (sendsCredentialsInClear(xray) ? 'Saved, but X-Ray outside your network needs https' : 'Saved (plain file server)');
+        msg = await server.check() ? 'Saved, signed in to Riptide' : (sendsCredentialsInClear(riptide) ? 'Saved, but Riptide outside your network needs https' : 'Saved (plain file server)');
       } on ApiException catch (e) {
-        msg = 'Saved, but X-Ray: ${e.message}';
+        msg = 'Saved, but Riptide: ${e.message}';
       }
     }
     if (mounted) {
       setState(() {
-        _savingXray = false;
-        _xrayMsg = msg;
+        _savingRiptide = false;
+        _riptideMsg = msg;
       });
     }
   }
@@ -586,27 +586,27 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
       ConsolePanel(
-        title: 'X-Ray Server',
+        title: 'Riptide Server',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _Row(
-              label: 'Use an X-Ray Server',
-              help: "Pausing shows who's in the scene. Needs your own Liquiflux X-Ray server. Without one, X-Ray shows the whole cast from Plex.",
+              label: 'Use a Riptide Server',
+              help: "Pausing shows who's in the scene. Needs your own Liquiflux Riptide server. Without one, Riptide shows the whole cast from Plex.",
               control: ConsoleSwitch(
-                value: s.xrayEnabled,
+                value: s.riptideEnabled,
                 onChanged: (v) {
-                  setState(() => _xrayMsg = null);
-                  app.setXray(enabled: v);
+                  setState(() => _riptideMsg = null);
+                  app.setRiptide(enabled: v);
                 },
               ),
-              last: !s.xrayEnabled,
+              last: !s.riptideEnabled,
             ),
-            if (s.xrayEnabled) ...[
+            if (s.riptideEnabled) ...[
               const SizedBox(height: Space.space3),
               SettingsField(
-                label: 'X-Ray Server Address',
-                controller: _xray,
+                label: 'Riptide Server Address',
+                controller: _riptide,
                 mono: true,
                 hint: 'http://homeserver:8089',
                 help: 'At home (http://homeserver:8089) or through Cloudflare Tunnel (https://...). Liquiflux signs in with your Plex account.',
@@ -617,8 +617,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 spacing: Space.space3,
                 runSpacing: Space.space2,
                 children: [
-                  ConsoleButton(label: _savingXray ? 'Saving' : 'Save and Test', kind: ButtonKind.primary, onPressed: _unlessBusy(_savingXray, _saveXray)),
-                  if (_xrayMsg != null) StatusDot(_xrayMsg!, tone: _xrayMsg!.startsWith('Saved') && !_xrayMsg!.contains(' but ') ? Tone.success : Tone.warning),
+                  ConsoleButton(label: _savingRiptide ? 'Saving' : 'Save and Test', kind: ButtonKind.primary, onPressed: _unlessBusy(_savingRiptide, _saveRiptide)),
+                  if (_riptideMsg != null) StatusDot(_riptideMsg!, tone: _riptideMsg!.startsWith('Saved') && !_riptideMsg!.contains(' but ') ? Tone.success : Tone.warning),
                 ],
               ),
             ],
@@ -1256,6 +1256,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ('[  /  ]', 'Slower or faster'),
               ('0 to 9', 'Jump to 0% to 90%'),
               ('I', 'Playback info'),
+              ('R (or X)', "Riptide: the cast, and who's in the scene"),
               if (PlayerDock.enabled) ('B', 'Mini player: keep playing in a corner while you browse'),
               ('Esc', 'Close panel, leave full screen, then exit'),
             ])

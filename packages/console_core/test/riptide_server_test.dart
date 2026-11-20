@@ -6,17 +6,17 @@ import 'package:http/testing.dart';
 import 'package:test/test.dart';
 
 void main() {
-  setUp(XRayServer.reset);
+  setUp(RiptideServer.reset);
 
   final timeline = {'v': 1, 'ratingKey': '1234', 'people': [], 'spans': []};
 
-  ({XRayServer server, List<http.Request> seen}) make(String base, Future<http.Response> Function(http.Request r) answer) {
+  ({RiptideServer server, List<http.Request> seen}) make(String base, Future<http.Response> Function(http.Request r) answer) {
     final seen = <http.Request>[];
     final client = MockClient((r) {
       seen.add(r);
       return answer(r);
     });
-    return (server: XRayServer.shared(base, 'plextoken123', http: JsonHttp(client: client))!, seen: seen);
+    return (server: RiptideServer.shared(base, 'plextoken123', http: JsonHttp(client: client))!, seen: seen);
   }
 
   http.Response json(Object body, [int status = 200]) => http.Response(jsonEncode(body), status, headers: {'content-type': 'application/json'});
@@ -44,7 +44,7 @@ void main() {
 
   test('signs in again when the server forgot the session (restart)', () async {
     var n = 0;
-    final t = make('https://xray.example.com', (r) async {
+    final t = make('https://riptide.example.com', (r) async {
       if (r.url.path == '/api/v1/auth/plex') return json({'token': 'xr1.s${++n}.x', 'expiresAt': later});
       return r.headers['authorization'] == 'Bearer xr1.s2.x' ? json(timeline) : json({'error': 'not signed in'}, 401);
     });
@@ -64,13 +64,13 @@ void main() {
   });
 
   test('never sends the Plex token over plain http across the internet', () async {
-    final t = make('http://xray.example.com', (r) async => r.url.path == '/1234.json' ? json(timeline) : http.Response('', 404));
+    final t = make('http://riptide.example.com', (r) async => r.url.path == '/1234.json' ? json(timeline) : http.Response('', 404));
     expect(await t.server.timeline('1234'), timeline);
     expect(t.seen.any((r) => r.method == 'POST'), isFalse);
   });
 
   test('a refused account is not asked again for every title', () async {
-    final t = make('https://xray.example.com', (r) async => json({'error': 'this Plex account has no access to this server'}, 403));
+    final t = make('https://riptide.example.com', (r) async => json({'error': 'this Plex account has no access to this server'}, 403));
     await expectLater(t.server.timeline('1234'), throwsA(isA<ApiException>().having((e) => e.status, 'status', 403)));
     await expectLater(t.server.timeline('8443'), throwsA(isA<ApiException>()));
     expect(t.seen, hasLength(1));
@@ -78,9 +78,9 @@ void main() {
   });
 
   test('odd addresses and keys are refused', () async {
-    expect(XRayServer.shared('', 't'), isNull);
-    expect(XRayServer.shared('file:///etc', 't'), isNull);
-    expect(XRayServer.shared('http://user:pw@host', 't'), isNull);
+    expect(RiptideServer.shared('', 't'), isNull);
+    expect(RiptideServer.shared('file:///etc', 't'), isNull);
+    expect(RiptideServer.shared('http://user:pw@host', 't'), isNull);
     final t = make('http://homeserver:8089', (r) async => json(timeline));
     expect(await t.server.timeline('../secret'), isNull);
     expect(t.seen, isEmpty);

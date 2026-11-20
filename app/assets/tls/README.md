@@ -10,7 +10,7 @@ and nothing else:
 - mpv (lib/services/mpv_tls.dart). media_kit's libmpv for Windows and Android does TLS with
   mbedtls, which can't read the system's certificate store and has no revocation checks.
 - The app's own requests and artwork (lib/services/trusted_roots.dart): Plex, plex.tv,
-  Seerr, the X-Ray server, Trakt, TMDB. Using this list instead of the system's means an old
+  Seerr, the Riptide server, Trakt, TMDB. Using this list instead of the system's means an old
   TV's root store (the 2019 Shield is on Android 11 and gets few updates) can't keep trusting a
   root the browsers have dropped.
 

@@ -6,14 +6,14 @@ import 'package:flutter/material.dart';
 
 import '../../platform.dart';
 import 'player_session.dart';
-import 'xray.dart';
+import 'riptide.dart';
 
 /// Shown after a few seconds paused, the way Netflix and Prime do: the title (its logo when
 /// Plex has one), the synopsis and who's in it, over a softened picture in the title's colours.
 class PauseScreen extends StatefulWidget {
-  const PauseScreen({super.key, required this.session, required this.xray, required this.tint, required this.accent});
+  const PauseScreen({super.key, required this.session, required this.riptide, required this.tint, required this.accent});
   final PlayerSession session;
-  final XRay xray;
+  final Riptide riptide;
   final Color tint;
   final Color accent;
 
@@ -30,7 +30,7 @@ class _PauseScreenState extends State<PauseScreen> {
   @override
   Widget build(BuildContext context) {
     final s = widget.session;
-    final show = widget.xray.show;
+    final show = widget.riptide.show;
     final it = s.item;
     final tint = widget.tint, accent = widget.accent;
     final episode = it.type == 'episode';
@@ -46,9 +46,9 @@ class _PauseScreenState extends State<PauseScreen> {
       if (mins != null && mins > 0) mins >= 60 ? '${mins ~/ 60}h ${mins % 60}m' : '${mins}m',
       if (left.inMinutes > 0) '${left.inMinutes}m left',
     ];
-    // Who's in this scene when the X-Ray scanner has been over the title, else top billing.
-    final scene = widget.xray.inScene(s.position);
-    final cast = (scene.isNotEmpty ? scene : widget.xray.cast).take(6).toList();
+    // Who's in this scene when the Riptide scanner has been over the title, else top billing.
+    final scene = widget.riptide.inScene(s.position);
+    final cast = (scene.isNotEmpty ? scene : widget.riptide.cast).take(6).toList();
     final director = (it.directors.isNotEmpty ? it.directors : (show?.directors ?? const <PlexTag>[])).map((d) => d.tag).take(2).join(', ');
 
     return Stack(
@@ -126,7 +126,7 @@ class _PauseScreenState extends State<PauseScreen> {
                 ),
                 const SizedBox(height: Space.space3),
                 Text(
-                  isTv ? 'Press Down for X-Ray: the whole cast and their other titles' : 'Press X for X-Ray: the whole cast and their other titles',
+                  isTv ? 'Press Down for Riptide: the whole cast and their other titles' : 'Press R for Riptide: the whole cast and their other titles',
                   style: ConsoleText.caption.copyWith(color: Colors.white.withValues(alpha: 0.55)),
                 ),
               ],

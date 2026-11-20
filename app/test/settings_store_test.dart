@@ -63,7 +63,7 @@ void main() {
     final again = await store(secrets).load();
     expect(again.plexToken, 'plexTok3n');
     expect(again.plexAccountToken, 'acctTok3n');
-    expect(again.xraySignInToken, 'acctTok3n');
+    expect(again.riptideSignInToken, 'acctTok3n');
     expect(again.seerrApiKey, 'seerrK3y');
     expect(again.traktClientId, 'traktId1');
     expect(again.plexUrl, 'http://10.0.0.2:32400');
@@ -178,37 +178,86 @@ void main() {
     const friend = Settings(clientId: 'c', plexToken: 'server', plexAccountToken: 'account');
     expect(owner.plexTvToken, 'server');
     expect(friend.plexTvToken, 'account');
-    expect(friend.xraySignInToken, 'account');
+    expect(friend.riptideSignInToken, 'account');
   });
 
-  test('the X-Ray server is kept, and only as a web address', () async {
+  test('the Riptide server is kept, and only as a web address', () async {
     final secrets = FakeSecrets();
     final s = store(secrets);
-    await s.save((await s.load()).copyWith(xrayUrl: 'http://xray.local:8089'));
-    expect((await store(secrets).load()).xrayUrl, 'http://xray.local:8089');
-    await file.writeAsString(jsonEncode({...await saved(), 'xrayUrl': 'file:///etc/passwd'}));
-    expect((await store(secrets).load()).xrayUrl, '');
+    await s.save((await s.load()).copyWith(riptideUrl: 'http://riptide.local:8089'));
+    expect((await store(secrets).load()).riptideUrl, 'http://riptide.local:8089');
+    await file.writeAsString(jsonEncode({...await saved(), 'riptideUrl': 'file:///etc/passwd'}));
+    expect((await store(secrets).load()).riptideUrl, '');
   });
 
-  test('Seerr and X-Ray start off, and older files that set them up keep them on', () async {
+  test('Seerr and Riptide start off, and older files that set them up keep them on', () async {
     final secrets = FakeSecrets();
     final fresh = await store(secrets).load();
     expect(fresh.seerrEnabled, isFalse);
-    expect(fresh.xrayEnabled, isFalse);
-    // From before the switches: an address saved means it was in use.
-    await file.writeAsString(jsonEncode({'seerrUrl': 'http://seerr.local:5055', 'xrayUrl': 'http://xray.local:8089', 'clientId': 'console-abc'}));
+    expect(fresh.riptideEnabled, isFalse);
+    // From before the switches (and before the rename, so the old key): an address saved
+    // means it was in use.
+    await file.writeAsString(jsonEncode({'seerrUrl': 'http://seerr.local:5055', 'xrayUrl': 'http://riptide.local:8089', 'clientId': 'console-abc'}));
     final old = await store(secrets).load();
     expect(old.seerrEnabled, isTrue);
-    expect(old.xrayEnabled, isTrue);
-    expect(old.xrayServer, 'http://xray.local:8089');
+    expect(old.riptideEnabled, isTrue);
+    expect(old.riptideServer, 'http://riptide.local:8089');
     // Turned off, the addresses stay for next time.
     final s = store(secrets);
-    await s.save(old.copyWith(seerrEnabled: false, xrayEnabled: false));
+    await s.save(old.copyWith(seerrEnabled: false, riptideEnabled: false));
     final off = await store(secrets).load();
     expect(off.seerrEnabled, isFalse);
-    expect(off.xrayEnabled, isFalse);
+    expect(off.riptideEnabled, isFalse);
     expect(off.seerrUrl, 'http://seerr.local:5055');
-    expect(off.xrayUrl, 'http://xray.local:8089');
-    expect(off.xrayServer, '');
+    expect(off.riptideUrl, 'http://riptide.local:8089');
+    expect(off.riptideServer, '');
+  });
+
+  group('settings saved before X-Ray became Riptide', () {
+    test('old keys only are read', () async {
+      await file.writeAsString(jsonEncode({'xrayUrl': 'http://riptide.local:8089', 'xrayEnabled': false, 'clientId': 'console-abc'}));
+      final s = await store(FakeSecrets()).load();
+      expect(s.riptideUrl, 'http://riptide.local:8089');
+      expect(s.riptideEnabled, isFalse);
+      await file.writeAsString(jsonEncode({'xrayUrl': 'http://riptide.local:8089', 'xrayEnabled': true, 'clientId': 'console-abc'}));
+      expect((await store(FakeSecrets()).load()).riptideServer, 'http://riptide.local:8089');
+    });
+
+    test('new keys only', () async {
+      await file.writeAsString(jsonEncode({'riptideUrl': 'https://riptide.example.com', 'riptideEnabled': true, 'clientId': 'console-abc'}));
+      final s = await store(FakeSecrets()).load();
+      expect(s.riptideUrl, 'https://riptide.example.com');
+      expect(s.riptideServer, 'https://riptide.example.com');
+    });
+
+    test('both present: the new keys win', () async {
+      await file.writeAsString(jsonEncode({
+        'xrayUrl': 'http://old.local:8089',
+        'xrayEnabled': true,
+        'riptideUrl': 'https://riptide.example.com',
+        'riptideEnabled': false,
+        'clientId': 'console-abc',
+      }));
+      final s = await store(FakeSecrets()).load();
+      expect(s.riptideUrl, 'https://riptide.example.com');
+      expect(s.riptideEnabled, isFalse);
+      // A cleared new address isn't filled in from the old key.
+      await file.writeAsString(jsonEncode({'xrayUrl': 'http://old.local:8089', 'riptideUrl': '', 'clientId': 'console-abc'}));
+      expect((await store(FakeSecrets()).load()).riptideUrl, '');
+    });
+
+    test('saving writes the new keys and drops the old ones', () async {
+      final secrets = FakeSecrets();
+      await file.writeAsString(jsonEncode({'xrayUrl': 'http://riptide.local:8089', 'xrayEnabled': true, 'clientId': 'console-abc'}));
+      final s = store(secrets);
+      await s.save(await s.load());
+      final j = await saved();
+      expect(j['riptideUrl'], 'http://riptide.local:8089');
+      expect(j['riptideEnabled'], isTrue);
+      expect(j.containsKey('xrayUrl'), isFalse);
+      expect(j.containsKey('xrayEnabled'), isFalse);
+      final again = await store(secrets).load();
+      expect(again.riptideServer, 'http://riptide.local:8089');
+    });
   });
 }

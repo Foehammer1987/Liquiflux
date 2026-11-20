@@ -119,7 +119,7 @@ class PersonDest extends Dest {
   String get railId => '';
 }
 
-/// A page the player asked for on its way out (an actor picked in X-Ray). The shell opens it
+/// A page the player asked for on its way out (an actor picked in Riptide). The shell opens it
 /// once the player has gone, so its artwork never loads under a playing 4K title.
 final playerHandoff = ValueNotifier<Dest?>(null);
 

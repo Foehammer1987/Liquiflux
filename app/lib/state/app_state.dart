@@ -494,16 +494,16 @@ class AppState extends ChangeNotifier {
   /// True when the server is on this network, which picks the home or away streaming quality.
   bool get plexIsLocal => isLocalAddress(settings.plexUrl);
 
-  /// Turns the X-Ray server on or off, or changes its address. The player reads it as each
+  /// Turns the Riptide server on or off, or changes its address. The player reads it as each
   /// title starts, so there's nothing to reconnect.
-  Future<void> setXray({bool? enabled, String? url}) async {
-    settings = settings.copyWith(xrayEnabled: enabled, xrayUrl: url);
+  Future<void> setRiptide({bool? enabled, String? url}) async {
+    settings = settings.copyWith(riptideEnabled: enabled, riptideUrl: url);
     notifyListeners();
     await _store.save(settings);
   }
 
-  Future<void> setDiscovery({String? traktClientId, String? region, String? xrayUrl}) async {
-    settings = settings.copyWith(traktClientId: traktClientId, region: region, xrayUrl: xrayUrl);
+  Future<void> setDiscovery({String? traktClientId, String? region, String? riptideUrl}) async {
+    settings = settings.copyWith(traktClientId: traktClientId, region: region, riptideUrl: riptideUrl);
     _makeTrakt();
     notifyListeners();
     await _store.save(settings);

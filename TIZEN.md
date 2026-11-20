@@ -3,7 +3,7 @@
 Liquiflux runs on Samsung smart TVs from 2021 on (Tizen 6.0 and later), built with Samsung's
 [flutter-tizen](https://github.com/flutter-tizen/flutter-tizen). Samsung TVs from 2020 and
 earlier can't run Flutter apps. The Samsung build is the same app as on Windows and Android TV:
-the same Home, title pages, Seerr requests, Channels, X-Ray, Watch Together, Trakt and AniList.
+the same Home, title pages, Seerr requests, Channels, Riptide, Watch Together, Trakt and AniList.
 What's different is below.
 
 Status: 1.0.13 (first build 1.0.12). It compiles and its tests pass, but it has **not run on a Samsung
@@ -15,7 +15,7 @@ TV yet**. See [Testing](#testing) for what needs a real TV.
   player (AVPlay, via the [`video_player_avplay`](https://pub.dev/packages/video_player_avplay)
   plugin), drawn on the TV's video plane behind the app. `app/lib/services/avplay_player.dart`
   puts it behind media_kit's player API, so the player page, Skip Intro, Up Next, the sleep timer,
-  Watch Together, X-Ray and Plex progress reports work as they do elsewhere.
+  Watch Together, Riptide and Plex progress reports work as they do elsewhere.
 - **Playback Info** comes from Plex and the player instead of mpv: Direct Play or Transcode, the
   file, the video and audio tracks, the subtitles, the picture size and the speed. A speed
   Samsung's player turns down shows a short message and the speed stays as it was.

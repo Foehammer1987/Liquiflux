@@ -7,11 +7,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'tv_harness.dart';
 
-/// Seerr and the X-Ray server are add-ons for people who run them. Turned off (the default),
+/// Seerr and the Riptide server are add-ons for people who run them. Turned off (the default),
 /// the app is Plex alone: no Seerr rows, tabs or prompts, and nothing asks either server.
 void main() {
   void addonsOff(AppState s) => s
-    ..settings = const Settings(clientId: 'c', plexUrl: 'http://plex.test:32400', plexToken: 'tok', seerrUrl: 'http://seerr.test', seerrApiKey: 'key', xrayUrl: 'http://xray.test')
+    ..settings = const Settings(clientId: 'c', plexUrl: 'http://plex.test:32400', plexToken: 'tok', seerrUrl: 'http://seerr.test', seerrApiKey: 'key', riptideUrl: 'http://riptide.test')
     ..seerr = null
     ..seerrConn = Conn.off;
 
@@ -33,8 +33,8 @@ void main() {
       await t.pump(const Duration(milliseconds: 200));
     }
     expect(find.text('Use Seerr'), findsOneWidget);
-    expect(find.text('Use an X-Ray Server'), findsOneWidget);
-    for (final text in ['Seerr Address', 'X-Ray Server Address', 'Discovery', 'Notifications']) {
+    expect(find.text('Use a Riptide Server'), findsOneWidget);
+    for (final text in ['Seerr Address', 'Riptide Server Address', 'Discovery', 'Notifications']) {
       expect(find.text(text), findsNothing, reason: text);
     }
     await t.pumpWidget(const SizedBox());
@@ -42,11 +42,11 @@ void main() {
   });
 
   test('saved addresses are kept but unused while switched off', () {
-    const s = Settings(clientId: 'c', plexUrl: 'http://plex.test:32400', plexToken: 'tok', seerrUrl: 'http://seerr.test', seerrApiKey: 'key', xrayUrl: 'http://xray.test');
+    const s = Settings(clientId: 'c', plexUrl: 'http://plex.test:32400', plexToken: 'tok', seerrUrl: 'http://seerr.test', seerrApiKey: 'key', riptideUrl: 'http://riptide.test');
     expect(s.seerrReady, isFalse);
-    expect(s.xrayServer, '');
-    final on = s.copyWith(seerrEnabled: true, xrayEnabled: true);
+    expect(s.riptideServer, '');
+    final on = s.copyWith(seerrEnabled: true, riptideEnabled: true);
     expect(on.seerrReady, isTrue);
-    expect(on.xrayServer, 'http://xray.test');
+    expect(on.riptideServer, 'http://riptide.test');
   });
 }

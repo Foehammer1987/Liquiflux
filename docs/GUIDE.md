@@ -97,7 +97,7 @@ The controls float on a frosted bar tinted from the title's own artwork, and hid
 - **Skip Intro / Skip Credits** from the markers Plex finds, as a button or automatically.
 - **Up Next** at an episode's final credits (or 20 s before the end without markers), with a countdown that starts the next episode.
 - A side panel with **Audio** (track, delay, night mode, volume boost, output device), **Subtitles** (track including sidecar files, **Find Online** to search OpenSubtitles through your Plex server and add one to the title, delay, size, height, colour including the title's own colour, outline / shadow / box, live preview), **Video** (quality ladder from Original down to 0.7 Mbps, file version, fit / fill / stretch, deinterlace), **Playback** (speed 0.5 to 2 with natural pitch, sleep timer) and **Chapters** (with thumbnails).
-- **Mini Player** (B, or the button at the top of the player, on Windows): the title shrinks into a corner of the window and keeps playing while you browse, search and open pages behind it. Hover it for Play / Pause, Expand and Close; drag it to any corner; click the picture (or press B in the player) to go back to full window. Picking another title replaces it, and an actor picked in X-Ray opens their page with the title still playing in the corner. Home's spotlight holds still while it plays.
+- **Mini Player** (B, or the button at the top of the player, on Windows): the title shrinks into a corner of the window and keeps playing while you browse, search and open pages behind it. Hover it for Play / Pause, Expand and Close; drag it to any corner; click the picture (or press B in the player) to go back to full window. Picking another title replaces it, and an actor picked in Riptide opens their page with the title still playing in the corner. Home's spotlight holds still while it plays.
 - Playback Info (I): direct play or transcode, codecs, resolution, HDR, hardware or software decoding, bitrate, dropped frames and buffer, live from mpv.
 
 Track choices are saved to your Plex server like Plex's own apps do, so they carry over to the next episode and other devices. Subtitle style changes made while watching become your defaults.
@@ -110,7 +110,7 @@ Player keys: Space or K play/pause, ←/→ (or J/L) skip, ↑/↓ volume, M mut
 
 ## Settings
 
-- **Servers**: Plex sign-in, then the add-ons, each off until you switch it on: Seerr (address and sign-in), Discovery (Trakt, streaming region; shown with Seerr on) and the X-Ray server. Sign out.
+- **Servers**: Plex sign-in, then the add-ons, each off until you switch it on: Seerr (address and sign-in), Discovery (Trakt, streaming region; shown with Seerr on) and the Riptide server. Sign out.
 - **Playback**: streaming quality at home and away (picked by whether the server address is on your network), allow direct play and direct stream, skip steps, skip intro and credits (button, automatic or off), Up Next autoplay and countdown, what happens with a partly watched title (ask, resume or start over), the pause screen.
 - **Audio & Subtitles**: preferred audio language (commentary is passed over), subtitle mode (Plex default, off, forced only, foreign audio, always) and language, subtitle style, passthrough to an AV receiver, speaker layout, night mode, volume boost.
 - **Video**: hardware decoding, picture size, deinterlace, high quality scaling, debanding.

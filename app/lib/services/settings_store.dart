@@ -39,8 +39,8 @@ class Settings {
     this.pauseScreen = true,
     this.spoilers = const SpoilerPrefs(),
     this.watchName = '',
-    this.xrayUrl = '',
-    this.xrayEnabled = false,
+    this.riptideUrl = '',
+    this.riptideEnabled = false,
     this.plexHomeToken = '',
     this.plexOwnerId = '',
     this.plexUserId = '',
@@ -56,7 +56,7 @@ class Settings {
 
   /// The plex.tv account token from the Plex sign-in. [plexToken] is what the server gave
   /// us for itself (for a shared user, a token only that server knows); this one is what
-  /// other services that "sign in with Plex" (the X-Ray server) can check with plex.tv.
+  /// other services that "sign in with Plex" (the Riptide server) can check with plex.tv.
   /// Empty when the sign-in was a pasted token or made before this was kept.
   final String plexAccountToken;
   final String plexServerName;
@@ -118,14 +118,14 @@ class Settings {
   /// The name friends see in Watch Together (the Plex account name when empty).
   final String watchName;
 
-  /// Where the X-Ray scanner's who's-on-screen files are served from (empty = cast list only).
-  final String xrayUrl;
+  /// Where the Riptide scanner's who's-on-screen files are served from (empty = cast list only).
+  final String riptideUrl;
 
-  /// The X-Ray server is an add-on too: off until turned on (the cast list needs only Plex).
-  final bool xrayEnabled;
+  /// The Riptide server is an add-on too: off until turned on (the cast list needs only Plex).
+  final bool riptideEnabled;
 
-  /// The X-Ray server to ask, or empty while it's turned off.
-  String get xrayServer => xrayEnabled ? xrayUrl : '';
+  /// The Riptide server to ask, or empty while it's turned off.
+  String get riptideServer => riptideEnabled ? riptideUrl : '';
 
   /// The plex.tv token of the account that signed in, kept while another Plex Home user is
   /// in use so the Home can be listed and switched again. Empty = [plexTvToken] (no switch yet).
@@ -201,8 +201,8 @@ class Settings {
       pauseScreen: s.pauseScreen,
       spoilers: s.spoilers,
       watchName: s.watchName,
-      xrayUrl: s.xrayUrl,
-      xrayEnabled: s.xrayEnabled,
+      riptideUrl: s.riptideUrl,
+      riptideEnabled: s.riptideEnabled,
       askProfile: s.askProfile,
       profiles: s.profiles,
       clientId: s.clientId,
@@ -222,9 +222,9 @@ class Settings {
 
   bool get plexReady => plexUrl.isNotEmpty && plexToken.isNotEmpty;
 
-  /// What to sign in to the X-Ray server with: the account token when we have it, so the
+  /// What to sign in to the Riptide server with: the account token when we have it, so the
   /// server can check with plex.tv who it is (allow lists work), else the server token.
-  String get xraySignInToken => plexTvToken;
+  String get riptideSignInToken => plexTvToken;
 
   /// What plex.tv services (Seerr's Plex sign-in, Watch Together) are given: the account
   /// token when we have it, else the server token (the same thing for the server's owner).
@@ -255,8 +255,8 @@ class Settings {
     bool? pauseScreen,
     SpoilerPrefs? spoilers,
     String? watchName,
-    String? xrayUrl,
-    bool? xrayEnabled,
+    String? riptideUrl,
+    bool? riptideEnabled,
     String? plexHomeToken,
     String? plexOwnerId,
     String? plexUserId,
@@ -278,8 +278,8 @@ class Settings {
     pauseScreen: pauseScreen ?? this.pauseScreen,
     spoilers: spoilers ?? this.spoilers,
     watchName: watchName ?? this.watchName,
-    xrayUrl: xrayUrl ?? this.xrayUrl,
-    xrayEnabled: xrayEnabled ?? this.xrayEnabled,
+    riptideUrl: riptideUrl ?? this.riptideUrl,
+    riptideEnabled: riptideEnabled ?? this.riptideEnabled,
     traktClientId: traktClientId ?? this.traktClientId,
     traktClientSecret: traktClientSecret ?? this.traktClientSecret,
     anilistClientId: anilistClientId ?? this.anilistClientId,
@@ -424,7 +424,10 @@ class SettingsStore {
       final v = env[name];
       if (v != null) _fromEnv[field] = v;
     }
-    final seerrUrl = env['CONSOLE_SEERR_URL'] ?? _url(j, 'seerrUrl'), xrayUrl = _url(j, 'xrayUrl');
+    final seerrUrl = env['CONSOLE_SEERR_URL'] ?? _url(j, 'seerrUrl');
+    // Riptide was called X-Ray before 1.1.2, and its settings were xrayUrl and xrayEnabled: read
+    // those while the new keys aren't there. Saving writes only the new keys.
+    final riptideUrl = j.containsKey('riptideUrl') ? _url(j, 'riptideUrl') : _url(j, 'xrayUrl');
     final s = Settings(
       plexUrl: env['CONSOLE_PLEX_URL'] ?? _url(j, 'plexUrl'),
       plexToken: env['CONSOLE_PLEX_TOKEN'] ?? secrets['plexToken']!,
@@ -461,8 +464,8 @@ class SettingsStore {
       pauseScreen: _bool(j, 'pauseScreen') ?? true,
       spoilers: SpoilerPrefs.fromJson(j['spoilers']),
       watchName: _str(j, 'watchName') ?? '',
-      xrayUrl: xrayUrl,
-      xrayEnabled: _bool(j, 'xrayEnabled') ?? xrayUrl.isNotEmpty,
+      riptideUrl: riptideUrl,
+      riptideEnabled: _bool(j, 'riptideEnabled') ?? _bool(j, 'xrayEnabled') ?? riptideUrl.isNotEmpty,
       clientId: clientId,
     );
     // An older file with a credential in it: move it to the credential store and rewrite
@@ -516,8 +519,8 @@ class SettingsStore {
       'pauseScreen': s.pauseScreen,
       'spoilers': s.spoilers.toJson(),
       'watchName': s.watchName,
-      'xrayUrl': s.xrayUrl,
-      'xrayEnabled': s.xrayEnabled,
+      'riptideUrl': s.riptideUrl,
+      'riptideEnabled': s.riptideEnabled,
       'anilistClientId': s.anilistClientId,
       'plexOwnerId': s.plexOwnerId,
       'plexUserId': s.plexUserId,

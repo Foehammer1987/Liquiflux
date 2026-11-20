@@ -173,7 +173,7 @@ void main() {
         expect(app.settings.plexToken, 'kid-server');
         expect(app.settings.plexAccountToken, 'kid-acct');
         expect(app.settings.plexHomeToken, 'owner-acct');
-        expect(app.settings.plexTvToken, 'kid-acct', reason: 'Seerr, Watch Together and X-Ray sign in as the kid');
+        expect(app.settings.plexTvToken, 'kid-acct', reason: 'Seerr, Watch Together and Riptide sign in as the kid');
         expect(app.settings.plexUserId, _kid);
         expect(app.profile?.name, 'Kid');
         expect(app.settings.taste.likes.isEmpty, isTrue);

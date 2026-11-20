@@ -2,7 +2,7 @@ import 'package:console_core/console_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  XRayTimeline timeline() => XRayTimeline.fromJson({
+  RiptideTimeline timeline() => RiptideTimeline.fromJson({
     'v': 1,
     'people': [
       {'tag': 'Zoe Saldaña', 'id': 11, 'role': 'Neytiri'},
@@ -31,7 +31,7 @@ void main() {
   });
 
   test('bad entries are dropped, not fatal', () {
-    final t = XRayTimeline.fromJson({
+    final t = RiptideTimeline.fromJson({
       'people': [
         {'tag': 'A'},
         'junk',
@@ -46,15 +46,15 @@ void main() {
     });
     expect(t.people, hasLength(1));
     expect(t.spans.single.confidence, 1.0);
-    expect(XRayTimeline.fromJson({}).spans, isEmpty);
+    expect(RiptideTimeline.fromJson({}).spans, isEmpty);
   });
 
   test('timeline address', () {
-    expect(xrayUri('http://homeserver:8089', '1234').toString(), 'http://homeserver:8089/1234.json');
-    expect(xrayUri('http://homeserver:8089/xray/', '1234').toString(), 'http://homeserver:8089/xray/1234.json');
-    expect(xrayUri('', '1234'), isNull);
-    expect(xrayUri('file:///tmp', '1234'), isNull);
-    expect(xrayUri('http://homeserver:8089', '../secret'), isNull);
+    expect(riptideUri('http://homeserver:8089', '1234').toString(), 'http://homeserver:8089/1234.json');
+    expect(riptideUri('http://homeserver:8089/riptide/', '1234').toString(), 'http://homeserver:8089/riptide/1234.json');
+    expect(riptideUri('', '1234'), isNull);
+    expect(riptideUri('file:///tmp', '1234'), isNull);
+    expect(riptideUri('http://homeserver:8089', '../secret'), isNull);
   });
 
   test('animated titles are left to the cast list', () {
@@ -63,7 +63,7 @@ void main() {
   });
 
   test('an unsure chapter names nobody, so the cast list shows instead', () {
-    final t = XRayTimeline.fromJson({
+    final t = RiptideTimeline.fromJson({
       'people': [
         {'tag': 'A'},
       ],
@@ -81,7 +81,7 @@ void main() {
   });
 
   test('lookalikes come together', () {
-    final t = XRayTimeline.fromJson({
+    final t = RiptideTimeline.fromJson({
       'people': [
         {'tag': 'James Phelps', 'role': 'Fred Weasley', 'alike': [1]},
         {'tag': 'Oliver Phelps', 'role': 'George Weasley', 'alike': [0]},
@@ -103,9 +103,9 @@ void main() {
         [0, 10, 0, 0.9],
       ],
     };
-    expect(XRayTimeline.fromJson(file(0.7, [1, 2])).usableFor([1, 2, 3]), isTrue);
-    expect(XRayTimeline.fromJson(file(0.3, [1, 2])).usableFor([1, 2, 3]), isFalse);
-    expect(XRayTimeline.fromJson(file(0.7, [7, 8, 9])).usableFor([1, 2, 3]), isFalse);
-    expect(XRayTimeline.fromJson({'people': [], 'spans': []}).usableFor([1]), isFalse);
+    expect(RiptideTimeline.fromJson(file(0.7, [1, 2])).usableFor([1, 2, 3]), isTrue);
+    expect(RiptideTimeline.fromJson(file(0.3, [1, 2])).usableFor([1, 2, 3]), isFalse);
+    expect(RiptideTimeline.fromJson(file(0.7, [7, 8, 9])).usableFor([1, 2, 3]), isFalse);
+    expect(RiptideTimeline.fromJson({'people': [], 'spans': []}).usableFor([1]), isFalse);
   });
 }

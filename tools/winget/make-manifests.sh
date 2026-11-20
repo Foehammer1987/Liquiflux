@@ -81,7 +81,7 @@ Description: |-
   a full-width spotlight with trailers, rows that change with your mood, and a player that gets
   out of the way. It plays your files directly through mpv, so almost anything in your library
   plays without the server converting it. Seerr (or Overseerr / Jellyseerr) is built in, so what
-  you don't have yet gets a Request button. Also X-Ray on pause, Watch Together, per-show audio
+  you don't have yet gets a Request button. Also Riptide on pause, Watch Together, per-show audio
   and subtitles, and a sleep timer.
 Moniker: liquiflux
 Tags:

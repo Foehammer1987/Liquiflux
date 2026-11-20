@@ -41,8 +41,8 @@ download bar.
 | --- | --- |
 | ![Title page](docs/screenshots/title.jpg) | ![Pause screen](docs/screenshots/pause.jpg) |
 | **Title pages** with ratings, cast, extras and file details | **The pause screen** with the story and who's starring |
-| ![X-Ray panel](docs/screenshots/xray.jpg) | ![Moods page](docs/screenshots/moods.jpg) |
-| **X-Ray** over a paused movie | **Moods** built from your own library |
+| ![Riptide panel](docs/screenshots/riptide.jpg) | ![Moods page](docs/screenshots/moods.jpg) |
+| **Riptide** over a paused movie | **Moods** built from your own library |
 | ![Collections](docs/screenshots/collections.jpg) | ![Android TV layout](docs/screenshots/tv-home.jpg) |
 | **Collections** of every film series you own | **The Android TV layout**, made for the remote |
 
@@ -52,11 +52,11 @@ download bar.
 
 ## What makes it different
 
-**X-Ray on pause.** Pause a movie and Liquiflux shows who is on screen in that scene, not just the
+**Riptide on pause.** Pause a movie and Liquiflux shows who is on screen in that scene, not just the
 cast list. Select a face to see everything else they're in. Scene data comes from the optional
-[X-Ray server](https://github.com/Foehammer1987/liquiflux-xray-server) (a Docker container that
+[Riptide server](https://github.com/Foehammer1987/liquiflux-riptide-server) (a Docker container that
 face-matches new movies against their own Plex cast) or from
-[X-Ray Desktop](https://github.com/Foehammer1987/Liquiflux-xray-ML-PC) for scanning a whole
+[Riptide Desktop](https://github.com/Foehammer1987/Liquiflux-riptide-ML-PC) for scanning a whole
 library on a PC. When a film has no scene data, you still get the top-billed cast.
 
 **Watch Together, two ways.** Share a six-character room code with anyone, including people using
@@ -162,8 +162,8 @@ version is out.
 2. **Turn on Seerr** (optional) in Settings > Servers if you run one, then enter its address. It
    signs in with your Plex account, so requests are filed under your own name. Until it's on,
    Liquiflux is Plex alone: no request buttons, Trending or Requests pages.
-3. **Turn on an X-Ray server** (optional) in Settings > Servers to get the "who's in this scene"
-   panel. Without one, X-Ray shows the whole cast from Plex.
+3. **Turn on a Riptide server** (optional) in Settings > Servers to get the "who's in this scene"
+   panel. Without one, Riptide shows the whole cast from Plex.
 
 The [user guide](docs/GUIDE.md) covers every page and setting.
 
@@ -210,7 +210,7 @@ for an AniList API client id.
 | Path | What it is |
 | --- | --- |
 | `app` | The Flutter app: Windows, Android TV, and a Linux build for testing. |
-| `packages/console_core` | Pure Dart: Plex, Seerr and X-Ray clients, sign-in, moods, playback rules. |
+| `packages/console_core` | Pure Dart: Plex, Seerr and Riptide clients, sign-in, moods, playback rules. |
 | `packages/console_ui` | The design system: theme, panels, posters, focus handling for the remote. |
 | `packages/media_kit_video` | A patched media_kit_video with tear-free video on Windows. |
 | `tools` | Setup and build scripts, the Windows installer script, and mock servers for development. |
