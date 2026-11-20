@@ -1,8 +1,15 @@
 # Changelog
 
-## 1.0.20
+## 1.1.0
 
-Liquiflux for Android phones and tablets: a second Android build with a touch layout. The Android TV build is unchanged.
+Liquiflux 1.1: phones and tablets. This release adds an Android build for phones and tablets with a touch layout, and rounds up everything since 1.0.14:
+
+- Seerr and the X-Ray server became opt-in add-ons, so a Plex-only setup looks finished on its own (1.0.15).
+- A Samsung TV build for the Samsung store, which leaves out TV Networks (1.0.16).
+- On Fire TV and Android TV, the remote no longer gets stuck on the first-run sign-in page (1.0.18).
+- Generic example addresses in Settings (1.0.19).
+
+What's new in 1.1.0 (the Android TV build is unchanged):
 
 - New phone/tablet build: `tools\build-android.ps1 -Mobile` (or `flutter build apk --dart-define=LIQUIFLUX_FORM=mobile --android-project-arg=liquiflux.form=mobile`). Same app id; its own manifest (`android/app/src/mobile/AndroidManifest.xml`): any orientation and resizable, picture-in-picture, Impeller, no leanback launcher, banner, sleep-timer accessibility service or 256 MB heap cap. Without the switch the build is the TV one, exactly as before. Forgejo CI builds both (`liquiflux-android-mobile` artifact, arm64).
 - Phones (screen's short side under 600 dp): a bottom bar (Home, Search, Library, Collections, More) replaces the side rail; the More sheet holds Trending, TV Networks, Moods, Shuffle Play, Channels, Requests, Switch Profile and Settings. Home opens on a poster-sized spotlight you swipe through, with Play and More Info; rows, Top 10 numbers and page margins shrink to fit; libraries show three posters across; page headings stack. No Home trailer clips on phones (mobile data).
@@ -12,7 +19,7 @@ Liquiflux for Android phones and tablets: a second Android build with a touch la
 - README: a "Where it runs" section lists every platform (available now, in store review, coming soon) with the Roku Channel Store link and liquiflux.app.
 - Releases (Forgejo and GitHub) now carry `Liquiflux-android-mobile-arm64-v8a.apk` next to the TV APKs, and the README and download guide list it. The phone/tablet build's updater takes that APK only, so it never turns itself into the TV build.
 - `isTouch` in `platform.dart` (also true on iOS, for the coming iPhone/iPad build) decides the touch layout; `CONSOLE_TOUCH=1` tries it on a desktop. `isAndroidTv` now gates the sleep service, display mode switching and refresh-rate matching.
-- Version 1.0.20+78.
+- Version 1.1.0+78 (Samsung packages 1.1.0, 1.1.1, 1.1.2).
 
 ## 1.0.19
 
