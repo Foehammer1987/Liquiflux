@@ -173,7 +173,7 @@ class PlayerSession extends ChangeNotifier {
   /// Where the last open asked to start, for reopening before anything has played.
   Duration _openedAt = Duration.zero;
 
-  /// A seek to outside the transcode the player holds, waiting for held keys to settle.
+  /// A seek that needs a new transcode, waiting for held keys to settle.
   Duration? _pendingSeek;
   Timer? _seekTimer;
   bool ready = false;
@@ -726,9 +726,8 @@ class PlayerSession extends ChangeNotifier {
     final total = duration;
     var to = t < Duration.zero ? Duration.zero : t;
     if (total > Duration.zero && to > total) to = total - const Duration(seconds: 1);
-    if (transcoding && !seekStaysInStream(to: to, offset: offset, buffered: player.state.buffer)) {
-      // Outside what the player holds of this transcode: restart it there, once held keys
-      // stop repeating.
+    if (transcoding && !seekStaysInStream(to: to, offset: offset, playing: _streamPosition(), buffered: player.state.buffer)) {
+      // Not safely inside this transcode: restart it there, once held keys stop repeating.
       _pendingSeek = to;
       _seekTimer?.cancel();
       _seekTimer = Timer(const Duration(milliseconds: 400), () => unawaited(_open(to)));
@@ -744,14 +743,23 @@ class PlayerSession extends ChangeNotifier {
   }
 
   /// Whether a seek to [to] can be made inside the running transcode, which starts at
-  /// [offset] in the title and of which the player has read up to [buffered] (the stream's
-  /// own clock). Only what the player already holds is safe. Asked for a part it hasn't
-  /// made yet, Plex restarts its transcoder there but counts from the title's start, not
-  /// from [offset]: a title resumed at 9:40 and skipped ahead to 11:06 showed 1:26, with the
-  /// clock stuck (seen on a Fire TV, reproduced on a Shield). Before [offset] there is no
-  /// stream at all. Those seeks start a new transcode at [to] instead.
+  /// [offset] in the title, is playing at [playing] and has been read up to [buffered] (both
+  /// on the stream's own clock).
+  ///
+  /// Asked for a part of the stream the player doesn't hold, Plex restarts its transcoder
+  /// there, but counts from the title's start instead of from [offset]. A title resumed at
+  /// 9:40 and skipped ahead to 11:06 showed 1:26 of the film with the clock stuck, and a
+  /// skip back of 10 s did the same once the player had let go of that part (seen on a Fire
+  /// TV, reproduced on a Shield). So in a transcode that started partway in, only a skip
+  /// ahead into what is already read stays in the stream; any other seek starts a new
+  /// transcode at [to]. A transcode from the title's start has nothing to miscount, and
+  /// every seek stays in it.
   @visibleForTesting
-  static bool seekStaysInStream({required Duration to, required Duration offset, required Duration buffered}) => to >= offset && to - offset <= buffered;
+  static bool seekStaysInStream({required Duration to, required Duration offset, required Duration playing, required Duration buffered}) {
+    if (offset == Duration.zero) return true;
+    final at = to - offset;
+    return at >= playing && at <= buffered;
+  }
 
   void seekBy(int seconds) => unawaited(seekTo(position + Duration(seconds: seconds)));
 
