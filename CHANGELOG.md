@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.3
+
+Skipping forward while Plex converts a title no longer sends it back to the start.
+
+- Player: when a title that Plex was transcoding had been resumed partway in, skipping or scrubbing forward past the few seconds already loaded showed the wrong part of the film (the skip counted from the film's start, so 9:40 resumed and skipped to 11:06 showed 1:26) and the clock stopped. It then looked as if the film had started again, and the picture and the timeline no longer agreed. Plex restarts its transcoder for such a skip and loses the place the stream began. Liquiflux now starts a new transcode at the place you skipped to, as it already did for skips back, and holds repeated presses for a moment so a held key makes one jump. Seen on an older Fire TV, where more files need converting; reproduced on a Shield with Direct Play off. Titles that play directly were never affected.
+- Version 1.1.3+80 (Samsung packages 1.1.300, 1.1.301, 1.1.302).
+
 ## 1.1.2
 
 X-Ray is now **Riptide**: the same "who's on screen" panel, under a new name.

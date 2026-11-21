@@ -1,7 +1,7 @@
 /// The app's name and version, in one place. The version must match `version:` in
 /// pubspec.yaml (a test checks), which also stamps the Windows .exe.
 const appName = 'Liquiflux';
-const appVersion = '1.1.2';
+const appVersion = '1.1.3';
 
 /// Works with Plex, but isn't Plex's: the line Plex's trademark guidelines ask for (shown in
 /// Settings > Advanced, the README and the store listings).
