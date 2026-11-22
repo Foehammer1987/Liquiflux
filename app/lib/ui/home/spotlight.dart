@@ -15,6 +15,7 @@ import '../../services/mpv_tls.dart';
 import '../../services/trailers.dart';
 
 const _rotateEvery = Duration(seconds: 9);
+
 /// How long a trailer plays before the spotlight moves on to its next title.
 const _clipLength = Duration(seconds: 20);
 
@@ -105,6 +106,7 @@ class _SpotlightState extends State<Spotlight> with SingleTickerProviderStateMix
     _ops = r.then<void>((_) {}, onError: (Object _) {});
     return r;
   }
+
   BackdropController? _backdrop;
 
   PlexItem? get _shown => _previewing ?? (widget.items.isEmpty ? null : widget.items[_index % widget.items.length]);
@@ -678,9 +680,13 @@ extension on _SpotlightState {
                     const SizedBox(height: Space.space4),
                     Row(
                       children: [
-                        Expanded(child: _PillButton(label: resumeMs > 0 ? 'Resume' : 'Play', icon: LucideIcons.play, solid: true, focusNode: _playNode, onTap: () => _play(item), center: true)),
+                        Expanded(
+                          child: _PillButton(label: resumeMs > 0 ? 'Resume' : 'Play', icon: LucideIcons.play, solid: true, focusNode: _playNode, onTap: () => _play(item), center: true),
+                        ),
                         const SizedBox(width: Space.space3),
-                        Expanded(child: _PillButton(label: 'More Info', icon: LucideIcons.info, focusNode: _infoNode, onTap: () => widget.onInfo(item), center: true)),
+                        Expanded(
+                          child: _PillButton(label: 'More Info', icon: LucideIcons.info, focusNode: _infoNode, onTap: () => widget.onInfo(item), center: true),
+                        ),
                       ],
                     ),
                     if (portrait && widget.items.length > 1 && _previewing == null) ...[
@@ -934,40 +940,45 @@ class _Pager extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Opacity(
     opacity: dim ? 0.45 : 1,
-    child: Row(
-      children: [
-        for (var i = 0; i < count; i++)
-          Focusable(
-            onTap: () => onTap(i),
-            semanticLabel: 'Spotlight ${i + 1}',
-            reveal: false,
-            builder: (context, hover, focus) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: i == index ? 36 : 18,
-                height: 4,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(2),
-                  color: Colors.white.withValues(alpha: hover || focus ? 0.7 : 0.35),
-                ),
-                alignment: Alignment.centerLeft,
-                child: i == index
-                    ? FractionallySizedBox(
-                        widthFactor: dim ? 1 : progress.clamp(0.0, 1.0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: tint,
-                            borderRadius: BorderRadius.circular(2),
-                            boxShadow: [BoxShadow(color: tint.withValues(alpha: 0.6), blurRadius: 8)],
+    // Not a stop for a remote: the marks sit alone on a line between the buttons and the first
+    // row, and Down from Play goes to the nearest line. The spotlight turns its pages itself.
+    child: ExcludeFocus(
+      excluding: isTv,
+      child: Row(
+        children: [
+          for (var i = 0; i < count; i++)
+            Focusable(
+              onTap: () => onTap(i),
+              semanticLabel: 'Spotlight ${i + 1}',
+              reveal: false,
+              builder: (context, hover, focus) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: i == index ? 36 : 18,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(2),
+                    color: Colors.white.withValues(alpha: hover || focus ? 0.7 : 0.35),
+                  ),
+                  alignment: Alignment.centerLeft,
+                  child: i == index
+                      ? FractionallySizedBox(
+                          widthFactor: dim ? 1 : progress.clamp(0.0, 1.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: tint,
+                              borderRadius: BorderRadius.circular(2),
+                              boxShadow: [BoxShadow(color: tint.withValues(alpha: 0.6), blurRadius: 8)],
+                            ),
                           ),
-                        ),
-                      )
-                    : null,
+                        )
+                      : null,
+                ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     ),
   );
 }
@@ -1048,7 +1059,6 @@ Widget _fadeOut(Widget child) => DrawProbe.noBlur
     ? child
     : ShaderMask(
         blendMode: BlendMode.dstIn,
-        shaderCallback: (r) =>
-            const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.white, Colors.white, Colors.transparent], stops: [0, 0.62, 1]).createShader(r),
+        shaderCallback: (r) => const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.white, Colors.white, Colors.transparent], stops: [0, 0.62, 1]).createShader(r),
         child: child,
       );

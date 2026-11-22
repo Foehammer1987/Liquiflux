@@ -13,23 +13,22 @@ bool _inTracking() {
   return ctx != null && ctx.findAncestorWidgetOfExactType<TrackingPanels>() != null;
 }
 
-/// The remote gets from Settings' tabs into the Tracking panels and through both of them.
+/// The remote gets from Settings' Tracking category into the Tracking panels and through both of them.
 /// Run as a TV: CONSOLE_TV=1 flutter test test/tracking_focus_test.dart
 void main() {
-  testWidgets('Down from the Tracking tab reaches Trakt and AniList', skip: !isTv, (t) async {
+  testWidgets('Right from the Tracking category, then Down, reaches Trakt and AniList', skip: !isTv, (t) async {
     await tvApp(t);
     ShellNav.of(t.element(find.byType(HomePage))).go(const SettingsDest());
     for (var i = 0; i < 20; i++) {
       await t.pump(const Duration(milliseconds: 200));
     }
-    await t.tap(find.text('Tracking'));
-    for (var i = 0; i < 10; i++) {
-      await t.pump(const Duration(milliseconds: 200));
+    for (var i = 0; i < 8 && focused() != 'Settings category Tracking'; i++) {
+      await press(t, LogicalKeyboardKey.arrowDown);
     }
+    expect(focused(), 'Settings category Tracking');
     expect(find.byType(TrackingPanels), findsOneWidget);
-    Focus.of(t.element(find.text('Tracking'))).requestFocus();
-    await t.pump(const Duration(milliseconds: 100));
-    final seen = <String>{};
+    await press(t, LogicalKeyboardKey.arrowRight);
+    final seen = <String>{if (_inTracking()) focused()};
     for (var i = 0; i < 4; i++) {
       await press(t, LogicalKeyboardKey.arrowDown);
       if (_inTracking()) seen.add(focused());

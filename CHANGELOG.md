@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.5
+
+TV: the remote moves row by row everywhere, and Settings is one column.
+
+- Up and Down go to the nearest line of controls and never pass one over. They used to prefer a control straight above or below however far away it was, so Down from Settings' tabs jumped six settings to Skip Intro, and some controls (Theme, Clear Image Cache, a title's Play row once you had left it) couldn't be reached with Up and Down at all. This fixes Home's Top 10 rows, the Play and Request buttons on title pages, a show's season buttons and TV Networks' See All as well. A run of Up or Down moves keeps the column it started in.
+- Settings on a TV: the categories are a column on the left (the one in focus opens; Right or Select enters it, Left comes back, Left again opens the rail) in place of tabs that wrapped onto two lines. Each setting is one full-width row that lights up edge to edge. Select flips a switch, presses a button, or opens the list of choices for a dropdown or a three-way choice such as Skip Intro. Buttons such as Save and Test and Sign Out are rows in the same column.
+- The Settings page stays still until focus nears its top or bottom edge, instead of re-centring on every press.
+- The player's Audio, Subtitles and Watch Together panels keep the remote's focus until Back closes them. Down used to walk out onto the seek bar with the panel still open.
+- The focus ring is white on the dark theme (the text colour on the light one), so it shows on blue buttons, switches that are on and the chosen option of a segmented control.
+- Home's spotlight page marks are no longer a stop for a remote.
+- Desktop, phone and tablet layouts are unchanged apart from the focus ring's colour when moving by keyboard.
+- Version 1.1.5+82 (Samsung packages 1.1.500, 1.1.501, 1.1.502). 1.1.4 is held for the Riptide gap-smoothing work.
+
 ## 1.1.3
 
 Skipping forward while Plex converts a title no longer sends it back to the start.

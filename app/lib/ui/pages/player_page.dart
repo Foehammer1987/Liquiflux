@@ -28,6 +28,7 @@ import '../nav.dart';
 import '../together/together_link.dart';
 import '../../services/open_party.dart';
 import '../together/together_panel.dart';
+import '../tv_focus.dart';
 import '../player/seek_bar.dart';
 import '../spoiler.dart';
 import '../window_buttons.dart';
@@ -737,6 +738,11 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     return KeyEventResult.handled;
   }
 
+  /// An open panel keeps a remote's focus until Back closes it. Down from its last control
+  /// used to walk out onto the seek bar, and Up onto a button half hidden behind the panel,
+  /// with the panel still open.
+  Widget _held(Widget panel) => isTv ? FocusPanel(child: panel) : panel;
+
   KeyEventResult _onKeyboard(KeyEvent e) {
     if (e is KeyUpEvent) return KeyEventResult.ignored;
     final repeat = e is KeyRepeatEvent;
@@ -1175,17 +1181,19 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
               },
               child: _sheet == null
                   ? const SizedBox.shrink()
-                  : PlayerSheet(
-                      session: _s,
-                      tint: tint,
-                      accent: accent,
-                      tab: _sheet!,
-                      onTab: (t) => setState(() => _sheet = t),
-                      onClose: _closePanels,
-                      imageUrl: (path, w, h) => _s.plex.imageUrl(path, width: w, height: h),
-                      tabFocus: _sheetTabs,
-                      riptide: _riptide,
-                      onPerson: _openPerson,
+                  : _held(
+                      PlayerSheet(
+                        session: _s,
+                        tint: tint,
+                        accent: accent,
+                        tab: _sheet!,
+                        onTab: (t) => setState(() => _sheet = t),
+                        onClose: _closePanels,
+                        imageUrl: (path, w, h) => _s.plex.imageUrl(path, width: w, height: h),
+                        tabFocus: _sheetTabs,
+                        riptide: _riptide,
+                        onPerson: _openPerson,
+                      ),
                     ),
             ),
           ),
@@ -1209,11 +1217,13 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
               },
               child: !_together
                   ? const SizedBox.shrink()
-                  : GlassSurface(
-                      radius: Radii.radiusLg + 4,
-                      elevation: 2,
-                      fill: playerShade(tint, 0.62),
-                      child: TogetherPanel(item: it, tint: tint, focusOnOpen: isTv, onClose: _closePanels),
+                  : _held(
+                      GlassSurface(
+                        radius: Radii.radiusLg + 4,
+                        elevation: 2,
+                        fill: playerShade(tint, 0.62),
+                        child: TogetherPanel(item: it, tint: tint, focusOnOpen: isTv, onClose: _closePanels),
+                      ),
                     ),
             ),
           ),

@@ -22,6 +22,7 @@ import '../settings/settings_field.dart';
 import '../settings/tracking_panel.dart';
 import '../settings/updates_panel.dart';
 import '../shell.dart' show isWindows;
+import '../tv_focus.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key, this.welcome = false, this.update = false});
@@ -84,6 +85,15 @@ class _SettingsPageState extends State<SettingsPage> {
   final _linkFocus = FocusHandle();
   final _serverFocus = FocusHandle();
 
+  // A TV's layout: the categories down the left, each with its own focus node so Left from
+  // the settings can come back to the one that's open, and the settings beside them.
+  final _categoryNodes = {for (final t in _Tab.values) t: FocusNode(debugLabel: 'Settings category ${t.label}')};
+  final _paneFocus = FocusHandle();
+  final _paneScroll = ScrollController();
+
+  /// The setting that had focus when Left went back to the categories.
+  FocusNode? _leftFrom;
+
   late _Tab _tab = widget.update ? _Tab.advanced : _Tab.general;
   final _mpv = TextEditingController();
 
@@ -95,9 +105,13 @@ class _SettingsPageState extends State<SettingsPage> {
       c.dispose();
     }
     _tick?.cancel();
-    for (final h in [_signInFocus, _linkFocus, _serverFocus]) {
+    for (final h in [_signInFocus, _linkFocus, _serverFocus, _paneFocus]) {
       h.dispose();
     }
+    for (final n in _categoryNodes.values) {
+      n.dispose();
+    }
+    _paneScroll.dispose();
     super.dispose();
   }
 
@@ -323,6 +337,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final app = AppScope.of(context);
     final c = context.c;
     final s = app.settings;
+    if (isTv && !widget.welcome) return _tvLayout(app, c, s);
     return PageBody(
       maxWidth: 760,
       padding: const EdgeInsets.all(Space.space6),
@@ -353,19 +368,116 @@ class _SettingsPageState extends State<SettingsPage> {
         if (widget.welcome)
           ..._general(app, c, s, welcome: true)
         else
-          ...switch (_tab) {
-            _Tab.general => _general(app, c, s),
-            _Tab.playback => _playback(app, s.playback),
-            _Tab.audio => _audioSubs(app, s.playback),
-            _Tab.video => _video(app, s.playback),
-            _Tab.appearance => _appearance(app, s),
-            _Tab.notifications => s.seerrEnabled ? _notifications(app, s) : const [],
-            _Tab.tracking => [TrackingPanels(app: app)],
-            _Tab.advanced => _advanced(app, c, s.playback),
-          },
+          ..._tabContent(app, c, s),
       ],
     );
   }
+
+  List<Widget> _tabContent(AppState app, ConsoleColors c, Settings s) => switch (_tab) {
+    _Tab.general => _general(app, c, s),
+    _Tab.playback => _playback(app, s.playback),
+    _Tab.audio => _audioSubs(app, s.playback),
+    _Tab.video => _video(app, s.playback),
+    _Tab.appearance => _appearance(app, s),
+    _Tab.notifications => s.seerrEnabled ? _notifications(app, s) : const [],
+    _Tab.tracking => [TrackingPanels(app: app)],
+    _Tab.advanced => _advanced(app, c, s.playback),
+  };
+
+  /// Settings on a TV: the categories in a column on the left and the open one's settings in
+  /// a single column beside it, so the remote only ever moves along one line. Up and Down
+  /// walk the categories (the one in focus opens) or the settings; Right or Select enters
+  /// the settings, Left comes back to the category, and Left again opens the rail.
+  ///
+  /// The tabs across the top wrapped onto two lines on a TV, and the settings' controls sat
+  /// at the far right in different widths, so Down hopped from line to line and passed over
+  /// most of them.
+  Widget _tvLayout(AppState app, ConsoleColors c, Settings s) {
+    final tabs = [
+      for (final t in _Tab.values)
+        if (t != _Tab.notifications || s.seerrEnabled) t,
+    ];
+    // Seerr was turned off while its Notifications were open.
+    final open = tabs.contains(_tab) ? _tab : _Tab.general;
+    // Back to the setting Left came from, or the first one.
+    void enter() {
+      final back = _leftFrom;
+      back != null && _paneFocus.holds(back) ? back.requestFocus() : _paneFocus.focusNow();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Space.space6, Space.space6, Space.space6, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 248,
+            child: FocusPanel(
+              // Left and Up leave the column as they leave any page: to the rail, to search.
+              onEdge: (d) => switch (d) {
+                TraversalDirection.right => enter(),
+                TraversalDirection.down => null,
+                _ => Actions.maybeInvoke(context, DirectionalFocusIntent(d)),
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: Space.space3, bottom: Space.space4),
+                    child: Text(
+                      'Settings',
+                      style: ConsoleText.display.copyWith(fontSize: 32, fontWeight: FontWeight.w800, color: c.text100),
+                    ),
+                  ),
+                  for (final t in tabs)
+                    _Category(
+                      label: t.label,
+                      open: t == open,
+                      autofocus: t == open,
+                      focusNode: _categoryNodes[t]!,
+                      onFocus: () {
+                        if (_tab == t) return;
+                        setState(() => _tab = t);
+                        _leftFrom = null;
+                        if (_paneScroll.hasClients) _paneScroll.jumpTo(0);
+                      },
+                      onTap: enter,
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: Space.space6),
+          Expanded(
+            child: FocusPanel(
+              onEdge: (d) {
+                if (d != TraversalDirection.left) return;
+                _leftFrom = FocusManager.instance.primaryFocus;
+                _categoryNodes[open]!.requestFocus();
+              },
+              child: _paneFocus.wrap(
+                // The settings take focus without the page gliding each one to the middle:
+                // it stays still until focus nears its top or bottom ([FocusReveal]).
+                FocusTraversalGroup(
+                  policy: TvTraversalPolicy(requestFocusCallback: _focusOnly),
+                  child: FocusReveal(
+                    child: PageBody(
+                      maxWidth: 880,
+                      controller: _paneScroll,
+                      padding: const EdgeInsets.only(bottom: Space.space6),
+                      children: (_tab == open ? _tabContent(app, c, s) : _general(app, c, s)),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static void _focusOnly(FocusNode node, {ScrollPositionAlignmentPolicy? alignmentPolicy, double? alignment, Duration? duration, Curve? curve}) => node.requestFocus();
 
   List<Widget> _general(AppState app, ConsoleColors c, Settings s, {bool welcome = false}) => [
     ConsolePanel(
@@ -378,10 +490,9 @@ class _SettingsPageState extends State<SettingsPage> {
             _linkFocus.wrap(PlexLinkCode(code: _pin?.code, left: _pin?.expiresAt?.difference(DateTime.now()), expired: _codeExpired, onNewCode: _signIn, onCancel: _cancelLink))
           else
             _signInFocus.wrap(
-              Wrap(
+              _wrap(
                 spacing: Space.space2,
-                runSpacing: Space.space2,
-                children: [
+                [
                   ConsoleButton(
                     label: _signingIn ? 'Waiting for Plex' : (s.plexReady ? 'Sign In Again' : 'Sign In with Plex'),
                     kind: ButtonKind.primary,
@@ -440,7 +551,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onSubmitted: (_) => _saveManualPlex(),
             ),
             const SizedBox(height: Space.space3),
-            ConsoleButton(label: _savingPlex ? 'Saving' : 'Save and Test', kind: ButtonKind.primary, onPressed: _unlessBusy(_savingPlex, _saveManualPlex)),
+            _wrap([ConsoleButton(label: _savingPlex ? 'Saving' : 'Save and Test', kind: ButtonKind.primary, onPressed: _unlessBusy(_savingPlex, _saveManualPlex))]),
           ],
         ],
       ),
@@ -498,15 +609,12 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: Space.space3),
               SettingsField(label: 'Seerr Address', controller: _seerrUrl, mono: true, hint: 'http://seerr.local:5055', help: 'Works with Seerr, Overseerr and Jellyseerr.'),
               const SizedBox(height: Space.space3),
-              Text('Sign In', style: ConsoleText.caption.copyWith(color: c.text200)),
-              const SizedBox(height: Space.space1),
-              ConsoleSegmented<bool>(options: const [(true, 'My Plex Account'), (false, 'API Key')], value: _usePlexLogin, onChanged: (v) => setState(() => _usePlexLogin = v)),
-              const SizedBox(height: Space.space1),
-              Text(
-                _usePlexLogin
+              ..._choice(
+                label: 'Sign In',
+                help: _usePlexLogin
                     ? 'Requests are filed under your own Seerr user and follow its approval rules.'
                     : 'Requests are filed under the API key owner, usually the admin, so they are approved automatically.',
-                style: ConsoleText.caption.copyWith(color: c.text300),
+                control: ConsoleSegmented<bool>(options: const [(true, 'My Plex Account'), (false, 'API Key')], value: _usePlexLogin, onChanged: (v) => setState(() => _usePlexLogin = v)),
               ),
               if (!_usePlexLogin) ...[
                 const SizedBox(height: Space.space3),
@@ -520,11 +628,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ],
               const SizedBox(height: Space.space3),
-              Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: Space.space3,
-                runSpacing: Space.space2,
-                children: [
+              _wrap(
+                [
                   ConsoleButton(label: _savingSeerr ? 'Saving' : 'Save and Test', kind: ButtonKind.primary, onPressed: _usePlexLogin && !s.plexReady ? null : _unlessBusy(_savingSeerr, _saveSeerr)),
                   if (_seerrMsg != null) StatusDot(_seerrMsg!, tone: _seerrTone),
                   if (_usePlexLogin && !s.plexReady) muted(context, 'Sign in with Plex first.'),
@@ -566,10 +671,8 @@ class _SettingsPageState extends State<SettingsPage> {
               child: SettingsField(label: 'Streaming Region', controller: _region, mono: true, hint: 'US', help: 'Two-letter country code for the "Popular on Netflix" rows.'),
             ),
             const SizedBox(height: Space.space3),
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: Space.space3,
-              children: [
+            _wrap(
+              [
                 ConsoleButton(
                   label: 'Save',
                   kind: ButtonKind.primary,
@@ -612,11 +715,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 help: 'At home (http://homeserver:8089) or through Cloudflare Tunnel (https://...). Liquiflux signs in with your Plex account.',
               ),
               const SizedBox(height: Space.space3),
-              Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: Space.space3,
-                runSpacing: Space.space2,
-                children: [
+              _wrap(
+                [
                   ConsoleButton(label: _savingRiptide ? 'Saving' : 'Save and Test', kind: ButtonKind.primary, onPressed: _unlessBusy(_savingRiptide, _saveRiptide)),
                   if (_riptideMsg != null) StatusDot(_riptideMsg!, tone: _riptideMsg!.startsWith('Saved') && !_riptideMsg!.contains(' but ') ? Tone.success : Tone.warning),
                 ],
@@ -628,18 +728,24 @@ class _SettingsPageState extends State<SettingsPage> {
       if (app.settings.plexReady)
         ConsolePanel(
           title: 'Account',
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Signed in to ${s.plexServerName.isEmpty ? (app.server?.name ?? 'Plex') : s.plexServerName}. Signing out forgets the Plex token on this ${isTv ? 'device' : 'computer'}.',
-                  style: ConsoleText.body.copyWith(color: c.text200),
+          child: isTv
+              ? TvSettingRow(
+                  label: 'Sign Out',
+                  help: 'Signed in to ${s.plexServerName.isEmpty ? (app.server?.name ?? 'Plex') : s.plexServerName}. Signing out forgets the Plex token on this device.',
+                  control: ConsoleButton(label: 'Sign Out', onPressed: _confirmSignOut),
+                )
+              : Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Signed in to ${s.plexServerName.isEmpty ? (app.server?.name ?? 'Plex') : s.plexServerName}. Signing out forgets the Plex token on this computer.',
+                        style: ConsoleText.body.copyWith(color: c.text200),
+                      ),
+                    ),
+                    const SizedBox(width: Space.space3),
+                    ConsoleButton(label: 'Sign Out', icon: LucideIcons.logOut, onPressed: _confirmSignOut),
+                  ],
                 ),
-              ),
-              const SizedBox(width: Space.space3),
-              ConsoleButton(label: 'Sign Out', icon: LucideIcons.logOut, onPressed: _confirmSignOut),
-            ],
-          ),
         ),
     ],
   ];
@@ -661,6 +767,35 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _set(AppState app, PlaybackPrefs p) => app.setPlayback(p);
+
+  /// Buttons side by side with their status beside them; on a TV (past the welcome page), each
+  /// button a row of its own in the settings' column, and the status on a line below.
+  Widget _wrap(List<Widget> children, {double spacing = Space.space3}) => isTv && !widget.welcome
+      ? Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final w in children)
+              w is ConsoleButton
+                  ? TvSettingRow(label: w.label, control: w)
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: Space.space4, vertical: Space.space1),
+                      child: w,
+                    ),
+          ],
+        )
+      : Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: spacing, runSpacing: Space.space2, children: children);
+
+  /// A choice with its name above it and its help below, as Appearance lays them out; on a
+  /// TV, a row like every other setting, so it sits in the same column.
+  List<Widget> _choice({required String label, String? help, required Widget control}) => isTv
+      ? [_Row(label: label, help: help, control: control, last: true)]
+      : [
+          Text(label, style: ConsoleText.caption.copyWith(color: context.c.text200)),
+          const SizedBox(height: Space.space1),
+          control,
+          if (help != null) ...[const SizedBox(height: Space.space1), Text(help, style: ConsoleText.caption.copyWith(color: context.c.text300))],
+        ];
 
   List<Widget> _playback(AppState app, PlaybackPrefs p) {
     final qualities = [for (final q in streamingQualities) (q.kbps, q.isOriginal ? 'Original (Direct Play)' : q.label)];
@@ -1101,29 +1236,27 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Theme', style: ConsoleText.caption.copyWith(color: context.c.text200)),
-          const SizedBox(height: Space.space1),
-          ConsoleSegmented<String>(options: const [('dark', 'Dark'), ('light', 'Light')], value: s.theme, onChanged: app.setTheme),
-          const SizedBox(height: Space.space4),
-          Text('Surfaces', style: ConsoleText.caption.copyWith(color: context.c.text200)),
-          const SizedBox(height: Space.space1),
-          ConsoleSegmented<bool>(options: const [(true, 'Frosted Glass'), (false, 'Flat')], value: s.glass, onChanged: app.setGlass),
-          const SizedBox(height: Space.space1),
-          Text(isTv ? 'Flat is lighter on TVs with little memory.' : 'Flat is lighter on older graphics cards.', style: ConsoleText.caption.copyWith(color: context.c.text300)),
-          if (trailersSupported) ...[
-          const SizedBox(height: Space.space4),
-          Text('Home Trailers', style: ConsoleText.caption.copyWith(color: context.c.text200)),
-          const SizedBox(height: Space.space1),
-          homeTrailersSupported
-              ? ConsoleSegmented<bool>(options: const [(true, 'Play'), (false, 'Off')], value: s.homeTrailers, onChanged: app.setHomeTrailers)
-              : ConsoleSegmented<bool>(options: const [(true, 'Spotlight Only'), (false, 'Off')], value: s.spotlightTrailers, onChanged: app.setSpotlightTrailers),
-          const SizedBox(height: Space.space1),
-          Text(
-            homeTrailersSupported
-                ? 'Muted trailer clips behind the Home spotlight and the title you point at.'
-                : 'This device runs 32-bit Android, which leaves little memory for a second video player. Spotlight Only plays a trailer just while you’re on the spotlight’s buttons, and frees its player as soon as you move away. Experimental.',
-            style: ConsoleText.caption.copyWith(color: context.c.text300),
+          ..._choice(
+            label: 'Theme',
+            control: ConsoleSegmented<String>(options: const [('dark', 'Dark'), ('light', 'Light')], value: s.theme, onChanged: app.setTheme),
           ),
+          if (!isTv) const SizedBox(height: Space.space4),
+          ..._choice(
+            label: 'Surfaces',
+            help: isTv ? 'Flat is lighter on TVs with little memory.' : 'Flat is lighter on older graphics cards.',
+            control: ConsoleSegmented<bool>(options: const [(true, 'Frosted Glass'), (false, 'Flat')], value: s.glass, onChanged: app.setGlass),
+          ),
+          if (trailersSupported) ...[
+            if (!isTv) const SizedBox(height: Space.space4),
+            ..._choice(
+              label: 'Home Trailers',
+              help: homeTrailersSupported
+                  ? 'Muted trailer clips behind the Home spotlight and the title you point at.'
+                  : 'This device runs 32-bit Android, which leaves little memory for a second video player. Spotlight Only plays a trailer just while you’re on the spotlight’s buttons, and frees its player as soon as you move away. Experimental.',
+              control: homeTrailersSupported
+                  ? ConsoleSegmented<bool>(options: const [(true, 'Play'), (false, 'Off')], value: s.homeTrailers, onChanged: app.setHomeTrailers)
+                  : ConsoleSegmented<bool>(options: const [(true, 'Spotlight Only'), (false, 'Off')], value: s.spotlightTrailers, onChanged: app.setSpotlightTrailers),
+            ),
           ],
         ],
       ),
@@ -1180,10 +1313,8 @@ class _SettingsPageState extends State<SettingsPage> {
             help: 'One name=value per line, applied when playback starts. Lines starting with # are ignored. See mpv.io/manual for names.',
           ),
           const SizedBox(height: Space.space3),
-          Wrap(
-            spacing: Space.space3,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
+          _wrap(
+            [
               ConsoleButton(
                 label: 'Save',
                 kind: ButtonKind.primary,
@@ -1334,6 +1465,7 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.c;
+    if (isTv) return TvSettingRow(label: label, help: help, control: control);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: Space.space3),
       decoration: BoxDecoration(
@@ -1357,3 +1489,227 @@ class _Row extends StatelessWidget {
     );
   }
 }
+
+
+/// A category in a TV's Settings: it opens as focus reaches it ([onFocus]), and Select moves
+/// on into its settings ([onTap]).
+class _Category extends StatefulWidget {
+  const _Category({required this.label, required this.open, required this.focusNode, required this.onFocus, required this.onTap, this.autofocus = false});
+  final bool autofocus;
+  final String label;
+  final bool open;
+  final FocusNode focusNode;
+  final VoidCallback onFocus;
+  final VoidCallback onTap;
+
+  @override
+  State<_Category> createState() => _CategoryState();
+}
+
+class _CategoryState extends State<_Category> {
+  @override
+  void initState() {
+    super.initState();
+    widget.focusNode.addListener(_focusChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.focusNode.removeListener(_focusChanged);
+    super.dispose();
+  }
+
+  void _focusChanged() {
+    if (widget.focusNode.hasPrimaryFocus) widget.onFocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final open = widget.open;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Space.space1),
+      child: Focusable(
+        focusNode: widget.focusNode,
+        autofocus: widget.autofocus,
+        semanticLabel: widget.label,
+        reveal: false,
+        onTap: widget.onTap,
+        builder: (context, hover, focus) => AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: Space.space4),
+          alignment: Alignment.centerLeft,
+          decoration: BoxDecoration(color: focus ? c.text100 : (open ? c.surface300 : Colors.transparent), borderRadius: BorderRadius.circular(Radii.radiusMd)),
+          child: Text(
+            widget.label,
+            style: ConsoleText.body.copyWith(fontSize: 16, color: focus ? c.surface000 : (open ? c.text100 : c.text200), fontWeight: open || focus ? FontWeight.w700 : FontWeight.w400),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A setting on a TV: the whole row is one stop for the remote and lights up from edge to
+/// edge, with its value at the right. Select flips a switch, presses a button, or opens the
+/// list of choices of a dropdown or a segmented control ([pickChoice]). The small control at
+/// the far right is no stop of its own any more: a switch was a 36-pixel target, and a
+/// segmented control three of them.
+class TvSettingRow extends StatelessWidget {
+  const TvSettingRow({super.key, required this.label, required this.control, this.help});
+  final String label;
+  final String? help;
+
+  /// A [ConsoleSwitch], [ConsoleDropdown], [ConsoleSegmented] or [ConsoleButton]; anything
+  /// else is shown as it is and keeps its own focus.
+  final Widget control;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final ctl = control;
+    VoidCallback? tap;
+    Widget Function(bool focus)? value;
+    Widget choice(List<String> labels, int selected, void Function(int) pick) {
+      tap = () async {
+        final i = await pickChoice(context, title: label, options: labels, selected: selected);
+        if (i != null && i != selected) pick(i);
+      };
+      return const SizedBox();
+    }
+
+    Widget shown(String text, {bool chevron = true}) => Builder(
+      builder: (context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 320),
+            child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: ConsoleText.body.copyWith(fontSize: 15, color: c.text200)),
+          ),
+          if (chevron) ...[const SizedBox(width: Space.space1), Icon(LucideIcons.chevronRight, size: 16, color: c.text300)],
+        ],
+      ),
+    );
+
+    if (ctl is ConsoleSwitch) {
+      final change = ctl.onChanged;
+      tap = change == null ? null : () => change(!ctl.value);
+      value = (_) => ExcludeFocus(child: IgnorePointer(child: ctl));
+    } else if (ctl is ConsoleDropdown) {
+      choice(ctl.labels, ctl.selected, ctl.pick);
+      value = (_) => shown(ctl.selected < 0 ? '' : ctl.labels[ctl.selected]);
+    } else if (ctl is ConsoleSegmented) {
+      choice(ctl.labels, ctl.selected, ctl.pick);
+      value = (_) => shown(ctl.selected < 0 ? '' : ctl.labels[ctl.selected]);
+    } else if (ctl is ConsoleButton) {
+      tap = ctl.onPressed;
+      value = (_) => shown(ctl.label == label ? '' : ctl.label);
+    }
+    Widget row(bool focus, Widget trailing) => AnimatedContainer(
+      duration: const Duration(milliseconds: 100),
+      constraints: const BoxConstraints(minHeight: 56),
+      padding: const EdgeInsets.symmetric(horizontal: Space.space4, vertical: Space.space2),
+      decoration: BoxDecoration(
+        color: focus ? c.surface300 : Colors.transparent,
+        borderRadius: BorderRadius.circular(Radii.radiusMd),
+        border: Border.all(color: focus ? c.text100 : Colors.transparent, width: 2),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(label, style: ConsoleText.bodyStrong.copyWith(fontSize: 15, color: c.text100)),
+                if (help != null) Text(help!, style: ConsoleText.caption.copyWith(color: focus ? c.text200 : c.text300)),
+              ],
+            ),
+          ),
+          const SizedBox(width: Space.space4),
+          trailing,
+        ],
+      ),
+    );
+    final v = value;
+    // A control this row doesn't know, or one that's switched off: no stop, shown as it is.
+    if (v == null) return row(false, ctl);
+    if (tap == null) return Opacity(opacity: 0.5, child: row(false, v(false)));
+    return Focusable(onTap: tap, semanticLabel: label, builder: (context, hover, focus) => row(focus, v(focus)));
+  }
+}
+
+/// A TV's list of choices for one setting: [options] in a column with [selected] ticked and
+/// in focus. Up and Down stay inside it, Select picks, Back closes it. The option's place, or
+/// null when it was closed.
+Future<int?> pickChoice(BuildContext context, {required String title, required List<String> options, required int selected}) => showDialog<int>(
+  context: context,
+  barrierColor: Colors.black.withValues(alpha: 0.6),
+  builder: (context) {
+    final c = context.c;
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 440, maxHeight: MediaQuery.sizeOf(context).height * 0.8),
+        child: Material(
+          color: c.surface100,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: c.border200),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(Space.space5, Space.space5, Space.space5, Space.space3),
+                child: Text(title, style: ConsoleText.titleLg.copyWith(color: c.text100)),
+              ),
+              Flexible(
+                child: FocusTraversalGroup(
+                  policy: TvTraversalPolicy(requestFocusCallback: _SettingsPageState._focusOnly),
+                  child: FocusReveal(
+                    margin: 56,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(Space.space3, 0, Space.space3, Space.space3),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (final (i, o) in options.indexed)
+                            Focusable(
+                              autofocus: i == selected || (selected < 0 && i == 0),
+                              semanticLabel: o,
+                              onTap: () => Navigator.pop(context, i),
+                              builder: (context, hover, focus) => Container(
+                                height: 48,
+                                padding: const EdgeInsets.symmetric(horizontal: Space.space4),
+                                decoration: BoxDecoration(color: focus ? c.text100 : Colors.transparent, borderRadius: BorderRadius.circular(Radii.radiusMd)),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        o,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: ConsoleText.body.copyWith(fontSize: 15, color: focus ? c.surface000 : (i == selected ? c.text100 : c.text200), fontWeight: i == selected || focus ? FontWeight.w600 : FontWeight.w400),
+                                      ),
+                                    ),
+                                    if (i == selected) Icon(LucideIcons.check, size: 18, color: focus ? c.surface000 : c.primary),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  },
+);

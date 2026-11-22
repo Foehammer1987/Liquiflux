@@ -56,7 +56,7 @@ class _SettingsFieldState extends State<SettingsField> {
       setState(() => _editing = false);
     } else if (_node.hasFocus && !_editing && _tv) {
       final ctx = _node.context;
-      if (ctx != null) Scrollable.ensureVisible(ctx, alignment: 0.5, duration: const Duration(milliseconds: 150));
+      if (ctx != null) revealFocused(ctx);
     }
   }
 

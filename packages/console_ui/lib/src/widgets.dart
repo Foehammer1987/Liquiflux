@@ -10,9 +10,12 @@ import 'tokens.dart';
 const _fast = Duration(milliseconds: 150);
 
 /// 2px primary ring, 2px offset — the Console focus style.
+/// The ring round a focused control: the text colour (white on dark), which shows on every
+/// surface. The primary blue it used to be vanished on blue buttons, switches that are on and
+/// the chosen pill of a segmented control, the controls a remote lands on most.
 BoxDecoration focusRing(BuildContext context, double radius) => BoxDecoration(
   borderRadius: BorderRadius.circular(radius + 2),
-  border: Border.all(color: context.c.primary, width: 2),
+  border: Border.all(color: context.c.text100, width: 2),
 );
 
 /// Draws the ring outside [child] without changing layout.
@@ -326,6 +329,12 @@ class ConsoleSegmented<T> extends StatelessWidget {
   /// The chosen option takes focus when it first shows (a dialog's first control on a TV).
   final bool autofocus;
 
+  /// The options' names, which of them is chosen (-1 for none) and choosing one by its place:
+  /// for a caller that holds the control without knowing its value type.
+  List<String> get labels => [for (final o in options) o.$2];
+  int get selected => options.indexWhere((o) => o.$1 == value);
+  void pick(int i) => onChanged(options[i].$1);
+
   @override
   Widget build(BuildContext context) {
     final c = context.c;
@@ -568,6 +577,11 @@ class ConsoleDropdown<T> extends StatelessWidget {
   final T value;
   final ValueChanged<T> onChanged;
   final double width;
+
+  /// As [ConsoleSegmented.labels], [ConsoleSegmented.selected] and [ConsoleSegmented.pick].
+  List<String> get labels => [for (final o in options) o.$2];
+  int get selected => options.indexWhere((o) => o.$1 == value);
+  void pick(int i) => onChanged(options[i].$1);
 
   Future<void> _open(BuildContext context) async {
     final box = context.findRenderObject()! as RenderBox;

@@ -14,24 +14,22 @@ bool _inUpdates() {
 }
 
 /// On the Shield, Down from Settings' tabs went past the Updates buttons (left-aligned, outside
-/// the tab's column) to the mpv box. Run as a TV: CONSOLE_TV=1 flutter test test/updates_focus_test.dart
+/// the tab's column) to the mpv box. A TV's Settings now has categories down the left, and the
+/// Updates panel is the first thing in Advanced. Run as a TV: CONSOLE_TV=1 flutter test test/updates_focus_test.dart
 void main() {
-  testWidgets('Down from every settings tab reaches the Updates panel, and its controls in turn', skip: !isTv, (t) async {
+  testWidgets('Advanced opens on the Updates panel, and Down walks its controls in turn', skip: !isTv, (t) async {
     await tvApp(t);
     ShellNav.of(t.element(find.byType(HomePage))).go(const SettingsDest());
     for (var i = 0; i < 20; i++) {
       await t.pump(const Duration(milliseconds: 200));
     }
-    await t.tap(find.text('Advanced'));
-    for (var i = 0; i < 10; i++) {
-      await t.pump(const Duration(milliseconds: 200));
-    }
-    for (final tab in ['Advanced', 'Notifications']) {
-      Focus.of(t.element(find.text(tab))).requestFocus();
-      await t.pump(const Duration(milliseconds: 100));
+    // The category opens as focus reaches it, and Right enters its settings at the top.
+    for (var i = 0; i < 8 && focused() != 'Settings category Advanced'; i++) {
       await press(t, LogicalKeyboardKey.arrowDown);
-      expect(_inUpdates(), isTrue, reason: 'Down from $tab went to ${focused()}');
     }
+    expect(focused(), 'Settings category Advanced');
+    await press(t, LogicalKeyboardKey.arrowRight);
+    expect(_inUpdates(), isTrue, reason: 'Right from Advanced went to ${focused()}');
     // Then Down walks the panel: the buttons, Check at Launch, and only then the mpv box.
     await press(t, LogicalKeyboardKey.arrowDown);
     expect(focused(), 'Check at Launch');

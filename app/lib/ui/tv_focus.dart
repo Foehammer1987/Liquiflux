@@ -12,8 +12,9 @@ import 'package:flutter/widgets.dart';
 /// edge) instead of reaching the edge and opening the rail. Here the row's end is an edge: the
 /// move fails, and the shell opens the rail on Left.
 ///
-/// Up and Down pick the nearest control above or below, as Flutter does, and Up straight after
-/// a Down (or the other way round) goes back to the control it came from. Flutter only does
+/// Up and Down go to the nearest line of controls above or below and never pass one over
+/// ([verticalTarget]), and Up straight after a Down (or the other way round) goes back to the
+/// control it came from. Flutter only does
 /// that within one scrolling list, and every Home row is its own list, so Down then Up landed
 /// on a different card than the one you left.
 ///
@@ -53,9 +54,11 @@ class TvTraversalPolicy extends ReadingOrderTraversalPolicy {
     }
     final last = _trail[scope];
     final back = last != null && last.to == from && last.direction == _opposite(direction) && _fair(last.from) && last.from.nearestScope == scope ? last.from : null;
-    final next = back ?? verticalTarget(from, scope.traversalDescendants, direction);
+    // A run of Up / Down moves keeps the column it started in.
+    final column = last != null && last.to == from ? last.column : null;
+    final next = back ?? verticalTarget(from, scope.traversalDescendants, direction, column: column);
     if (next == null) return false;
-    _trail[scope] = _Move(from, next, direction);
+    _trail[scope] = _Move(from, next, direction, column ?? from.rect.center.dx);
     requestFocusCallback(
       next,
       alignmentPolicy: direction == TraversalDirection.up ? ScrollPositionAlignmentPolicy.keepVisibleAtStart : ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
@@ -74,7 +77,10 @@ void glideTo(FocusNode node, {ScrollPositionAlignmentPolicy? alignmentPolicy, do
 }
 
 class _Move {
-  _Move(this.from, this.to, this.direction);
+  _Move(this.from, this.to, this.direction, this.column);
+
+  /// The x the run of Up / Down moves this one belongs to started from.
+  final double column;
   final FocusNode from;
   final FocusNode to;
   final TraversalDirection direction;
@@ -108,9 +114,16 @@ FocusNode? sidewaysTarget(FocusNode from, Iterable<FocusNode> nodes, TraversalDi
 
 /// The control Up or Down from [from] goes to among [nodes], or null at the top or bottom.
 ///
-/// Flutter's choice, among fair stops only: the nearest control whose centre is past [from]'s
-/// edge, preferring ones in [from]'s own vertical list, then ones overlapping its width.
-FocusNode? verticalTarget(FocusNode from, Iterable<FocusNode> nodes, TraversalDirection direction) {
+/// Rows first: the move goes to the nearest line of controls above or below, whatever is on
+/// it, and never passes one over. (It used to prefer a control straight above or below, however
+/// far: Down from Settings' tabs, on the left, jumped six settings to the first one whose
+/// control reached that far left, past the dropdowns and switches on the right.) Controls in
+/// [from]'s own vertical list come before any outside it.
+///
+/// On that line it takes the control under [column] (the x a run of Up / Down moves started
+/// from, when this move carries one on), then one overlapping [from]'s width, then the
+/// nearest across. A short or offset line so doesn't drag the rest of the trip sideways.
+FocusNode? verticalTarget(FocusNode from, Iterable<FocusNode> nodes, TraversalDirection direction, {double? column}) {
   assert(direction == TraversalDirection.up || direction == TraversalDirection.down);
   final r = from.rect;
   final up = direction == TraversalDirection.up;
@@ -124,21 +137,39 @@ FocusNode? verticalTarget(FocusNode from, Iterable<FocusNode> nodes, TraversalDi
     final same = eligible.where((s) => Scrollable.maybeOf(s.node.context!, axis: Axis.vertical) == list).toList();
     if (same.isNotEmpty) eligible = same;
   }
-  final inBand = eligible.where((s) => s.rect.left < r.right && s.rect.right > r.left).toList();
+  // The nearest line: the control whose near edge is closest, and all that are level with it.
+  double gap(_Stop s) => up ? r.top - s.rect.bottom : s.rect.top - r.bottom;
+  final first = eligible.reduce((a, b) => gap(b) < gap(a) ? b : a);
+  final line = [
+    for (final s in eligible)
+      if (_level(first.rect, s.rect)) s,
+  ];
+  final x = column ?? r.center.dx;
+  if (column != null) {
+    final under = line.where((s) => s.rect.left <= x && s.rect.right >= x).toList();
+    if (under.isNotEmpty) return _nearest(Offset(x, r.center.dy), under).node;
+  }
+  final inBand = line.where((s) => s.rect.left < r.right && s.rect.right > r.left).toList();
   if (inBand.isNotEmpty) return _nearestVertically(r, inBand).node;
-  // Nothing straight above or below: the one whose nearer side is closest across.
+  // Nothing straight above or below on it: the one whose nearer side is closest across.
   _Stop? best;
-  var bestX = double.infinity, bestY = double.infinity;
-  for (final s in eligible) {
-    final x = math.min((s.rect.left - r.center.dx).abs(), (s.rect.right - r.center.dx).abs());
-    final y = (s.rect.center.dy - r.center.dy).abs();
-    if (x < bestX || (x == bestX && y < bestY)) {
+  var bestX = double.infinity;
+  for (final s in line) {
+    final d = math.min((s.rect.left - x).abs(), (s.rect.right - x).abs());
+    if (d < bestX) {
       best = s;
-      bestX = x;
-      bestY = y;
+      bestX = d;
     }
   }
   return best?.node;
+}
+
+/// [a] and [b] are on one line: each one's middle lies within the other's height, or they
+/// share more than half of the shorter one's height.
+bool _level(Rect a, Rect b) {
+  if (identical(a, b)) return true;
+  final shared = math.min(a.bottom, b.bottom) - math.max(a.top, b.top);
+  return shared > math.min(a.height, b.height) / 2;
 }
 
 /// A control that may take focus, with where it is on screen (worked out once per move:

@@ -312,6 +312,78 @@ void main() {
     final node = FocusManager.instance.primaryFocus!;
     expect((node.rect.center.dx - 720).abs(), lessThan(2));
   });
+  // A settings page as it was: tabs at the top left, each setting's control at the right in
+  // its own width (a wide dropdown, a small switch, a three-part segmented control).
+  Future<void> offsetRows(WidgetTester t) async {
+    t.view.physicalSize = const Size(1440, 800);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    Widget setting(Widget control) => SizedBox(
+      width: 760,
+      height: 60,
+      child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [control]),
+    );
+    await t.pumpWidget(
+      MaterialApp(
+        home: FocusTraversalGroup(
+          policy: TvTraversalPolicy(),
+          child: Scaffold(
+            body: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [card('tab 1', width: 80, height: 28), card('tab 2', width: 80, height: 28)]),
+                setting(card('dropdown', width: 220, height: 32)),
+                setting(card('switch', width: 36, height: 20)),
+                setting(Row(mainAxisSize: MainAxisSize.min, children: [card('seg 1', width: 90, height: 28), card('seg 2', width: 90, height: 28), card('seg 3', width: 40, height: 28)])),
+                setting(card('last switch', width: 36, height: 20)),
+                Row(children: [card('save', width: 80, height: 32)]),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    focus(t, 'tab 1');
+    await t.pumpAndSettle();
+  }
+
+  testWidgets('Down goes to the next line however far across its control is, never past it', (t) async {
+    await offsetRows(t);
+    final stops = <String?>[];
+    for (var i = 0; i < 5; i++) {
+      await press(t, LogicalKeyboardKey.arrowDown);
+      stops.add(focused());
+    }
+    expect(stops, ['dropdown', 'switch', startsWith('seg'), 'last switch', 'save']);
+  });
+
+  testWidgets('Up from the bottom stops on every line too, and ends on the tabs', (t) async {
+    await offsetRows(t);
+    focus(t, 'save');
+    await t.pumpAndSettle();
+    final stops = <String?>[];
+    for (var i = 0; i < 5; i++) {
+      await press(t, LogicalKeyboardKey.arrowUp);
+      stops.add(focused());
+    }
+    expect(stops, ['last switch', startsWith('seg'), 'switch', 'dropdown', startsWith('tab')]);
+  });
+
+  testWidgets('a run of Down moves keeps its column across a line that has nothing in it', (t) async {
+    await offsetRows(t);
+    focus(t, 'switch');
+    await t.pumpAndSettle();
+    // The switch sits over the last part of the segmented control; the line after it has only a
+    // switch in that column, and the one after that only a button at the far left.
+    await press(t, LogicalKeyboardKey.arrowDown);
+    expect(focused(), 'seg 3');
+    await press(t, LogicalKeyboardKey.arrowDown);
+    expect(focused(), 'last switch');
+    await press(t, LogicalKeyboardKey.arrowDown);
+    expect(focused(), 'save');
+    await press(t, LogicalKeyboardKey.arrowUp);
+    expect(focused(), 'last switch');
+  });
 }
 
 /// One Home-style row of cards, each with a small button tucked in its top-right corner,
@@ -353,4 +425,5 @@ Future<void> tuckedRow(WidgetTester t, {required bool shown}) async {
   await t.pumpWidget(tucked(shown: shown));
   focus(t, 'card 3');
   await t.pumpAndSettle();
+
 }

@@ -64,7 +64,10 @@ class _LoaderState<T> extends State<Loader<T>> {
 
 /// Scrolling page body with Console spacing.
 class PageBody extends StatelessWidget {
-  const PageBody({super.key, required this.children, this.maxWidth, this.padding = const EdgeInsets.all(Space.space3)});
+  const PageBody({super.key, required this.children, this.maxWidth, this.padding = const EdgeInsets.all(Space.space3), this.controller});
+
+  /// To scroll the page from code (back to the top when its contents change).
+  final ScrollController? controller;
   final List<Widget> children;
   final double? maxWidth;
   final EdgeInsets padding;
@@ -85,7 +88,7 @@ class PageBody extends StatelessWidget {
         ),
       );
     }
-    return SingleChildScrollView(padding: padding, child: col);
+    return SingleChildScrollView(controller: controller, padding: padding, child: col);
   }
 }
 
