@@ -1,3 +1,4 @@
+import 'package:console_app/app_info.dart';
 import 'package:console_app/platform.dart';
 import 'package:console_app/ui/nav.dart';
 import 'package:console_app/ui/pages/home_page.dart';
@@ -17,7 +18,8 @@ bool _inUpdates() {
 /// the tab's column) to the mpv box. A TV's Settings now has categories down the left, and the
 /// Updates panel is the first thing in Advanced. Run as a TV: CONSOLE_TV=1 flutter test test/updates_focus_test.dart
 void main() {
-  testWidgets('Advanced opens on the Updates panel, and Down walks its controls in turn', skip: !isTv, (t) async {
+  // Only where the app updates itself: an Apple build (or a store build) has no Updates panel.
+  testWidgets('Advanced opens on the Updates panel, and Down walks its controls in turn', skip: !isTv || !selfUpdates, (t) async {
     await tvApp(t);
     ShellNav.of(t.element(find.byType(HomePage))).go(const SettingsDest());
     for (var i = 0; i < 20; i++) {
