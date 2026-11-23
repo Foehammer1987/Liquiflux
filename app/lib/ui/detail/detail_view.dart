@@ -154,9 +154,12 @@ class _Hero extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, box) {
           final narrow = box.maxWidth < 720;
+          // A phone on its side: too narrow for the wide layout, too short for the poster
+          // above the title (it filled the screen). A smaller poster beside the details.
+          final sideways = narrow && box.maxWidth >= 440 && MediaQuery.sizeOf(context).height < 500;
           final art = ArtFrame(
             url: d.posterUrl,
-            width: d.landscape ? (narrow ? 280 : 340) : (narrow ? 160 : 230),
+            width: sideways ? (d.landscape ? 220 : 132) : d.landscape ? (narrow ? 280 : 340) : (narrow ? 160 : 230),
             landscape: d.landscape,
             progress: view.artProgress,
             caption: view.artCaption,
@@ -229,6 +232,16 @@ class _Hero extends StatelessWidget {
               ],
             ],
           );
+          if (sideways) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                art,
+                const SizedBox(width: Space.space5),
+                Expanded(child: body),
+              ],
+            );
+          }
           if (narrow) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
