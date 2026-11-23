@@ -189,6 +189,25 @@ The Android script fetches the Android SDK and makes a signing key in `%USERPROF
 its first run. Keep that folder: updates must be signed with the same key. Add
 `-Install <TV address>` to install straight onto a TV with network debugging turned on.
 
+### Mac
+
+On a Mac with Xcode, CocoaPods and Flutter (the version in `.forgejo/workflows/build.yml`):
+
+```sh
+cd app
+flutter build macos --release --dart-define=LIQUIFLUX_STORE=apple   # build/macos/Build/Products/Release/Liquiflux.app
+```
+
+Leave out `LIQUIFLUX_STORE=apple` for a build with the TV Networks page and the streaming
+services' rows on Trending. Signing uses the team in `app/macos/Runner.xcodeproj`; set your own
+in Xcode (Runner > Signing & Capabilities) to sign with your account.
+
+### Your own mpv or FFmpeg
+
+Liquiflux plays through mpv and FFmpeg, under the GNU LGPL (the Mac and iPhone builds use
+LGPL 3). They ship as separate libraries, and you can build Liquiflux with your own copies:
+[docs/native-licenses.md](docs/native-licenses.md) says where their sources are and how.
+
 ### Releases
 
 Every push and pull request runs the tests and builds Windows and both APKs in GitHub Actions

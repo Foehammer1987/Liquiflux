@@ -9,6 +9,10 @@ const appVersion = '1.1.6';
 /// Settings > Advanced, the README and the store listings).
 const plexAttribution = 'Works with Plex. Plex is a trademark of Plex, Inc. $appName is not affiliated with or endorsed by Plex, Inc.';
 
+/// Liquiflux's source code (MIT). Its README says how to build it, including with your own
+/// mpv or FFmpeg (the LGPL lets you; docs/native-licenses.md).
+const sourceCodeUrl = 'https://github.com/Foehammer1987/Liquiflux';
+
 /// Liquiflux's privacy policy, linked from Settings > Advanced > About (and the store listings).
 const privacyPolicyUrl = 'https://liquiflux.app/privacy';
 

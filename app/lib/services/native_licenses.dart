@@ -20,13 +20,13 @@ List<NativeLicense> nativeLicenses({bool? apple, bool? tizen}) {
   return [
     (
       name: 'mpv',
-      note: 'The video player. Built without its GPL parts, so it is under the GNU Lesser General Public License, version 2.1 or later. Source: https://github.com/mpv-player/mpv',
+      note: 'The video player. Built without its GPL parts, so it is under the GNU Lesser General Public License, version 2.1 or later. Source: https://github.com/mpv-player/mpv. To run Liquiflux with your own build, see docs/native-licenses.md in Liquiflux\'s source.',
       files: const ['mpv.txt', 'LGPL-2.1.txt'],
     ),
     (
       name: 'FFmpeg',
       note: darwin
-          ? 'Decodes audio and video. This build is under the GNU Lesser General Public License, version 3 or later (with mbedTLS), which is read together with the GNU General Public License, version 3. Source: https://ffmpeg.org'
+          ? 'Decodes audio and video. This build is under the GNU Lesser General Public License, version 3 or later (with mbedTLS), which is read together with the GNU General Public License, version 3. Source: https://ffmpeg.org (this build: https://github.com/media-kit/libmpv-darwin-build/releases/tag/v0.6.0). To run Liquiflux with your own build, see docs/native-licenses.md in Liquiflux\'s source.'
           : 'Decodes audio and video. Under the GNU Lesser General Public License, version 2.1 or later. Source: https://ffmpeg.org',
       files: darwin ? const ['ffmpeg.txt', 'LGPL-3.0.txt', 'GPL-3.0.txt'] : const ['ffmpeg.txt', 'LGPL-2.1.txt'],
     ),

@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../app_info.dart';
+
 /// Settings > Advanced > Open-Source Licenses: every package Liquiflux is built from (the
 /// Dart packages and Flutter's engine, which Flutter registers, and the player's native
 /// libraries from services/native_licenses.dart), then one package's license text.
@@ -126,6 +128,12 @@ class _PackageList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
+        Text(
+          '$appName is open source (MIT): $sourceCodeUrl. Its README says how to build it yourself, '
+          'including with your own copies of mpv and FFmpeg, as the LGPL allows.',
+          style: ConsoleText.body.copyWith(color: c.text200),
+        ),
+        const SizedBox(height: Space.space2),
         Text('${packages.length} packages. Choose one to read its license.', style: ConsoleText.caption.copyWith(color: c.text300)),
         const SizedBox(height: Space.space3),
         Flexible(
