@@ -522,7 +522,9 @@ class PlayerSession extends ChangeNotifier {
         item,
         session: _session!,
         offsetSec: from.inSeconds,
-        maxBitrateKbps: q.isOriginal ? 20000 : q.kbps,
+        // At Original, a conversion for the sound alone keeps the picture as it is: the
+        // bitrate allowed is far above any film's, so Plex copies the video across.
+        maxBitrateKbps: q.isOriginal ? (_pictureAsIs ? 200000 : 20000) : q.kbps,
         resolution: q.resolution,
         mediaIndex: mediaIndex,
         directStream: prefs.allowDirectStream,
@@ -613,7 +615,21 @@ class PlayerSession extends ChangeNotifier {
 
   /// With [direct] output, what the player can't show itself goes through Plex: a
   /// picture-based subtitle (burned in) or a video codec the hardware decoder doesn't take.
-  bool get needsServer => directNeedsServer(direct: direct, subtitle: subtitle, video: streams.where((s) => s.isVideo).firstOrNull, audio: audio, samsung: isTizen);
+  bool get needsServer => directNeedsServer(direct: direct, subtitle: subtitle, video: streams.where((s) => s.isVideo).firstOrNull, audio: audio, samsung: isTizen) || soundNeedsServer;
+
+  /// Only the sound has to go through Plex: the picture is sent as it is (see [_open]).
+  bool get soundNeedsServer => appleNeedsServer(audio: audio, apple: isApple && playerIsMpv);
+
+  /// The sound goes through Plex but nothing about the picture does.
+  bool get _pictureAsIs => soundNeedsServer && !directNeedsServer(direct: direct, subtitle: subtitle, video: streams.where((s) => s.isVideo).firstOrNull, samsung: isTizen);
+
+  /// Audio the Apple builds of mpv's FFmpeg have no decoder for (Plex's names): Dolby
+  /// TrueHD (and its MLP base), common on 4K films. Played directly, the film had no sound
+  /// ("Failed to initialize a decoder for codec 'truehd'"); Plex converts the sound instead.
+  static const appleUnplayableAudio = {'truehd', 'mlp'};
+
+  @visibleForTesting
+  static bool appleNeedsServer({PlexStream? audio, required bool apple}) => apple && appleUnplayableAudio.contains(audio?.codec?.toLowerCase());
 
   /// Audio Samsung TVs don't play (Plex's names): "The DTS Audio codec is not supported on
   /// 2025 TVs" (and 2026), and TrueHD isn't on Samsung's list. Plex converts the sound and

@@ -80,6 +80,24 @@ void main() {
     });
   });
 
+  group('Apple: sound the FFmpeg build has no decoder for', () {
+    PlexStream a(String codec) => PlexStream(streamType: 2, codec: codec);
+
+    test('TrueHD (and MLP) goes through Plex on a Mac, iPhone or iPad', () {
+      expect(PlayerSession.appleNeedsServer(audio: a('truehd'), apple: true), isTrue);
+      expect(PlayerSession.appleNeedsServer(audio: a('TrueHD'), apple: true), isTrue);
+      expect(PlayerSession.appleNeedsServer(audio: a('mlp'), apple: true), isTrue);
+    });
+
+    test('what it decodes plays directly, and other platforms are unchanged', () {
+      for (final c in ['eac3', 'ac3', 'dca', 'aac', 'flac', 'opus']) {
+        expect(PlayerSession.appleNeedsServer(audio: a(c), apple: true), isFalse, reason: c);
+      }
+      expect(PlayerSession.appleNeedsServer(audio: a('truehd'), apple: false), isFalse);
+      expect(PlayerSession.appleNeedsServer(apple: true), isFalse, reason: 'no sound track');
+    });
+  });
+
   group('app-drawn subtitles', () {
     test('main line only, trimmed, no blank lines', () {
       expect(subtitleText([' Hello \n\n there ', 'secondary']), 'Hello\nthere');
