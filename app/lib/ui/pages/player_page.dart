@@ -15,8 +15,10 @@ import '../../services/network_watch.dart';
 import '../../services/pip.dart';
 import '../../services/channels.dart';
 import '../../state/scope.dart';
+import '../../services/screen_brightness.dart';
 import '../player/app_subtitles.dart';
 import '../player/player_dock.dart';
+import '../player/player_gestures.dart';
 import '../player/player_session.dart';
 import '../player/sleep_timer.dart';
 import '../player/pause_screen.dart';
@@ -273,6 +275,8 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     unawaited(_touchPlaying?.cancel());
     // Only once the last player has gone (Up Next can open the next one first).
     if (_live.isNotEmpty) return;
+    // The brightness gesture's change is the player's alone.
+    unawaited(ScreenBrightness.instance.reset());
     unawaited(Pip.playing(false));
     unawaited(SystemChrome.setPreferredOrientations(const []));
     unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
@@ -314,6 +318,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     final p = _s.prefs;
     if (x < width / 3 || x > width * 2 / 3) {
       final back = x < width / 3;
+      HapticFeedback.lightImpact();
       _s.seekBy(back ? -p.skipBack : p.skipForward);
       _pulseTimer?.cancel();
       setState(() => _pulse = back ? LucideIcons.rotateCcw : LucideIcons.rotateCw);
@@ -744,6 +749,35 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
   /// with the panel still open.
   Widget _held(Widget panel) => isTv ? FocusPanel(child: panel) : panel;
 
+  /// The settings panel, at the side, or as a sheet from the bottom with a handle to drag it
+  /// away ([playerSheetFromBottom]).
+  Widget _sheetFrame(bool fromBottom, Widget panel) {
+    if (!fromBottom) return _held(panel);
+    return Column(
+      children: [
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onVerticalDragEnd: (d) {
+            if ((d.primaryVelocity ?? 0) > 200) _closePanels();
+          },
+          onTap: _closePanels,
+          child: Semantics(
+            button: true,
+            label: 'Close',
+            child: SizedBox(
+              height: 22,
+              width: double.infinity,
+              child: Center(
+                child: Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(3))),
+              ),
+            ),
+          ),
+        ),
+        Expanded(child: _held(panel)),
+      ],
+    );
+  }
+
   KeyEventResult _onKeyboard(KeyEvent e) {
     if (e is KeyUpEvent) return KeyEventResult.ignored;
     final repeat = e is KeyRepeatEvent;
@@ -852,6 +886,8 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     final app = AppScope.of(context);
     final offer = _s.resumeOffer;
     final mini = _mini;
+    final screen = MediaQuery.sizeOf(context);
+    final fromBottom = playerSheetFromBottom(screen);
     final showChrome = (_visible || _keepVisible) && !_paused && !_dismissed && offer == null && !mini && !_pip;
     _s.setControlsShown(showChrome);
     if (isTv && _chromeShown && !showChrome) WidgetsBinding.instance.addPostFrameCallback((_) => _focusPicture());
@@ -863,33 +899,47 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     final it = _s.item;
     // Picture. A click toggles play, a double click full screen; in the corner a click
     // brings it back to full window. Keyed, so it stays the same picture either way.
+    final pictureTaps = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        if (mini) {
+          PlayerDock.instance.expand();
+        } else if (_sheet != null || _together) {
+          _closePanels();
+        } else if (isTouch) {
+          _touchTap(showChrome);
+        } else {
+          _toggle();
+        }
+      },
+      onDoubleTapDown: isTouch ? (d) => _doubleTapAt = d.localPosition : null,
+      onDoubleTap: isTouch ? () => _touchDoubleTap(MediaQuery.sizeOf(context).width) : (isDesktop && !mini ? _toggleFullscreen : null),
+      child: switch (_s.video) {
+        final video? => Video(controller: video, controls: NoVideoControls, fill: Colors.black, fit: fitFor(_s.aspect), subtitleViewConfiguration: const SubtitleViewConfiguration(visible: false)),
+        // Video plane: the picture is on a surface behind the app, seen through here.
+        null => switch (_s.player.platform) {
+          // Samsung's player: a hole in the app over the TV's video plane.
+          final AvPlayPlayer av => AvPlayView(player: av),
+          _ => const SizedBox.expand(),
+        },
+      },
+    );
     final picture = Positioned.fill(
       key: const ValueKey('picture'),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          if (mini) {
-            PlayerDock.instance.expand();
-          } else if (_sheet != null || _together) {
-            _closePanels();
-          } else if (isTouch) {
-            _touchTap(showChrome);
-          } else {
-            _toggle();
-          }
-        },
-        onDoubleTapDown: isTouch ? (d) => _doubleTapAt = d.localPosition : null,
-        onDoubleTap: isTouch ? () => _touchDoubleTap(MediaQuery.sizeOf(context).width) : (isDesktop && !mini ? _toggleFullscreen : null),
-        child: switch (_s.video) {
-          final video? => Video(controller: video, controls: NoVideoControls, fill: Colors.black, fit: fitFor(_s.aspect), subtitleViewConfiguration: const SubtitleViewConfiguration(visible: false)),
-          // Video plane: the picture is on a surface behind the app, seen through here.
-          null => switch (_s.player.platform) {
-            // Samsung's player: a hole in the app over the TV's video plane.
-            final AvPlayPlayer av => AvPlayView(player: av),
-            _ => const SizedBox.expand(),
-          },
-        },
-      ),
+      child: !isTouch
+          ? pictureTaps
+          // Phones and tablets: swipes and pinches on the picture, off while a panel is open.
+          : PlayerGestures(
+              enabled: _s.prefs.gestures && _sheet == null && !_together && !_info && offer == null && !_pip,
+              position: () => _s.position,
+              duration: () => _s.duration,
+              volume: () => _s.player.state.volume.clamp(0, 100).toDouble(),
+              onVolume: (v) => unawaited(_s.setVolume(v)),
+              onSeek: (to) => unawaited(_s.seekTo(to)),
+              fill: _s.aspect == 'fill',
+              onFill: (on) => _s.setAspect(on ? 'fill' : 'fit'),
+              child: pictureTaps,
+            ),
     );
     final body = mini
         ? Stack(
@@ -1162,14 +1212,14 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
           ),
         ),
 
-        // Settings panel.
+        // Settings panel: at the side, or a sheet from the bottom on a narrow screen.
         AnimatedPositioned(
           duration: const Duration(milliseconds: 260),
           curve: Curves.easeOutCubic,
-          top: Space.space4,
-          bottom: playerPanelBottom(MediaQuery.sizeOf(context)),
-          right: _sheet == null ? -420 : Space.space5,
-          width: 380,
+          top: fromBottom ? (_sheet == null ? screen.height : screen.height * 0.36) : Space.space4,
+          bottom: fromBottom ? (_sheet == null ? -screen.height * 0.64 : 0) : playerPanelBottom(screen),
+          right: fromBottom ? 0 : (_sheet == null ? -420 : Space.space5),
+          width: fromBottom ? screen.width : 380,
           // The region stays mounted so closing the panel under the pointer still counts as
           // leaving it (a removed region never reports an exit).
           child: IgnorePointer(
@@ -1182,7 +1232,8 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
               },
               child: _sheet == null
                   ? const SizedBox.shrink()
-                  : _held(
+                  : _sheetFrame(
+                      fromBottom,
                       PlayerSheet(
                         session: _s,
                         tint: tint,
@@ -1540,6 +1591,12 @@ class _BottomBar extends StatelessWidget {
     );
   }
 }
+
+/// A narrow screen (a phone held upright, an iPad's narrow Split View or Slide Over): the
+/// settings panel comes up from the bottom as a sheet across the width, instead of a side
+/// panel that would cover the picture's whole width anyway.
+@visibleForTesting
+bool playerSheetFromBottom(Size screen, {bool? touch}) => (touch ?? isTouch) && screen.width < 600 && screen.height > screen.width;
 
 /// Below this width the player's bottom bar takes two rows of buttons.
 const _twoRowWidth = 600.0;

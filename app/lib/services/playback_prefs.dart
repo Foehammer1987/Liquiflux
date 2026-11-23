@@ -41,6 +41,7 @@ class PlaybackPrefs {
     this.passthrough = false,
     this.audioChannels = 'auto',
     this.nightMode = false,
+    this.gestures = true,
     this.volumeBoost = false,
     this.audioDevice = 'auto',
     this.aspect = 'fit',
@@ -148,6 +149,10 @@ class PlaybackPrefs {
   /// Evens out loud effects and quiet dialogue.
   final bool nightMode;
 
+  /// Phones and tablets: swipes and pinches on the picture for volume, brightness, seeking
+  /// and fit or fill (ui/player/player_gestures.dart).
+  final bool gestures;
+
   /// Lets the volume go to 200%.
   final bool volumeBoost;
 
@@ -197,6 +202,7 @@ class PlaybackPrefs {
     bool? passthrough,
     String? audioChannels,
     bool? nightMode,
+    bool? gestures,
     bool? volumeBoost,
     String? audioDevice,
     String? aspect,
@@ -233,6 +239,7 @@ class PlaybackPrefs {
     passthrough: passthrough ?? this.passthrough,
     audioChannels: audioChannels ?? this.audioChannels,
     nightMode: nightMode ?? this.nightMode,
+    gestures: gestures ?? this.gestures,
     volumeBoost: volumeBoost ?? this.volumeBoost,
     audioDevice: audioDevice ?? this.audioDevice,
     aspect: aspect ?? this.aspect,
@@ -271,6 +278,7 @@ class PlaybackPrefs {
     'passthrough': passthrough,
     'audioChannels': audioChannels,
     'nightMode': nightMode,
+    'gestures': gestures,
     'volumeBoost': volumeBoost,
     'audioDevice': audioDevice,
     'aspect': aspect,
@@ -322,6 +330,7 @@ class PlaybackPrefs {
       passthrough: v('passthrough', d.passthrough),
       audioChannels: v('audioChannels', d.audioChannels),
       nightMode: v('nightMode', d.nightMode),
+      gestures: v('gestures', d.gestures),
       volumeBoost: v('volumeBoost', d.volumeBoost),
       audioDevice: v('audioDevice', d.audioDevice),
       aspect: v('aspect', d.aspect),

@@ -865,6 +865,20 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
         ),
       ),
+      // Phones and tablets only: a TV or computer has no touch screen to swipe on.
+      if (isTouch)
+        ConsolePanel(
+          title: 'Touch',
+          child: _Row(
+            label: 'Player Gestures',
+            help: 'Swipe up or down on the right of the picture for volume and on the left for brightness, sideways to skip through, and pinch to fill the screen or fit it.',
+            control: ConsoleSwitch(
+              value: p.gestures,
+              onChanged: (v) => _set(app, p.copyWith(gestures: v)),
+            ),
+            last: true,
+          ),
+        ),
       ConsolePanel(
         title: 'Skipping',
         child: Column(

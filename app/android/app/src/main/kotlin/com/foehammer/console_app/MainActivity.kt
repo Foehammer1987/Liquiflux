@@ -108,6 +108,7 @@ class MainActivity : FlutterActivity() {
         displayModes = DisplayModes(this).also { displayChannel.setMethodCallHandler(it::onMethodCall) }
         val pipChannel = MethodChannel(messenger, PictureInPicture.CHANNEL)
         pip = PictureInPicture(this, pipChannel).also { pipChannel.setMethodCallHandler(it::onMethodCall) }
+        MethodChannel(messenger, ScreenBrightness.CHANNEL).setMethodCallHandler(ScreenBrightness(this)::onMethodCall)
         MethodChannel(messenger, "liquiflux/probe").setMethodCallHandler { call, result ->
             if (call.method == "flags") result.success(probe) else result.notImplemented()
         }
