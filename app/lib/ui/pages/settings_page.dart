@@ -685,6 +685,9 @@ class _SettingsPageState extends State<SettingsPage> {
             else
               ConsoleLink(label: 'Make a Trakt app', trailingChevron: true, style: ConsoleText.caption, onTap: () => openExternal('https://trakt.tv/oauth/applications/new')),
             const SizedBox(height: Space.space3),
+            // The region is only for the streaming services' rows, which the App Store build
+            // leaves out (with the service's name in this field's help).
+            if (app.brandRows)
             SizedBox(
               width: 220,
               child: SettingsField(label: 'Streaming Region', controller: _region, mono: true, hint: 'US', help: 'Two-letter country code for the "Popular on Netflix" rows.'),
