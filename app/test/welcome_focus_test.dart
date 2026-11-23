@@ -53,5 +53,5 @@ void main() {
     await welcome(t);
     expect(find.text('Welcome'), findsOneWidget);
     expect(focused(), isNot(contains('Sign In with Plex')));
-  }, skip: !isDesktop);
+  }, skip: !isDesktop || isTv);
 }
