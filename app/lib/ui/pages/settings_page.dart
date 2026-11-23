@@ -133,10 +133,19 @@ class _SettingsPageState extends State<SettingsPage> {
     if (_mpv.text.isEmpty) _mpv.text = s.playback.mpvOptions;
   }
 
+  /// Signing in with a code for plex.tv/link on a computer or phone (Use a Link Code), as a
+  /// TV always does: handy when the browser is on another device.
+  bool _withCode = false;
+
+  /// The link-code sign-in: always on a TV, and on request elsewhere.
+  bool get _codeFlow => isTv || _withCode;
+
   /// Signs in with Plex. On a desktop the user approves in the browser; a TV may have no
-  /// browser, so it shows a short code to enter at plex.tv/link on a phone or computer.
-  Future<void> _signIn() async {
+  /// browser, so it shows a short code to enter at plex.tv/link on a phone or computer
+  /// ([code] asks for that anywhere).
+  Future<void> _signIn({bool code = false}) async {
     final app = AppScope.read(context);
+    _withCode = code;
     final auth = PlexAuth(clientId: app.settings.clientId, product: appName);
     final attempt = ++_attempt;
     bool current() => mounted && attempt == _attempt;
@@ -144,7 +153,7 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       _signingIn = true;
       _cancelSignIn = false;
-      if (isTv) {
+      if (_codeFlow) {
         _linking = true;
         _pin = null;
         _codeExpired = false;
@@ -153,12 +162,12 @@ class _SettingsPageState extends State<SettingsPage> {
         _plexStatus = ('Approve $appName in the browser window that just opened', Tone.neutral);
       }
     });
-    if (isTv && firstCode) _linkFocus.focus();
+    if (_codeFlow && firstCode) _linkFocus.focus();
     try {
-      final pin = await auth.createPin(strong: !isTv);
+      final pin = await auth.createPin(strong: !_codeFlow);
       if (!current()) return;
       var timeout = const Duration(minutes: 5);
-      if (isTv) {
+      if (_codeFlow) {
         timeout = pin.expiresAt?.difference(DateTime.now()) ?? const Duration(minutes: 15);
         setState(() => _pin = pin);
         _tick?.cancel();
@@ -170,7 +179,7 @@ class _SettingsPageState extends State<SettingsPage> {
       }
       final token = await auth.waitForToken(pin, timeout: timeout, cancelled: () => _cancelSignIn || !current());
       if (!current()) return;
-      if (token == null && isTv && !_cancelSignIn) {
+      if (token == null && _codeFlow && !_cancelSignIn) {
         // The code ran out: leave it up, crossed out, next to Get a New Code.
         _tick?.cancel();
         setState(() {
@@ -180,7 +189,7 @@ class _SettingsPageState extends State<SettingsPage> {
         return;
       }
       if (token == null) throw 'Sign-in was cancelled or timed out';
-      if (isTv) _endLink(status: ('Signed in. Finding your servers', Tone.neutral));
+      if (_codeFlow) _endLink(status: ('Signed in. Finding your servers', Tone.neutral));
       _accountToken = token;
       final servers = await auth.servers(token);
       if (servers.isEmpty) throw 'No Plex servers found on this account';
@@ -196,7 +205,7 @@ class _SettingsPageState extends State<SettingsPage> {
       }
     } catch (e) {
       if (!current()) return;
-      if (isTv) {
+      if (_codeFlow) {
         _endLink(status: (errorText(e), Tone.danger));
       } else {
         setState(() => _plexStatus = (errorText(e), Tone.danger));
@@ -211,6 +220,7 @@ class _SettingsPageState extends State<SettingsPage> {
   /// sign-in still waiting on the old code gives up.
   void _endLink({(String, Tone)? status}) {
     _tick?.cancel();
+    _withCode = false;
     setState(() {
       _linking = false;
       _pin = null;
@@ -488,8 +498,8 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (isTv && _linking)
-            _linkFocus.wrap(PlexLinkCode(code: _pin?.code, left: _pin?.expiresAt?.difference(DateTime.now()), expired: _codeExpired, onNewCode: _signIn, onCancel: _cancelLink))
+          if (_codeFlow && _linking)
+            _linkFocus.wrap(PlexLinkCode(code: _pin?.code, left: _pin?.expiresAt?.difference(DateTime.now()), expired: _codeExpired, onNewCode: () => _signIn(code: true), onCancel: _cancelLink))
           else
             _signInFocus.wrap(
               _wrap(
@@ -504,6 +514,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     onPressed: _unlessBusy(_signingIn, _signIn),
                   ),
                   if (_signingIn && !isTv) ConsoleButton(label: 'Cancel', onPressed: () => setState(() => _cancelSignIn = true)),
+                  // The browser may be on another device: a code for plex.tv/link, as on a TV.
+                  if (!isTv && !_signingIn) ConsoleButton(label: 'Use a Link Code', kind: ButtonKind.tertiary, onPressed: () => unawaited(_signIn(code: true))),
                   ConsoleButton(label: _manualPlex ? 'Hide Manual Setup' : 'Enter Address Manually', kind: ButtonKind.tertiary, onPressed: () => setState(() => _manualPlex = !_manualPlex)),
                 ],
               ),
