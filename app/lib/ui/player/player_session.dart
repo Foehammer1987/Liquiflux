@@ -488,7 +488,10 @@ class PlayerSession extends ChangeNotifier {
     _openedAt = from;
     error = null;
     final old = _session;
-    if (old != null) unawaited(plex.stopTranscode(old));
+    // The server refuses the file itself (503) to a client whose transcode it's still
+    // running, so the old one is ended before anything else opens (a moment at most).
+    if (old != null) await plex.stopTranscode(old).timeout(const Duration(seconds: 3), onTimeout: () {});
+    if (_disposed) return;
     _session = null;
     final waitFor = _displayReady;
     _displayReady = null;
