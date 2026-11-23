@@ -44,6 +44,10 @@ class _HomePageState extends State<HomePage> with RouteAware {
   List<SeerrResult> _missing = const [];
   LibraryIndex? _library;
   bool _rerolling = false;
+
+  /// Why there's no spotlight, once the library has been read and has nothing to feature
+  /// (or couldn't be read). Null while it's still loading.
+  String? _spotNote;
   bool _covered = false;
   bool _started = false;
   bool _seerrStarted = false;
@@ -152,6 +156,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
       _pickMoods();
     } catch (e) {
       debugPrint('home: $e');
+      if (mounted && _spot.isEmpty) setState(() => _spotNote = 'Couldn’t read your libraries. Check the server in Settings.');
     }
   }
 
@@ -160,13 +165,18 @@ class _HomePageState extends State<HomePage> with RouteAware {
     final plex = AppScope.read(context).plex;
     if (plex == null || _rerolling) return;
     final picks = pickSpotlights([..._pool, ...?_recent], count: 7, random: _rng, avoid: {for (final s in _spot) s.ratingKey});
-    if (picks.isEmpty) return;
+    if (picks.isEmpty) {
+      // The library has been read and there's nothing in it to feature (yet).
+      if (_spot.isEmpty && _spotNote == null) setState(() => _spotNote = 'Nothing to show yet. Movies and shows you add to Plex appear here.');
+      return;
+    }
     setState(() => _rerolling = true);
     // Full metadata adds the clear logo and every rating.
     final full = await Future.wait(picks.map((p) => plex.metadata(p.ratingKey).catchError((Object _) => null)));
     if (!mounted) return;
     setState(() {
       _spot = [for (var i = 0; i < picks.length; i++) full[i] ?? picks[i]];
+      _spotNote = null;
       // Top in Your Library re-rolls with it and never repeats a spotlight title.
       _top = pickTop(_pool, avoid: {for (final s in _spot) s.ratingKey}, random: _rng);
       _rerolling = false;
@@ -211,6 +221,8 @@ class _HomePageState extends State<HomePage> with RouteAware {
           _recent = r[1];
         });
       }
+      // The spotlight gave up on an empty library; recently added titles came in since.
+      if (mounted && _spot.isEmpty && _spotNote != null && r[1].isNotEmpty) unawaited(_reroll());
     } catch (e) {
       debugPrint('home rows: $e');
     }
@@ -313,6 +325,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                 onInfo: _info,
                 onReroll: _reroll,
                 rerolling: _rerolling,
+                emptyNote: _spotNote,
               ),
               // Rows ride up over the bottom of the spotlight.
               Transform.translate(

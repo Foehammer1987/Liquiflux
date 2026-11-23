@@ -41,6 +41,7 @@ class Spotlight extends StatefulWidget {
     required this.onInfo,
     this.onReroll,
     this.rerolling = false,
+    this.emptyNote,
   });
 
   final List<PlexItem> items;
@@ -63,6 +64,10 @@ class Spotlight extends StatefulWidget {
   /// Picks a fresh set of spotlight titles.
   final VoidCallback? onReroll;
   final bool rerolling;
+
+  /// Shown in place of the spotlight once there is nothing to feature (an empty library, or
+  /// one that couldn't be read); until then it says it's still picking.
+  final String? emptyNote;
 
   @override
   State<Spotlight> createState() => _SpotlightState();
@@ -421,7 +426,14 @@ class _SpotlightState extends State<Spotlight> with SingleTickerProviderStateMix
     if (item == null) {
       return SizedBox(
         height: widget.height * 0.5,
-        child: const Center(child: LoadingNote(label: 'Picking something good')),
+        child: Center(
+          child: widget.emptyNote == null
+              ? const LoadingNote(label: 'Picking something good')
+              : Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: Space.space6),
+                  child: Text(widget.emptyNote!, textAlign: TextAlign.center, style: ConsoleText.body.copyWith(color: c.text300)),
+                ),
+        ),
       );
     }
     final detail = TitleDetail.fromPlex(
