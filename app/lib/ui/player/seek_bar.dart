@@ -123,10 +123,16 @@ class _SeekBarState extends State<SeekBar> {
             behavior: HitTestBehavior.opaque,
             onTapUp: (e) => widget.onSeek(_at(_frac(e.localPosition.dx, w))),
             onHorizontalDragStart: (e) {
+              HapticFeedback.selectionClick();
               setState(() => _drag = _frac(e.localPosition.dx, w));
               widget.onScrub?.call(true);
             },
-            onHorizontalDragUpdate: (e) => setState(() => _drag = _frac(e.localPosition.dx, w)),
+            onHorizontalDragUpdate: (e) {
+              final next = _frac(e.localPosition.dx, w);
+              // A tick at each chapter mark the scrubber crosses (phones and tablets).
+              if (_drag != null && chapterIndexAt(widget.chapters, _at(_drag!)) != chapterIndexAt(widget.chapters, _at(next))) HapticFeedback.selectionClick();
+              setState(() => _drag = next);
+            },
             onHorizontalDragEnd: (_) => _end(),
             onHorizontalDragCancel: _end,
             child: SizedBox(
@@ -300,4 +306,15 @@ class _BarPainter extends CustomPainter {
       o.accent != accent ||
       o.markers.length != markers.length ||
       o.breaks.length != breaks.length;
+}
+
+/// Which of [chapters] [at] falls in (-1 before the first), for the scrubber's tick at each
+/// chapter mark.
+@visibleForTesting
+int chapterIndexAt(List<PlexChapter> chapters, Duration at) {
+  var index = -1;
+  for (final (i, c) in chapters.indexed) {
+    if (at.inMilliseconds >= c.startMs) index = i;
+  }
+  return index;
 }

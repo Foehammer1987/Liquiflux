@@ -4,8 +4,10 @@ import 'package:console_core/console_core.dart';
 import 'package:console_ui/console_ui.dart';
 import 'package:flutter/material.dart';
 
+import '../platform.dart';
 import '../state/scope.dart';
 import 'nav.dart';
+import 'poster_menu.dart';
 
 /// Runs [load] and renders loading / error / data; [pollEvery] refreshes in place.
 class Loader<T> extends StatefulWidget {
@@ -106,7 +108,7 @@ class PlexPoster extends StatelessWidget {
     final app = AppScope.of(context);
     final path = wide ? (item.art ?? item.thumb) : item.posterPath;
     final spoilers = app.settings.spoilers;
-    return PosterCard(
+    final card = PosterCard(
       title: item.cardTitle,
       subtitle: item.type == 'episode' ? '${item.episodeCode} · ${spoilers.titleOf(item)}' : item.cardSubtitle,
       // Wide episode cards show the episode's own still; posters show the show's.
@@ -118,6 +120,9 @@ class PlexPoster extends StatelessWidget {
       onHighlight: onHighlight,
       onTap: () => ShellNav.of(context).push(ItemDest(item.ratingKey)),
     );
+    // Phones and tablets: a long press opens the title's menu (poster_menu.dart).
+    if (!isTouch) return card;
+    return GestureDetector(onLongPress: () => unawaited(showPosterMenu(context, item)), child: card);
   }
 }
 

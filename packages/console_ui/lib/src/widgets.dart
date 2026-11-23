@@ -1,5 +1,6 @@
 import 'package:console_core/console_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'focusable.dart';
@@ -544,7 +545,13 @@ class ConsoleSwitch extends StatelessWidget {
     final c = context.c;
     final on = color ?? c.primaryFill;
     return Focusable(
-      onTap: onChanged == null ? null : () => onChanged!(!value),
+      onTap: onChanged == null
+          ? null
+          : () {
+              // A tick under the finger on a phone or tablet (nothing where there's no motor).
+              HapticFeedback.selectionClick();
+              onChanged!(!value);
+            },
       semanticLabel: semanticLabel,
       builder: (context, hover, focus) => withFocusRing(
         context,
