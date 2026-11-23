@@ -1496,6 +1496,7 @@ class PlayerSession extends ChangeNotifier {
       g('video-codec'), g('video-params/w'), g('video-params/h'), g('container-fps'), g('estimated-vf-fps'), g('video-params/pixelformat'), g('video-params/gamma'), //
       g('hwdec-current'), g('video-bitrate'), g('audio-codec-name'), g('audio-params/channel-count'), g('audio-params/samplerate'), g('audio-bitrate'), //
       g('current-ao'), g('frame-drop-count'), g('decoder-frame-drop-count'), g('demuxer-cache-duration'), g('cache-speed'), g('audio-device'),
+      g('video-params/hw-pixelformat'),
     ]);
     String kbps(String v) => double.tryParse(v) == null ? '' : '${(double.parse(v) / 1000).round()} kbps';
     String fps(String v) => double.tryParse(v)?.toStringAsFixed(3) ?? '';
@@ -1503,8 +1504,8 @@ class PlayerSession extends ChangeNotifier {
     return [
       ('Playback', transcoding ? 'Transcode · ${streamQuality.isOriginal ? 'Original' : streamQuality.label}' : 'Direct Play'),
       if (m != null) ('File', [m.container?.toUpperCase(), m.resolutionLabel, if (m.bitrate != null) '${(m.bitrate! / 1000).toStringAsFixed(1)} Mbps'].whereType<String>().join(' · ')),
-      ('Video', [r[0].split(' / ').first, if (r[1].isNotEmpty) '${r[1]}×${r[2]}', if (r[3].isNotEmpty) '${fps(r[3])} fps'].where((s) => s.isNotEmpty).join(' · ')),
-      ('Colour', [r[5], if (r[6] == 'pq') 'HDR10 / PQ' else if (r[6] == 'hlg') 'HLG' else if (r[6].isNotEmpty) 'SDR'].where((s) => s.isNotEmpty).join(' · ')),
+      ('Video', [mpvCodecLabel(r[0]), if (r[1].isNotEmpty) '${r[1]}×${r[2]}', if (r[3].isNotEmpty) '${fps(r[3])} fps'].where((s) => s.isNotEmpty).join(' · ')),
+      ('Colour', [mpvPixelFormat(r[5], r[19]), if (r[6] == 'pq') 'HDR10 / PQ' else if (r[6] == 'hlg') 'HLG' else if (r[6].isNotEmpty) 'SDR'].where((s) => s.isNotEmpty).join(' · ')),
       ('Decoder', r[7].isEmpty || r[7] == 'no' ? 'Software' : 'Hardware (${r[7]})'),
       ('Video Rate', [kbps(r[8]), if (r[4].isNotEmpty) 'showing ${fps(r[4])} fps'].where((s) => s.isNotEmpty).join(' · ')),
       ('Audio', [r[9], if (r[10].isNotEmpty) '${r[10]} ch', if (r[11].isNotEmpty) '${(int.tryParse(r[11]) ?? 0) / 1000} kHz', kbps(r[12])].where((s) => s.isNotEmpty).join(' · ')),
@@ -1580,3 +1581,14 @@ Duration? sanePosition(Duration mpv, {required Duration length}) {
   if (length > Duration.zero && p > length + slack) return null;
   return p;
 }
+
+/// mpv's video-codec ("hevc (H.265 / HEVC (High Efficiency Video Coding))") cut to its first
+/// part for Playback Info. A build of FFmpeg without codec descriptions (the Mac and iPhone
+/// ones, --enable-small) says "hevc ((null))": just the codec then.
+String mpvCodecLabel(String codec) => codec.replaceAll(RegExp(r'\s*\(*\(null\)\)*'), '').split(' / ').first.trim();
+
+/// The picture's pixel format for Playback Info. With hardware decoding mpv's pixelformat is
+/// the decoder's ("videotoolbox", "d3d11", "mediacodec"); the frames' own format is
+/// hw-pixelformat ("p010", "nv12"), which is what's worth showing.
+String mpvPixelFormat(String pixelformat, String hwPixelformat) => hwPixelformat.isNotEmpty ? hwPixelformat : pixelformat;
+
