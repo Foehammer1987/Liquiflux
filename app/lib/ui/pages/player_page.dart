@@ -27,6 +27,7 @@ import '../player/riptide.dart';
 import '../nav.dart';
 import '../together/together_link.dart';
 import '../../services/open_party.dart';
+import '../../services/window_fullscreen.dart';
 import '../together/together_panel.dart';
 import '../tv_focus.dart';
 import '../player/seek_bar.dart';
@@ -249,7 +250,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
 
   /// Leaves full screen if the player entered it; a window that was already full screen stays so.
   void _restoreWindow() {
-    if (isDesktop && _fullscreen && _ownsFullscreen) unawaited(windowManager.setFullScreen(false));
+    if (isDesktop && _fullscreen && _ownsFullscreen) unawaited(WindowFullscreen.instance.set(false));
     _ownsFullscreen = false;
   }
 
@@ -490,7 +491,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
     if (!isDesktop) return;
     _fullscreen = !_fullscreen;
     _ownsFullscreen = _fullscreen;
-    await windowManager.setFullScreen(_fullscreen);
+    await WindowFullscreen.instance.set(_fullscreen);
     if (mounted) setState(() {});
   }
 
