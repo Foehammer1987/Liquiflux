@@ -2,6 +2,7 @@ import 'package:console_core/console_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:console_app/services/playback_prefs.dart';
 import 'package:console_app/ui/player/app_subtitles.dart';
+import 'package:console_app/ui/player/decoders.dart';
 import 'package:console_app/ui/player/player_session.dart';
 
 void main() {
@@ -80,21 +81,34 @@ void main() {
     });
   });
 
-  group('Apple: sound the FFmpeg build has no decoder for', () {
+  group('codecs the platform\'s player can\'t decode go through Plex', () {
     PlexStream a(String codec) => PlexStream(streamType: 2, codec: codec);
+    PlexStream v(String codec) => PlexStream(streamType: 1, codec: codec);
+    const apple = PlayerDecoders.apple;
 
-    test('TrueHD (and MLP) goes through Plex on a Mac, iPhone or iPad', () {
-      expect(PlayerSession.appleNeedsServer(audio: a('truehd'), apple: true), isTrue);
-      expect(PlayerSession.appleNeedsServer(audio: a('TrueHD'), apple: true), isTrue);
-      expect(PlayerSession.appleNeedsServer(audio: a('mlp'), apple: true), isTrue);
+    test('Apple: TrueHD and MLP sound, and VC-1 pictures, which its FFmpeg lacks', () {
+      for (final c in ['truehd', 'TrueHD', 'mlp', 'cook']) {
+        expect(PlayerSession.decodersNeedServer(apple, audio: a(c), video: v('hevc')), isTrue, reason: c);
+      }
+      expect(PlayerSession.decodersNeedServer(apple, audio: a('eac3'), video: v('vc1')), isTrue);
     });
 
-    test('what it decodes plays directly, and other platforms are unchanged', () {
-      for (final c in ['eac3', 'ac3', 'dca', 'aac', 'flac', 'opus']) {
-        expect(PlayerSession.appleNeedsServer(audio: a(c), apple: true), isFalse, reason: c);
+    test('Apple: what its FFmpeg decodes plays directly', () {
+      for (final c in ['aac', 'ac3', 'eac3', 'dca', 'dca-ma', 'flac', 'alac', 'opus', 'vorbis', 'mp3', 'mp2', 'pcm', 'pcm_s24le', 'wmav2', 'wmapro']) {
+        expect(apple.playsAudio(c), isTrue, reason: c);
       }
-      expect(PlayerSession.appleNeedsServer(audio: a('truehd'), apple: false), isFalse);
-      expect(PlayerSession.appleNeedsServer(apple: true), isFalse, reason: 'no sound track');
+      for (final c in ['h264', 'hevc', 'av1', 'mpeg2video', 'mpeg4', 'vp9', 'vp8', 'wmv3', 'msmpeg4v3']) {
+        expect(apple.playsVideo(c), isTrue, reason: c);
+      }
+      expect(PlayerSession.decodersNeedServer(apple, audio: a('eac3'), video: v('hevc')), isFalse);
+      expect(PlayerSession.decodersNeedServer(apple), isFalse, reason: 'no tracks named');
+    });
+
+    test('Windows, Linux and Android decode everything, as before', () {
+      expect(PlayerDecoders.forPlatform(apple: false), same(PlayerDecoders.all));
+      for (final c in ['truehd', 'mlp', 'cook', 'dca-ma']) {
+        expect(PlayerSession.decodersNeedServer(PlayerDecoders.all, audio: a(c), video: v('vc1')), isFalse, reason: c);
+      }
     });
   });
 

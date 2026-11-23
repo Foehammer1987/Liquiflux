@@ -11,6 +11,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../app_info.dart';
 import '../../platform.dart';
+import 'decoders.dart';
 import '../../services/channels.dart';
 import '../../services/display_match.dart';
 import '../../services/gpu_memory.dart';
@@ -615,21 +616,22 @@ class PlayerSession extends ChangeNotifier {
 
   /// With [direct] output, what the player can't show itself goes through Plex: a
   /// picture-based subtitle (burned in) or a video codec the hardware decoder doesn't take.
-  bool get needsServer => directNeedsServer(direct: direct, subtitle: subtitle, video: streams.where((s) => s.isVideo).firstOrNull, audio: audio, samsung: isTizen) || soundNeedsServer;
+  bool get needsServer => directNeedsServer(direct: direct, subtitle: subtitle, video: _video, audio: audio, samsung: isTizen) || decodersNeedServer(PlayerDecoders.current, audio: audio, video: _video);
 
-  /// Only the sound has to go through Plex: the picture is sent as it is (see [_open]).
-  bool get soundNeedsServer => appleNeedsServer(audio: audio, apple: isApple && playerIsMpv);
+  PlexStream? get _video => streams.where((s) => s.isVideo).firstOrNull;
+
+  /// Only the sound has to go through Plex (this platform's player has no decoder for it, see
+  /// [PlayerDecoders]): Plex converts the sound and sends the picture as it is (see [_open]).
+  bool get soundNeedsServer => !PlayerDecoders.current.playsAudio(audio?.codec);
 
   /// The sound goes through Plex but nothing about the picture does.
-  bool get _pictureAsIs => soundNeedsServer && !directNeedsServer(direct: direct, subtitle: subtitle, video: streams.where((s) => s.isVideo).firstOrNull, samsung: isTizen);
+  bool get _pictureAsIs => soundNeedsServer && PlayerDecoders.current.playsVideo(_video?.codec) && !directNeedsServer(direct: direct, subtitle: subtitle, video: _video, samsung: isTizen);
 
-  /// Audio the Apple builds of mpv's FFmpeg have no decoder for (Plex's names): Dolby
-  /// TrueHD (and its MLP base), common on 4K films. Played directly, the film had no sound
-  /// ("Failed to initialize a decoder for codec 'truehd'"); Plex converts the sound instead.
-  static const appleUnplayableAudio = {'truehd', 'mlp'};
-
+  /// Whether a track [decoders] can't decode sends the title through Plex. On a Mac, iPhone
+  /// or iPad a film with Dolby TrueHD sound played silently ("Failed to initialize a decoder
+  /// for codec 'truehd'"); everywhere else [PlayerDecoders.all] decodes everything.
   @visibleForTesting
-  static bool appleNeedsServer({PlexStream? audio, required bool apple}) => apple && appleUnplayableAudio.contains(audio?.codec?.toLowerCase());
+  static bool decodersNeedServer(PlayerDecoders decoders, {PlexStream? audio, PlexStream? video}) => !decoders.playsAudio(audio?.codec) || !decoders.playsVideo(video?.codec);
 
   /// Audio Samsung TVs don't play (Plex's names): "The DTS Audio codec is not supported on
   /// 2025 TVs" (and 2026), and TrueHD isn't on Samsung's list. Plex converts the sound and
