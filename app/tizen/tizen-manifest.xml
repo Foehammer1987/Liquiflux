@@ -5,7 +5,7 @@
   or the store treats it as another app. version and api-version are set per package by
   tools/build-tizen.sh (one TPK per Tizen version group, as video_player_avplay needs).
 -->
-<manifest package="com.foehammer.liquiflux" version="1.1.6" api-version="6.0" xmlns="http://tizen.org/ns/packages">
+<manifest package="com.foehammer.liquiflux" version="1.1.7" api-version="6.0" xmlns="http://tizen.org/ns/packages">
     <profile name="tv"/>
     <ui-application appid="com.foehammer.liquiflux" exec="Runner.dll" type="dotnet" multiple="false" nodisplay="false" taskmanage="true">
         <label>Liquiflux</label>

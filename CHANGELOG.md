@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.7
+
+Liquiflux on the Mac, ready for the App Store, and server conversion that works there.
+
+- **Mac app.** The first macOS build: a sandboxed, signed app with its own icon (the Windows and Android icon on Apple's grid), Entertainment category, a privacy manifest and the App Store's Info.plist keys. Sign-ins are kept in the Mac's keychain. Server discovery goes through plex.tv, so no Bonjour or multicast permission is needed.
+- **App Store build** (`--dart-define=LIQUIFLUX_STORE=apple`): no TV Networks page, and no rows named after streaming services on Trending (Netflix's Top 10, "Popular on ..."), since Apple doesn't want other companies' brands in an app without their permission. Samsung's build keeps those rows.
+- The in-app updater is off on every Apple platform: the App Store doesn't allow an app to fetch new code.
+- **Settings > Advanced > About**: Open-Source Licenses (every package, plus the player's mpv and FFmpeg with their LGPL texts and where to get their source to rebuild Liquiflux with your own) and a Privacy Policy link. A TV shows the address and a QR code instead of opening a browser.
+- **Sign in with a link code on a computer** too: *Use a Link Code* next to Sign In with Plex shows the plex.tv/link code a TV uses, for when the browser is on another device. A passing plex.tv error while waiting for the code no longer ends the sign-in, and a code that ran out shows as expired instead of "Not found (404)".
+- **Server conversion on macOS and Linux.** A Plex server picks its client profile from the platform name, and for "macOS" and "Linux" that's Plex's own desktop apps' profile, so every conversion from Liquiflux failed (400 Bad Request, or a closed connection). There Liquiflux now asks for Plex's Generic profile and says what it plays (HLS, H.264, AAC/AC3/MP3). Windows, Android and iOS keep the server's own profiles.
+- Before converting, the player asks the server's decision and, when the server refuses, says so with its reason instead of "Failed to open". Going back to Original after a conversion waits for the server to end it first: Plex refuses the file itself (503) while the same client's conversion still runs.
+- Playback Info no longer shows "((null))" after the codec or the decoder's name ("videotoolbox") as the colour format.
+- Mac: leaving full screen puts the window back where it was. The Welcome page has no focus ring on a computer until a key is pressed.
+- Home on an empty library says so instead of "Picking something good..." for ever.
+- The keyring warning gives Linux advice only on Linux.
+- For the Apple targets to come (iPhone, iPad, Apple TV): one `isApple` and `isTvOS` in platform.dart (an Apple TV is a TV, not touch), one `playerIsMpv` flag for the settings only mpv has, and an icon script that also makes separate back and front layers.
+- Version 1.1.7+84 (Samsung packages 1.1.700, 1.1.701, 1.1.702).
+
 ## 1.1.6
 
 Riptide shows who's in the scene, not just who's on camera that second.
