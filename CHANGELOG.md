@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.6
+
+Riptide shows who's in the scene, not just who's on camera that second.
+
+- Riptide's *In This Scene* list and the pause screen now name everyone in the scene around the moment you paused: the people on screen right then come first, then the others in the same scene, nearest first. Before, it named only faces within a few seconds of the pause, so a pause on a cutaway, a reaction shot or an empty corridor often showed the whole cast instead. Someone stays listed between their shots (the back and forth of a conversation) and for about 15 seconds after they were last seen, and never past one of the title's chapter marks, which usually start a new scene.
+- On the server's newly rescanned films someone is named at about 9 pauses in 10 (8 in 10 before); on films scanned by older versions of the scanner, 7 in 10 (4 in 10 before). 99% of the names shown are of people seen within 20 seconds of the pause.
+- When the Riptide server can't be reached as a title starts (a restart, a moment of Wi-Fi trouble), Liquiflux tries again twice in the next few seconds, and after that again whenever you open Riptide, at most once a minute. Before, one failed try left the title with the cast list only until it was played again. A server that turns the account away isn't asked again.
+- Works with every Riptide and X-Ray server and every timeline they have made, old and new. Nothing changes where there's no timeline: the cast list shows as before.
+- Version 1.1.6+83 (Samsung packages 1.1.600, 1.1.601, 1.1.602).
+
 ## 1.1.5
 
 TV: the remote moves row by row everywhere, and Settings is one column.

@@ -108,4 +108,132 @@ void main() {
     expect(RiptideTimeline.fromJson(file(0.7, [7, 8, 9])).usableFor([1, 2, 3]), isFalse);
     expect(RiptideTimeline.fromJson({'people': [], 'spans': []}).usableFor([1]), isFalse);
   });
+
+  group('who is in the scene', () {
+    List<String> names(RiptideTimeline t, int s, {List<int> breaks = const []}) => [
+      for (final p in t.scene(Duration(seconds: s), breaks: [for (final b in breaks) Duration(seconds: b)])) p.person.name,
+    ];
+
+    // A conversation: A and B cut back and forth, C walks in at the end, D is in the next scene.
+    RiptideTimeline talk() => RiptideTimeline.fromJson({
+      'people': [
+        {'tag': 'A'},
+        {'tag': 'B'},
+        {'tag': 'C'},
+        {'tag': 'D'},
+      ],
+      'spans': [
+        [100, 110, 0, 0.9],
+        [110, 118, 1, 0.8],
+        [118, 126, 0, 0.7],
+        [126, 140, 1, 0.95],
+        [138, 142, 2, 0.6],
+        [180, 200, 3, 0.9],
+        [130, 131, 3, 0.3], // too unsure to name
+      ],
+    });
+
+    test('on screen now first, then the rest of the scene nearest first', () {
+      final t = talk();
+      final at114 = t.scene(const Duration(seconds: 114));
+      expect([for (final s in at114) (s.person.name, s.onScreen, s.away.inSeconds)], [('B', true, 0), ('A', false, 4)]);
+      expect(names(t, 133), ['B', 'C', 'A']);
+      final c = t.scene(const Duration(seconds: 133))[1];
+      expect(c.onScreen, isFalse);
+      expect(c.away, const Duration(seconds: 5));
+      // A span a moment ago still counts as on screen (frames are seconds apart).
+      expect(t.scene(const Duration(seconds: 112)).first.onScreen, isTrue);
+    });
+
+    test('between their shots someone stays in the scene', () {
+      final t = RiptideTimeline.fromJson({
+        'people': [
+          {'tag': 'A'},
+          {'tag': 'B'},
+        ],
+        'spans': [
+          [0, 10, 0, 0.9],
+          [0, 10, 1, 0.8],
+          [38, 48, 0, 0.9], // A again 28 s later: there all along
+          [60, 70, 1, 0.8], // B again 50 s later: left and came back
+        ],
+      });
+      expect(names(t, 24), ['A', 'B']);
+      expect(names(t, 35), ['A']);
+      expect(names(t, 44), ['A']);
+    });
+
+    test('names linger 15 s after someone was last seen, not longer', () {
+      final t = talk();
+      expect(names(t, 155), ['C', 'B']);
+      expect(names(t, 158), isEmpty);
+      expect(names(t, 166), ['D']);
+    });
+
+    test('a chapter mark ends the scene', () {
+      final t = talk();
+      expect(names(t, 150), ['C', 'B']);
+      expect(names(t, 150, breaks: [145]), isEmpty);
+      expect(names(t, 170, breaks: [145, 172]), isEmpty); // D is past the next mark
+      expect(names(t, 175, breaks: [172]), ['D']);
+    });
+
+    test("the scanner's own scenes are used when it sends them", () {
+      final t = RiptideTimeline.fromJson({
+        'people': [
+          {'tag': 'A'},
+          {'tag': 'B'},
+        ],
+        'spans': [
+          [0, 5, 0, 0.9],
+          [80, 90, 1, 0.9],
+        ],
+        'scenes': [
+          [100, 200],
+          [0, 100],
+          ['x', 3],
+          [50, 40],
+        ],
+      });
+      expect(t.scenes, [(0, 100000), (100000, 200000)]);
+      expect(names(t, 45), ['B', 'A']); // 35 and 40 s away, but the same scene
+      expect(names(t, 150), isEmpty);
+    });
+
+    test('an old file (no chapters, no scenes) still works, and an empty one names nobody', () {
+      final t = RiptideTimeline.fromJson({
+        'v': 1,
+        'people': [
+          {'tag': 'A', 'id': 1},
+        ],
+        'spans': [
+          [10, 12.5, 0, 0.6],
+        ],
+      });
+      expect(names(t, 20), ['A']);
+      expect(names(t, 40), isEmpty);
+      expect(RiptideTimeline.fromJson({}).scene(Duration.zero), isEmpty);
+      expect(RiptideTimeline.fromJson({'people': [], 'spans': []}).scene(const Duration(seconds: 5)), isEmpty);
+    });
+
+    test('an unsure chapter names nobody, and lookalikes still come together', () {
+      final t = RiptideTimeline.fromJson({
+        'people': [
+          {'tag': 'Fred', 'alike': [1]},
+          {'tag': 'George', 'alike': [0]},
+        ],
+        'spans': [
+          [0, 10, 0, 0.9],
+          [600, 610, 1, 0.9],
+        ],
+        'chapters': [
+          {'start': 0, 'end': 300, 'confidence': 0.4},
+          {'start': 300, 'end': 900, 'confidence': 0.8},
+        ],
+      });
+      expect(names(t, 5), isEmpty);
+      expect(names(t, 605), ['George', 'Fred']);
+      expect(t.scene(const Duration(seconds: 605)).every((s) => s.onScreen), isTrue);
+    });
+  });
 }
