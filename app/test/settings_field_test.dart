@@ -103,4 +103,23 @@ void main() {
     await tester.tap(find.text('Get a New Code'));
     expect(renewed, 1);
   });
+
+  testWidgets('on a phone or tablet the link code is for another device', (tester) async {
+    Future<String> wording({required bool touch}) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ConsoleTheme.dark(),
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: PlexLinkCode(code: 'AB12', left: null, expired: false, onNewCode: () {}, onCancel: () {}, touch: touch),
+            ),
+          ),
+        ),
+      );
+      return tester.widget<Text>(find.textContaining('plex.tv/link')).data!;
+    }
+
+    expect(await wording(touch: true), contains('another phone, tablet or computer'));
+    expect(await wording(touch: false), contains('your phone or computer'));
+  });
 }

@@ -1,13 +1,18 @@
 import 'package:console_ui/console_ui.dart';
 import 'package:flutter/material.dart';
 
+import '../../platform.dart';
 import 'plex_link_qr.dart';
 
 /// Signing in to Plex on a TV, which may have no browser: a big code to type at
 /// plex.tv/link on a phone or computer, a QR code that opens that page, how long the code
-/// has left, and buttons for a new code or to give up.
+/// has left, and buttons for a new code or to give up. On a phone or tablet the code is
+/// for another device (one already signed in to Plex), so it says so.
 class PlexLinkCode extends StatelessWidget {
-  const PlexLinkCode({super.key, required this.code, required this.left, required this.expired, required this.onNewCode, required this.onCancel});
+  const PlexLinkCode({super.key, required this.code, required this.left, required this.expired, required this.onNewCode, required this.onCancel, this.touch});
+
+  /// [isTouch] when not given (tests set it).
+  final bool? touch;
 
   /// Null while a code is being fetched.
   final String? code;
@@ -40,9 +45,15 @@ class PlexLinkCode extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Go to plex.tv/link on your phone or computer and enter this code', style: ConsoleText.titleLg.copyWith(color: c.text100)),
+              Text(
+                (touch ?? isTouch) ? 'Go to plex.tv/link on another phone, tablet or computer and enter this code' : 'Go to plex.tv/link on your phone or computer and enter this code',
+                style: ConsoleText.titleLg.copyWith(color: c.text100),
+              ),
               const SizedBox(height: Space.space1),
-              Text('Or scan the QR code with your phone to open the page.', style: ConsoleText.caption.copyWith(color: c.text300)),
+              Text(
+                (touch ?? isTouch) ? 'Or scan the QR code with another device to open the page.' : 'Or scan the QR code with your phone to open the page.',
+                style: ConsoleText.caption.copyWith(color: c.text300),
+              ),
               const SizedBox(height: Space.space3),
               Semantics(
                 label: code == null ? 'Getting a code' : 'Code ${shown.split('').join(' ')}',
