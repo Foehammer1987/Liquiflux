@@ -27,6 +27,14 @@ import 'ui/tv_focus.dart';
 import 'ui/shell.dart';
 import 'ui/touch.dart';
 
+/// The status and navigation bars on a phone or tablet: see-through, with white text.
+const touchOverlayStyle = SystemUiOverlayStyle(
+  statusBarColor: Color(0x00000000),
+  systemNavigationBarColor: Color(0x00000000),
+  statusBarIconBrightness: Brightness.light,
+  statusBarBrightness: Brightness.dark,
+);
+
 /// Windows draws its own charcoal title bar (the app bar doubles as one).
 final bool customTitleBar = Platform.isWindows;
 
@@ -79,10 +87,12 @@ Future<void> _main() async {
       ..maximumSize = 300;
   }
   // Phones and tablets draw behind the status and navigation bars (Android 15 and later
-  // insist on it); pages keep clear of them with the screen's padding.
+  // insist on it); pages keep clear of them with the screen's padding. The status bar's
+  // text is white in either theme, over the dark shade at the top of every page
+  // (statusBarIconBrightness on Android, statusBarBrightness on iOS).
   if (isTouch) {
     unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Color(0x00000000), systemNavigationBarColor: Color(0x00000000), statusBarIconBrightness: Brightness.light));
+    SystemChrome.setSystemUIOverlayStyle(touchOverlayStyle);
   }
   await GpuMemory.init();
   GpuMemory.showHidden = showHidden;

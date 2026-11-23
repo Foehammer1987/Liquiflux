@@ -8,6 +8,7 @@ import 'package:console_app/state/app_state.dart';
 import 'package:console_app/state/scope.dart';
 import 'package:console_app/ui/nav.dart' show rootRoutes, rootStack;
 import 'package:console_app/ui/shell.dart';
+import 'package:console_app/ui/touch.dart';
 import 'package:console_app/ui/tv_focus.dart';
 import 'package:console_core/console_core.dart';
 import 'package:console_ui/console_ui.dart';
@@ -230,6 +231,55 @@ Future<AppState> tvApp(WidgetTester t, {int settle = 60, void Function(AppState)
         themeMode: ThemeMode.dark,
         navigatorObservers: [rootRoutes, rootStack],
         builder: (context, child) => FocusTraversalGroup(policy: TvTraversalPolicy(), child: TvCanvas(child: child!)),
+        home: const Shell(),
+      ),
+    ),
+  );
+  for (var i = 0; i < settle; i++) {
+    await t.pump(const Duration(milliseconds: 200));
+  }
+  return state;
+}
+
+/// The app as a phone or tablet lays it out ([size] in logical pixels at 3x, with the
+/// screen's safe insets [padding] and the keyboard's [keyboard] height), signed in, on Home.
+/// Run with CONSOLE_TOUCH=1 for the touch layout itself (bottom bar, compact rows).
+Future<AppState> touchApp(
+  WidgetTester t, {
+  Size size = const Size(402, 874),
+  EdgeInsets padding = const EdgeInsets.only(top: 62, bottom: 34),
+  double keyboard = 0,
+  double textScale = 1,
+  int settle = 40,
+  void Function(AppState)? before,
+}) async {
+  const ratio = 3.0;
+  t.view.physicalSize = size * ratio;
+  t.view.devicePixelRatio = ratio;
+  t.view.padding = FakeViewPadding(left: padding.left * ratio, top: padding.top * ratio, right: padding.right * ratio, bottom: padding.bottom * ratio);
+  t.view.viewInsets = FakeViewPadding(bottom: keyboard * ratio);
+  t.platformDispatcher.textScaleFactorTestValue = textScale;
+  addTearDown(t.view.reset);
+  addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
+  final state = AppState(SettingsStore(secrets: _NoSecrets()), channels: ChannelStore(disk: false), tvPack: fakeTvPack(), tvNetworks: false, brandRows: false)
+    ..settings = const Settings(clientId: 'c', plexUrl: 'http://plex.test:32400', plexToken: 'tok', seerrUrl: 'http://seerr.test', seerrApiKey: 'key', seerrEnabled: true)
+    ..plex = PlexClient(baseUrl: 'http://plex.test:32400', token: 'tok', clientId: 'c', http: JsonHttp(client: fakeServers()))
+    ..seerr = SeerrClient(baseUrl: 'http://seerr.test', apiKey: 'key', http: JsonHttp(client: fakeServers()))
+    ..plexConn = Conn.ok
+    ..seerrConn = Conn.ok
+    ..server = PlexServerInfo(name: 'Homeserver', version: '1.42', machineIdentifier: 'm')
+    ..sections = [PlexSection(key: '1', title: 'Movies', type: 'movie'), PlexSection(key: '2', title: 'TV Shows', type: 'show')]
+    ..loaded = true;
+  before?.call(state);
+  await t.pumpWidget(
+    AppScope(
+      state: state,
+      child: MaterialApp(
+        theme: ConsoleTheme.dark(),
+        darkTheme: ConsoleTheme.dark(),
+        themeMode: ThemeMode.dark,
+        navigatorObservers: [rootRoutes, rootStack],
+        builder: (context, child) => FocusTraversalGroup(policy: TvTraversalPolicy(), child: TouchDensity(child: child!)),
         home: const Shell(),
       ),
     ),

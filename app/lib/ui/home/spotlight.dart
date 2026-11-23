@@ -876,9 +876,17 @@ class _PillButton extends StatelessWidget {
             children: [
               Icon(icon, size: 20, color: fg, fill: solid ? 1 : 0),
               const SizedBox(width: Space.space2),
-              Text(
-                label,
-                style: ConsoleText.titleMd.copyWith(fontSize: 16, fontWeight: FontWeight.w700, color: fg),
+              // Larger text on a narrow phone shrinks the label to fit its half of the row
+              // rather than overflow.
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: ConsoleText.titleMd.copyWith(fontSize: 16, fontWeight: FontWeight.w700, color: fg),
+                  ),
+                ),
               ),
             ],
           ),

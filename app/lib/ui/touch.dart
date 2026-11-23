@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:ui' show ImageFilter;
 
 import 'package:console_ui/console_ui.dart';
@@ -22,8 +24,24 @@ class TouchDensity extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!(touch ?? isTouch)) return child;
-    return ConsoleDensity(compact: MediaQuery.sizeOf(context).shortestSide < compactWidth, child: child);
+    // Larger Dynamic Type (iOS) or font size (Android) up to [touchMaxTextScale]: beyond it the
+    // poster rows and buttons, laid out for a 10-foot screen first, would cut words off.
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: touchMaxTextScale,
+      child: ConsoleDensity(compact: MediaQuery.sizeOf(context).shortestSide < compactWidth, child: child),
+    );
   }
+}
+
+/// How far a phone or tablet's larger text setting enlarges the app's text.
+const touchMaxTextScale = 1.3;
+
+/// The screen's safe insets at the left and right only: a phone on its side has the camera
+/// housing (notch or Dynamic Island) and rounded corners there. Pages, the top bar and the
+/// bottom bar keep clear of them; backdrops and video still reach the edges.
+EdgeInsets touchSides(BuildContext context) {
+  final p = MediaQuery.paddingOf(context);
+  return EdgeInsets.only(left: p.left, right: p.right);
 }
 
 /// Height of the bottom bar, above the system's gesture area.
@@ -173,7 +191,7 @@ class TouchBar extends StatelessWidget {
     }
 
     final bar = Container(
-      padding: EdgeInsets.only(bottom: bottom),
+      padding: touchSides(context).copyWith(bottom: bottom),
       decoration: BoxDecoration(
         color: fx.glass ? (dark ? Colors.black.withValues(alpha: 0.55) : Colors.white.withValues(alpha: 0.7)) : c.surface050.withValues(alpha: 0.97),
         border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
@@ -223,6 +241,99 @@ class _Badge extends StatelessWidget {
       decoration: BoxDecoration(color: alert ? c.dangerFill : c.primaryFill, borderRadius: BorderRadius.circular(Radii.radiusFull)),
       child: Center(
         child: Text(text, style: ConsoleText.caption.copyWith(fontSize: 10, fontWeight: FontWeight.w600, color: c.onPrimary, height: 1)),
+      ),
+    );
+  }
+}
+
+/// The left-edge swipe back is on: an iPhone or iPad (not the Android touch build).
+final bool iosBackSwipe = isTouch && Platform.isIOS;
+
+/// iPhone and iPad: a swipe in from the left edge goes back a page, as everywhere on iOS. The
+/// page follows the finger and fades; let go past a third of the width (or with a flick) and
+/// [onBack] runs, otherwise it springs back. Android has the system's own back gesture, so
+/// this is only switched on for iOS ([enabled]).
+class BackSwipe extends StatefulWidget {
+  const BackSwipe({super.key, required this.enabled, required this.canGoBack, required this.onBack, required this.child});
+  final bool enabled;
+
+  /// Whether there's a page to go back to (none on a top-level page such as Home).
+  final bool Function() canGoBack;
+  final VoidCallback onBack;
+  final Widget child;
+
+  /// How far in from the left edge (past the safe area) a swipe has to start.
+  static const edge = 24.0;
+
+  @override
+  State<BackSwipe> createState() => _BackSwipeState();
+}
+
+class _BackSwipeState extends State<BackSwipe> with SingleTickerProviderStateMixin {
+  late final _offset = AnimationController(vsync: this, duration: const Duration(milliseconds: 180));
+  bool _dragging = false;
+
+  @override
+  void dispose() {
+    _offset.dispose();
+    super.dispose();
+  }
+
+  void _start(DragStartDetails _) {
+    if (!widget.canGoBack()) return;
+    _offset.stop();
+    _dragging = true;
+  }
+
+  void _update(DragUpdateDetails d, double width) {
+    if (!_dragging || width <= 0) return;
+    _offset.value = (_offset.value + d.delta.dx / width).clamp(0.0, 1.0);
+  }
+
+  void _end(DragEndDetails d) {
+    if (!_dragging) return;
+    _dragging = false;
+    final go = _offset.value > 1 / 3 || d.velocity.pixelsPerSecond.dx > 700;
+    if (go) {
+      HapticFeedback.selectionClick();
+      widget.onBack();
+      _offset.value = 0;
+    } else {
+      unawaited(_offset.animateBack(0, curve: Curves.easeOut));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.enabled) return widget.child;
+    final inset = MediaQuery.paddingOf(context).left;
+    return LayoutBuilder(
+      builder: (context, box) => Stack(
+        children: [
+          AnimatedBuilder(
+            animation: _offset,
+            builder: (context, child) => _offset.value == 0
+                ? child!
+                : Opacity(
+                    opacity: 1 - _offset.value * 0.6,
+                    child: Transform.translate(offset: Offset(_offset.value * box.maxWidth, 0), child: child),
+                  ),
+            child: widget.child,
+          ),
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: inset + BackSwipe.edge,
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onHorizontalDragStart: _start,
+              onHorizontalDragUpdate: (d) => _update(d, box.maxWidth),
+              onHorizontalDragEnd: _end,
+              onHorizontalDragCancel: () => _end(DragEndDetails()),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -662,18 +662,25 @@ class _ShellState extends State<Shell> {
                           ? const SizedBox()
                           : needsSetup
                           ? Padding(
-                              padding: const EdgeInsets.only(top: _chromeHeight),
+                              // A phone or tablet has no logo bar over the welcome page (its own
+                              // logo is the big one), only the status bar to keep clear of.
+                              padding: isTouch ? touchSides(context).copyWith(top: MediaQuery.paddingOf(context).top + Space.space2) : const EdgeInsets.only(top: _chromeHeight),
                               child: _WelcomeFocus(scope: _welcome, child: const SettingsPage(welcome: true)),
                             )
                           : Padding(
-                              // Pages end above the bottom bar on a phone or tablet.
-                              padding: EdgeInsets.only(bottom: isTouch ? touchBarHeight + MediaQuery.paddingOf(context).bottom : 0),
+                              // Pages end above the bottom bar on a phone or tablet, and keep clear
+                              // of the camera housing and rounded corners on their side.
+                              padding: isTouch ? touchSides(context).copyWith(bottom: MediaQuery.viewInsetsOf(context).bottom > 0 ? 0 : touchBarHeight + MediaQuery.paddingOf(context).bottom) : EdgeInsets.zero,
                               child: Actions(
                               // Left from the edge of a page opens the rail; Up from its top goes to search.
                               actions: {DirectionalFocusIntent: _EdgeAction(left: () => _rail.currentState?.enter(), up: _toSearch, empty: _toPage)},
                               child: FocusTraversalGroup(
                                 policy: TvTraversalPolicy(),
-                                child: Navigator(
+                                child: BackSwipe(
+                                  enabled: iosBackSwipe,
+                                  canGoBack: () => _nav.currentState?.canPop() ?? false,
+                                  onBack: back,
+                                  child: Navigator(
                                   key: _nav,
                                   routeDirectionalTraversalEdgeBehavior: TraversalEdgeBehavior.stop,
                                   onGenerateInitialRoutes: (_, _) => [_route(_top)],
@@ -686,6 +693,7 @@ class _ShellState extends State<Shell> {
                                     _pages,
                                   ],
                                 ),
+                                ),
                               ),
                             ),
                             ),
@@ -696,7 +704,7 @@ class _ShellState extends State<Shell> {
                         top: 0,
                         // No search before sign-in: there's nothing to search yet, and on a TV the pill was a
                         // focus trap above the welcome page.
-                        child: _TopChrome(search: _search, searchFocus: _searchFocus, searchButton: _searchButton, onSearch: _submitSearch, toPage: _toPage, showSearch: !needsSetup, onLogo: () => go(const HomeDest())),
+                        child: _TopChrome(search: _search, searchFocus: _searchFocus, searchButton: _searchButton, onSearch: _submitSearch, toPage: _toPage, showSearch: !needsSetup, showLogo: !needsSetup, onLogo: () => go(const HomeDest())),
                       ),
                       if (_toasts.isNotEmpty)
                         Positioned(
@@ -730,7 +738,8 @@ class _ShellState extends State<Shell> {
                             ],
                           ),
                         ),
-                      if (!needsSetup && isTouch)
+                      // Like a system tab bar, it stays behind the keyboard while you type.
+                      if (!needsSetup && isTouch && MediaQuery.viewInsetsOf(context).bottom == 0)
                         Positioned(
                           left: 0,
                           right: 0,
@@ -955,8 +964,12 @@ class _TopTracker extends NavigatorObserver {
 const _chromeHeight = 44.0;
 
 class _TopChrome extends StatelessWidget {
-  const _TopChrome({required this.search, required this.searchFocus, required this.searchButton, required this.onSearch, required this.toPage, this.showSearch = true, this.onLogo});
+  const _TopChrome({required this.search, required this.searchFocus, required this.searchButton, required this.onSearch, required this.toPage, this.showSearch = true, this.showLogo = true, this.onLogo});
   final bool showSearch;
+
+  /// The small logo at the left on a phone or tablet: not over the welcome page, which has
+  /// its own big one there.
+  final bool showLogo;
 
   /// The logo at the left on a phone or tablet goes Home.
   final VoidCallback? onLogo;
@@ -1002,32 +1015,43 @@ extension on _TopChrome {
   /// field across the rest (the whole width on a phone).
   Widget _touch(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
+    final sides = touchSides(context);
     final compact = ConsoleDensity.compactOf(context);
+    final height = top + _chromeHeight + 28;
     return SizedBox(
-      height: top + _chromeHeight + 28,
+      height: height,
       child: Stack(
         children: [
+          // Darkest under the status bar, so the clock and battery stay readable over a
+          // title or poster scrolled up beneath them.
           IgnorePointer(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black.withValues(alpha: 0.6), Colors.black.withValues(alpha: 0)]),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black.withValues(alpha: 0.85), Colors.black.withValues(alpha: 0.6), Colors.black.withValues(alpha: 0)],
+                  stops: [0, top / height, 1],
+                ),
               ),
               child: const SizedBox.expand(),
             ),
           ),
           Padding(
-            padding: EdgeInsets.only(top: top + 6),
+            padding: sides.copyWith(top: top + 6),
             child: SizedBox(
               height: _chromeHeight - 6,
               child: Row(
                 children: [
                   const SizedBox(width: Space.space4),
-                  GestureDetector(
-                    onTap: onLogo,
-                    behavior: HitTestBehavior.opaque,
-                    child: const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: ConsoleLogo(height: 24, ink: LogoInk.white)),
-                  ),
-                  const SizedBox(width: Space.space4),
+                  if (showLogo) ...[
+                    GestureDetector(
+                      onTap: onLogo,
+                      behavior: HitTestBehavior.opaque,
+                      child: const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: ConsoleLogo(height: 24, ink: LogoInk.white)),
+                    ),
+                    const SizedBox(width: Space.space4),
+                  ],
                   const Spacer(),
                   if (this.showSearch) Flexible(flex: compact ? 6 : 1, child: _SearchBox(controller: search, focus: searchFocus, button: searchButton, onSubmit: onSearch, toPage: toPage, fill: true)),
                   const SizedBox(width: Space.space4),
