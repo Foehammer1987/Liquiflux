@@ -116,7 +116,7 @@ Future<void> _main() async {
   // Lets a dev build load TMDB art from the mock server.
   final tmdbImages = Platform.environment['CONSOLE_TMDB_IMAGES'];
   if (tmdbImages != null) SeerrImages.base = tmdbImages;
-  final state = AppState(SettingsStore());
+  final state = AppState(SettingsStore(forgetOnFreshInstall: isApple));
   if (_intro) await Intro.preload();
   runApp(ConsoleApp(state: state));
   await state.init();

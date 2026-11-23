@@ -201,6 +201,8 @@ class _NoSecrets implements SecretStore {
   Future<void> write(String key, String value) async {}
   @override
   Future<void> delete(String key) async {}
+  @override
+  Future<void> deleteAll() async {}
 }
 
 /// The app as a TV lays it out (1920x1080 at 2x, drawn on the 1440-wide canvas), on Home with

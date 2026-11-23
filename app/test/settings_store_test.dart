@@ -31,6 +31,12 @@ class FakeSecrets implements SecretStore {
     _check();
     values.remove(key);
   }
+
+  @override
+  Future<void> deleteAll() async {
+    _check();
+    values.clear();
+  }
 }
 
 void main() {
@@ -259,5 +265,27 @@ void main() {
       final again = await store(secrets).load();
       expect(again.riptideServer, 'http://riptide.local:8089');
     });
+  });
+
+  test('Apple: a fresh install forgets sign-ins an earlier install left in the keychain', () async {
+    final secrets = FakeSecrets()..values.addAll({'plex_token': 'oldTok3n', 'trakt_access_token:1': 'oldTrakt'});
+    final s = SettingsStore(secrets: secrets, folder: () async => dir, forgetOnFreshInstall: true);
+    final loaded = await s.load();
+    expect(loaded.plexToken, isEmpty);
+    expect(secrets.values, isEmpty);
+  });
+
+  test('Apple: an install that has its settings keeps its sign-ins', () async {
+    final secrets = FakeSecrets();
+    final first = SettingsStore(secrets: secrets, folder: () async => dir, forgetOnFreshInstall: true);
+    await first.save((await first.load()).copyWith(plexUrl: 'http://10.0.0.2:32400', plexToken: 'plexTok3n'));
+    final again = await SettingsStore(secrets: secrets, folder: () async => dir, forgetOnFreshInstall: true).load();
+    expect(again.plexToken, 'plexTok3n');
+  });
+
+  test('elsewhere the credential store is left alone without a settings file', () async {
+    final secrets = FakeSecrets()..values['plex_token'] = 'keptTok3n';
+    final loaded = await store(secrets).load();
+    expect(loaded.plexToken, 'keptTok3n');
   });
 }

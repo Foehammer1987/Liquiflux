@@ -312,6 +312,9 @@ abstract class SecretStore {
   Future<String?> read(String key);
   Future<void> write(String key, String value);
   Future<void> delete(String key);
+
+  /// Every credential Liquiflux has stored (settings, Trakt and AniList sign-ins).
+  Future<void> deleteAll();
 }
 
 /// The OS credential store: a DPAPI-encrypted file only this Windows account can read,
@@ -326,6 +329,8 @@ class OsSecretStore implements SecretStore {
   Future<void> write(String key, String value) => _s.write(key: key, value: value);
   @override
   Future<void> delete(String key) => _s.delete(key: key);
+  @override
+  Future<void> deleteAll() => _s.deleteAll();
 }
 
 /// Addresses and preferences go in a JSON file; the Plex token, Seerr key and Trakt
@@ -336,10 +341,19 @@ class OsSecretStore implements SecretStore {
 /// all (a Linux desktop without a keyring), credentials are never written in plain text:
 /// they last until Liquiflux closes and [secureStorageOk] turns false so Settings can say so.
 class SettingsStore {
-  SettingsStore({SecretStore? secrets, Future<Directory> Function()? folder}) : _secrets = secrets ?? const OsSecretStore(), _folder = folder ?? getApplicationSupportDirectory;
+  SettingsStore({SecretStore? secrets, Future<Directory> Function()? folder, this.forgetOnFreshInstall = false})
+    : _secrets = secrets ?? const OsSecretStore(),
+      _folder = folder ?? getApplicationSupportDirectory;
 
   final SecretStore _secrets;
   final Future<Directory> Function() _folder;
+
+  /// Apple's keychain outlives the app: deleting Liquiflux from an iPhone, iPad or Mac
+  /// leaves its sign-ins behind, and a reinstall would find them. With this set (on Apple
+  /// platforms, see main.dart), a launch with no settings file, which is a fresh install,
+  /// first clears whatever credentials an earlier install left, so deleting the app signs
+  /// you out as you'd expect.
+  final bool forgetOnFreshInstall;
 
   /// Credential store key for each secret setting.
   static const _keys = {'plexToken': 'plex_token', 'plexAccountToken': 'plex_account_token', 'plexHomeToken': 'plex_home_token', 'seerrApiKey': 'seerr_api_key', 'traktClientId': 'trakt_client_id', 'traktClientSecret': 'trakt_client_secret'};
@@ -400,6 +414,7 @@ class SettingsStore {
     Map<String, dynamic> j = {};
     try {
       final f = await _file();
+      if (forgetOnFreshInstall && !await f.exists()) await _forgetAll();
       if (await f.exists()) {
         final decoded = jsonDecode(await f.readAsString());
         if (decoded is Map<String, dynamic>) j = decoded;
@@ -554,6 +569,15 @@ class SettingsStore {
       }
     } catch (e) {
       debugPrint('settings scrub: ${e.runtimeType}');
+    }
+  }
+
+  Future<void> _forgetAll() async {
+    try {
+      await _secrets.deleteAll();
+      debugPrint('settings: a fresh install, so sign-ins left by an earlier one are gone');
+    } catch (e) {
+      debugPrint('secure storage clear failed: ${errorText(e)}');
     }
   }
 
