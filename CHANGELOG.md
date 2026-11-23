@@ -18,8 +18,11 @@ Liquiflux on iPhone and iPad, App Store ready, with a better touch layout everyw
   - No keyboard shortcuts list in Settings on a phone (an iPad with a keyboard still has it).
 - **iOS:** a swipe in from the left edge goes back a page.
 - **App Store build:** no Streaming Region setting either; it only served the streaming services' rows, and its help named one.
+- **Sound on Mac, iPhone and iPad for films with Dolby TrueHD.** The player's FFmpeg on Apple platforms has no TrueHD (or MLP) decoder, so such films played silently, including on the Mac app of 1.1.7. Liquiflux now knows what each platform's player decodes: a sound track it can't decode is converted by Plex with the picture sent as it is, and a picture it can't decode (VC-1 on Apple) is converted whole. Windows, Linux, Android and Samsung TVs are unchanged.
+- **Player panels on a phone on its side** (settings, audio, subtitles, quality, Watch Together) take the full height instead of showing one row of choices above the control bar.
 - **Apple:** deleting the app now signs you out. The keychain outlives the app, so a reinstall used to find the old sign-in.
-- For developers: `app/integration_test/touch_tour_test.dart` and `tools/ios-tour.sh` walk every screen on a simulator and save screenshots; `test/touch_layout_test.dart` (run with CONSOLE_TOUCH=1 in CI) checks safe areas, the largest text on the smallest iPhone, the keyboard and the swipe back.
+- Checked against a real Plex server in the iPhone simulator: Home, libraries, title pages, search, direct play of 1080p and 4K HDR films, a server conversion, an anime episode with ASS subtitles, the audio, subtitle and quality panels, scrubbing, turning the phone round and leaving the app mid-film.
+- For developers: `app/integration_test/touch_tour_test.dart` and `tools/ios-tour.sh` walk every screen on a simulator and save screenshots, against the fake servers or (signin, real) a real server signed in with a link code; `test/touch_layout_test.dart` (run with CONSOLE_TOUCH=1 in CI) checks safe areas, every page on its side, the largest text on the smallest iPhone, the keyboard and the swipe back.
 - Version 1.1.8+85 (Samsung packages 1.1.800, 1.1.801, 1.1.802).
 
 ## 1.1.7
