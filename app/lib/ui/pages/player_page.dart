@@ -1447,85 +1447,102 @@ class _BottomBar extends StatelessWidget {
             },
           ),
           const SizedBox(height: Space.space1),
-          Row(
-            children: [
-              _RoundButton(icon: s.player.state.playing ? LucideIcons.pause : LucideIcons.play, label: 'Play / Pause (Space)', big: true, tint: tint, focusNode: playFocus, onTap: onPlayPause),
-              const SizedBox(width: Space.space2),
-              _RoundButton(icon: LucideIcons.rotateCcw, label: 'Back ${p.skipBack}s', badge: '${p.skipBack}', onTap: () => s.seekBy(-p.skipBack)),
-              _RoundButton(icon: LucideIcons.rotateCw, label: 'Forward ${p.skipForward}s', badge: '${p.skipForward}', onTap: () => s.seekBy(p.skipForward)),
-              if (s.isEpisode) ...[
-                _RoundButton(icon: LucideIcons.skipBack, label: 'Previous Episode (P)', onTap: s.previous == null ? null : s.playPrevious),
-                _RoundButton(icon: LucideIcons.skipForward, label: 'Next Episode (N)', onTap: s.next == null ? null : s.playNext),
-              ],
-              // A phone or tablet has volume buttons of its own.
-              if (!isTouch) ...[const SizedBox(width: Space.space2), _Volume(session: s, tint: tint, accent: accent)],
-              const SizedBox(width: Space.space3),
-              Expanded(
-                child: StreamBuilder<Duration>(
-                  stream: s.ticks,
-                  builder: (context, _) {
-                    final pos = s.position;
-                    final left = s.duration - pos;
-                    final ends = DateTime.now().add(Duration(milliseconds: (left.inMilliseconds / (s.rate <= 0 ? 1 : s.rate)).round()));
-                    final chapter = s.chapterAt(pos);
-                    final sleep = s.sleep.left;
-                    return Text(
-                      [
-                        if (chapter != null && chapter.title.isNotEmpty) chapter.title,
-                        'Ends at ${TimeOfDay.fromDateTime(ends).format(context)}',
-                        if (sleep != null) 'Sleep in ${clock(sleep)}',
-                        if (s.sleep.titles != null) s.sleep.titles == 1 ? 'Sleep after this' : 'Sleep after ${s.sleep.titles}',
-                      ].join('  ·  '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: ConsoleText.small.copyWith(color: Colors.white.withValues(alpha: 0.7)),
-                    );
-                  },
-                ),
-              ),
-              _RoundButton(
-                icon: LucideIcons.captions,
-                label: 'Subtitles (C)',
-                on: sheet == SheetTab.subtitles || s.subtitle != null,
-                tint: tint,
-                focusNode: sheetFocus[SheetTab.subtitles],
-                onTap: () => onSheet(SheetTab.subtitles),
-              ),
-              _RoundButton(icon: LucideIcons.audioLines, label: 'Audio (A)', on: sheet == SheetTab.audio, tint: tint, focusNode: sheetFocus[SheetTab.audio], onTap: () => onSheet(SheetTab.audio)),
-              if (hasCast) _RoundButton(icon: LucideIcons.users, label: 'Riptide (R)', on: sheet == SheetTab.riptide, tint: tint, focusNode: sheetFocus[SheetTab.riptide], onTap: () => onSheet(SheetTab.riptide)),
-              if (s.chapters.isNotEmpty)
+          LayoutBuilder(
+            builder: (context, box) {
+              final leading = <Widget>[
+                _RoundButton(icon: s.player.state.playing ? LucideIcons.pause : LucideIcons.play, label: 'Play / Pause (Space)', big: true, tint: tint, focusNode: playFocus, onTap: onPlayPause),
+                const SizedBox(width: Space.space2),
+                _RoundButton(icon: LucideIcons.rotateCcw, label: 'Back ${p.skipBack}s', badge: '${p.skipBack}', onTap: () => s.seekBy(-p.skipBack)),
+                _RoundButton(icon: LucideIcons.rotateCw, label: 'Forward ${p.skipForward}s', badge: '${p.skipForward}', onTap: () => s.seekBy(p.skipForward)),
+                if (s.isEpisode) ...[
+                  _RoundButton(icon: LucideIcons.skipBack, label: 'Previous Episode (P)', onTap: s.previous == null ? null : s.playPrevious),
+                  _RoundButton(icon: LucideIcons.skipForward, label: 'Next Episode (N)', onTap: s.next == null ? null : s.playNext),
+                ],
+                // A phone or tablet has volume buttons of its own.
+                if (!isTouch) ...[const SizedBox(width: Space.space2), _Volume(session: s, tint: tint, accent: accent)],
+              ];
+              final status = StreamBuilder<Duration>(
+                stream: s.ticks,
+                builder: (context, _) {
+                  final pos = s.position;
+                  final left = s.duration - pos;
+                  final ends = DateTime.now().add(Duration(milliseconds: (left.inMilliseconds / (s.rate <= 0 ? 1 : s.rate)).round()));
+                  final chapter = s.chapterAt(pos);
+                  final sleep = s.sleep.left;
+                  return Text(
+                    [
+                      if (chapter != null && chapter.title.isNotEmpty) chapter.title,
+                      'Ends at ${TimeOfDay.fromDateTime(ends).format(context)}',
+                      if (sleep != null) 'Sleep in ${clock(sleep)}',
+                      if (s.sleep.titles != null) s.sleep.titles == 1 ? 'Sleep after this' : 'Sleep after ${s.sleep.titles}',
+                    ].join('  ·  '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: ConsoleText.small.copyWith(color: Colors.white.withValues(alpha: 0.7)),
+                  );
+                },
+              );
+              final trailing = <Widget>[
                 _RoundButton(
-                  icon: LucideIcons.listVideo,
-                  label: 'Chapters',
-                  on: sheet == SheetTab.chapters,
+                  icon: LucideIcons.captions,
+                  label: 'Subtitles (C)',
+                  on: sheet == SheetTab.subtitles || s.subtitle != null,
                   tint: tint,
-                  focusNode: sheetFocus[SheetTab.chapters],
-                  onTap: () => onSheet(SheetTab.chapters),
+                  focusNode: sheetFocus[SheetTab.subtitles],
+                  onTap: () => onSheet(SheetTab.subtitles),
                 ),
-              _RoundButton(
-                icon: LucideIcons.moon,
-                label: 'Sleep Timer',
-                on: sheet == SheetTab.playback || s.sleep.active,
-                tint: tint,
-                onTap: () => onSheet(SheetTab.playback),
-              ),
-              _RoundButton(
-                icon: LucideIcons.settings2,
-                label: 'Playback Settings',
-                on: sheet == SheetTab.video,
-                tint: tint,
-                focusNode: sheetFocus[SheetTab.video],
-                onTap: () => onSheet(SheetTab.video),
-              ),
-              // A TV is always full screen.
-              if (isDesktop) _RoundButton(icon: fullscreen ? LucideIcons.minimize : LucideIcons.maximize, label: 'Full Screen (F)', onTap: onFullscreen),
-            ],
+                _RoundButton(icon: LucideIcons.audioLines, label: 'Audio (A)', on: sheet == SheetTab.audio, tint: tint, focusNode: sheetFocus[SheetTab.audio], onTap: () => onSheet(SheetTab.audio)),
+                if (hasCast) _RoundButton(icon: LucideIcons.users, label: 'Riptide (R)', on: sheet == SheetTab.riptide, tint: tint, focusNode: sheetFocus[SheetTab.riptide], onTap: () => onSheet(SheetTab.riptide)),
+                if (s.chapters.isNotEmpty)
+                  _RoundButton(
+                    icon: LucideIcons.listVideo,
+                    label: 'Chapters',
+                    on: sheet == SheetTab.chapters,
+                    tint: tint,
+                    focusNode: sheetFocus[SheetTab.chapters],
+                    onTap: () => onSheet(SheetTab.chapters),
+                  ),
+                _RoundButton(
+                  icon: LucideIcons.moon,
+                  label: 'Sleep Timer',
+                  on: sheet == SheetTab.playback || s.sleep.active,
+                  tint: tint,
+                  onTap: () => onSheet(SheetTab.playback),
+                ),
+                _RoundButton(
+                  icon: LucideIcons.settings2,
+                  label: 'Playback Settings',
+                  on: sheet == SheetTab.video,
+                  tint: tint,
+                  focusNode: sheetFocus[SheetTab.video],
+                  onTap: () => onSheet(SheetTab.video),
+                ),
+                // A TV is always full screen.
+                if (isDesktop) _RoundButton(icon: fullscreen ? LucideIcons.minimize : LucideIcons.maximize, label: 'Full Screen (F)', onTap: onFullscreen),
+              ];
+              // A phone held upright, or an iPad's narrow Split View or Slide Over: the
+              // panel buttons get a row of their own under the playback ones.
+              if (box.maxWidth < _twoRowWidth) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(children: [...leading, const SizedBox(width: Space.space3), Expanded(child: status)]),
+                    const SizedBox(height: Space.space1),
+                    Row(mainAxisAlignment: MainAxisAlignment.end, children: [...trailing]),
+                  ],
+                );
+              }
+              return Row(children: [...leading, const SizedBox(width: Space.space3), Expanded(child: status), ...trailing]);
+            },
           ),
         ],
       ),
     );
   }
 }
+
+/// Below this width the player's bottom bar takes two rows of buttons.
+const _twoRowWidth = 600.0;
 
 class _Volume extends StatefulWidget {
   const _Volume({required this.session, required this.tint, required this.accent});
