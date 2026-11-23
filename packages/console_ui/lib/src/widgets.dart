@@ -234,11 +234,14 @@ class ConsolePanel extends StatelessWidget {
                 runSpacing: Space.space2,
                 children: [
                   Text(title!, style: ConsoleText.titleSm.copyWith(color: c.text100)),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+                  // Wraps too, so larger text on a phone moves "See All" down a line instead
+                  // of overflowing.
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: Space.space3,
+                    runSpacing: Space.space2,
                     children: [
                       ?meta,
-                      if (meta != null && (trailing != null || onSeeAll != null)) const SizedBox(width: Space.space3),
                       ?trailing,
                       if (onSeeAll != null) ConsoleLink(label: 'See All', onTap: onSeeAll, trailingChevron: true),
                     ],
