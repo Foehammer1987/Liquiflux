@@ -88,6 +88,8 @@ class PlexAuth {
         final t = await checkPin(pin);
         if (t != null) return t;
       } on ApiException catch (e) {
+        // plex.tv forgets a pin once it runs out: that's the code expiring, not an error.
+        if (e.status == 404) return null;
         if (!passing(e.status)) rethrow;
       }
       await Future<void>.delayed(pollEvery);

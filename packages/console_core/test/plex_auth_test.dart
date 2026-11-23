@@ -69,6 +69,11 @@ void main() {
       expect(await a.waitForToken(PlexPin(id: 42, code: 'AB12'), timeout: const Duration(seconds: 5)), 'tok');
     });
 
+    test('a pin plex.tv no longer knows has run out: no token, no error', () async {
+      final a = flaky([404], {'id': 42});
+      expect(await a.waitForToken(PlexPin(id: 42, code: 'AB12'), timeout: const Duration(seconds: 5)), isNull);
+    });
+
     test('a real refusal still does', () async {
       final a = flaky([401], {'id': 42});
       await expectLater(a.waitForToken(PlexPin(id: 42, code: 'AB12'), timeout: const Duration(seconds: 5)), throwsA(isA<ApiException>()));
