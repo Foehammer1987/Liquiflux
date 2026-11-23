@@ -114,8 +114,8 @@ class PlayerSheet extends StatelessWidget {
       else
         for (final a in s.mpvAudio)
           _Choice(label: a.title ?? a.language ?? 'Track ${a.id}', detail: a.codec, on: s.player.state.track.audio.id == a.id, tint: _tint, onTap: () => s.player.setAudioTrack(a)),
-      // Samsung's player has no audio delay, sound filters or output choice (they're mpv's).
-      if (!isTizen) ...[
+      // Only mpv has audio delay, sound filters and an output choice (not Samsung's player).
+      if (playerIsMpv) ...[
       _Heading('Sync', color: accent),
       _Stepper(
         label: 'Audio Delay',
@@ -215,7 +215,7 @@ class PlayerSheet extends StatelessWidget {
       // Burned in by the server (the note above), they are part of the picture: nothing here changes them.
       if (image && !s.transcoding) const _Note('Picture-based subtitles (PGS, VobSub) keep their own look. Size and height still apply.'),
       if (s.canSearchOnline) ..._online(s),
-      if (!isTizen) ...[
+      if (playerIsMpv) ...[
       _Heading('Sync', color: accent),
       _Stepper(
         label: 'Subtitle Delay',
@@ -302,7 +302,7 @@ class PlayerSheet extends StatelessWidget {
       ],
       _Heading('Picture', color: accent),
       _Labelled('Aspect', _Chips<String>(options: const [('fit', 'Fit'), ('fill', 'Fill'), ('stretch', 'Stretch')], value: s.aspect, tint: _tint, onChanged: s.setAspect)),
-      if (!isTizen) _SwitchRow(label: 'Deinterlace', help: 'For old TV recordings with combing on motion.', value: s.deinterlace, tint: _tint, onChanged: s.setDeinterlace),
+      if (playerIsMpv) _SwitchRow(label: 'Deinterlace', help: 'For old TV recordings with combing on motion.', value: s.deinterlace, tint: _tint, onChanged: s.setDeinterlace),
     ];
   }
 
@@ -316,7 +316,7 @@ class PlayerSheet extends StatelessWidget {
     return [
       _Heading('Speed', color: accent),
       _Chips<double>(options: const [(0.5, '0.5×'), (0.75, '0.75×'), (1.0, 'Normal'), (1.25, '1.25×'), (1.5, '1.5×'), (1.75, '1.75×'), (2.0, '2×')], value: s.rate, tint: _tint, onChanged: s.setRate),
-      if (!isTizen) const _Note('Pitch stays natural at every speed.'),
+      if (playerIsMpv) const _Note('Pitch stays natural at every speed.'),
       _Heading('Sleep Timer', color: accent),
       _Chips<String>(
         options: [

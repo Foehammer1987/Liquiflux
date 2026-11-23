@@ -1062,10 +1062,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 value: const [0, 4, 8, 12, 20].contains(p.subtitleRaise) ? p.subtitleRaise : 0,
                 onChanged: (v) => _set(app, p.copyWith(subtitleRaise: v)),
               ),
-              last: isTizen,
+              last: !playerIsMpv,
             ),
-            // The app draws every subtitle as plain text on a Samsung TV, so there's no ASS styling to replace.
-            if (!isTizen) _Row(
+            // The app draws every subtitle as plain text with Samsung's player, so there's no ASS styling to replace.
+            if (playerIsMpv) _Row(
               label: 'Restyle Styled Subtitles',
               help: 'Apply this style to anime-style (ASS) subtitles too, replacing their own fonts and colours.',
               control: ConsoleSwitch(
@@ -1078,7 +1078,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
       // Each of these is an mpv setting; Samsung's player has none of them.
-      if (!isTizen) ConsolePanel(
+      if (playerIsMpv) ConsolePanel(
         title: 'Audio',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1131,7 +1131,7 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           // Samsung's player always decodes in hardware and has no mpv picture options: only
           // Picture Size applies there.
-          if (!isTizen) _Row(
+          if (playerIsMpv) _Row(
             label: 'Hardware Decoding',
             help: 'Uses the graphics card to decode, which is cooler and quieter. Turn off if you see green frames or glitches.',
             control: ConsoleDropdown<String>(
@@ -1178,9 +1178,9 @@ class _SettingsPageState extends State<SettingsPage> {
               value: p.aspect,
               onChanged: (v) => _set(app, p.copyWith(aspect: v)),
             ),
-            last: isTizen,
+            last: !playerIsMpv,
           ),
-          if (!isTizen) ...[
+          if (playerIsMpv) ...[
           _Row(
             label: 'Deinterlace',
             help: 'For old TV recordings with combing on motion.',
@@ -1307,7 +1307,7 @@ class _SettingsPageState extends State<SettingsPage> {
     // A store build, or a Mac or iPhone, is updated by its store (and a Samsung TV installs
     // nothing else).
     if (selfUpdates) UpdatesPanel(updater: app.updater, start: widget.update),
-    if (!isTizen) ConsolePanel(
+    if (playerIsMpv) ConsolePanel(
       title: 'mpv Options',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

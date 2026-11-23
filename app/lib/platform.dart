@@ -10,6 +10,13 @@ final bool isTizen = tizenEnvironment(Platform.environment);
 /// Whether [env] is a Tizen app's environment.
 bool tizenEnvironment(Map<String, String> env) => env.containsKey('TIZEN_API_VERSION');
 
+/// Whether the player is mpv (media_kit's libmpv), with its own settings: audio sync and
+/// filters, output choice, ASS restyling, deinterlacing, hardware decoding, mpv options.
+/// Not on a Samsung TV, which plays through Samsung's AVPlay (services/avplay_player.dart),
+/// nor on an Apple TV, whose system player will take the same place. Ask this, not isTizen,
+/// for anything that's really about what the player can do.
+final bool playerIsMpv = !isTizen && !isTvOS;
+
 /// Apple TV (tvOS, built with the flutter-tvos engine). There Dart's Platform.isIOS is true
 /// too and there's no Platform.isTvOS, so it is told apart by the operating system's name.
 /// Ask this (or [isApple]) rather than Platform.isIOS / isMacOS directly.
