@@ -202,6 +202,22 @@ Leave out `LIQUIFLUX_STORE=apple` for a build with the TV Networks page and the 
 services' rows on Trending. Signing uses the team in `app/macos/Runner.xcodeproj`; set your own
 in Xcode (Runner > Signing & Capabilities) to sign with your account.
 
+### iPhone and iPad
+
+The same Mac tools, with the iOS platform installed in Xcode:
+
+```sh
+cd app
+flutter run -d "iPhone 18 Pro" --dart-define=LIQUIFLUX_STORE=apple   # a simulator
+flutter build ipa --release --dart-define=LIQUIFLUX_STORE=apple       # build/ios/ipa, for App Store Connect
+```
+
+Signing uses the team in `app/ios/Runner.xcodeproj` (automatic); a real iPhone or iPad
+needs to be registered with that team. What the Mac, iPhone/iPad and Apple TV apps share
+(privacy manifest, Info.plist texts, keychain group) lives once in `app/apple/`; after
+editing it, run `dart tools/apple_sync.dart`. `tools/ios-tour.sh` takes screenshots of every
+screen on a simulator (with `node tools/mock-servers.mjs` running for the signed-in pages).
+
 ### Your own mpv or FFmpeg
 
 Liquiflux plays through mpv and FFmpeg, under the GNU LGPL (the Mac and iPhone builds use
