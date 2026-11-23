@@ -84,6 +84,18 @@ void main() {
       }
     });
 
+    testWidgets('every page lays out on a phone on its side', (t) async {
+      await touchApp(t, size: _landscape, padding: _landscapeInsets);
+      final nav = ShellNav.of(t.element(find.descendant(of: find.byType(ShellNav), matching: find.byType(Navigator)).first));
+      for (final d in const <Dest>[LibraryDest('1'), ItemDest('1'), ItemDest('201'), ItemDest('20101'), ItemDest('2010101'), SearchDest('Film'), CollectionsDest(), MoodsDest(), RequestsDest(), SettingsDest()]) {
+        nav.go(d);
+        for (var i = 0; i < 15; i++) {
+          await t.pump(const Duration(milliseconds: 200));
+        }
+        expect(t.takeException(), isNull, reason: '$d');
+      }
+    });
+
     testWidgets('the bottom bar stays behind the keyboard while you type', (t) async {
       await touchApp(t, keyboard: 336);
       expect(find.byType(TouchBar), findsNothing);
