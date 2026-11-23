@@ -21,3 +21,19 @@ license or copyright file, unchanged:
 The Mac and iPhone builds bundle media_kit's libmpv "video-default" frameworks
 (libmpv-darwin-build v0.6.0): mpv built with -Dgpl=false, FFmpeg configured with
 --enable-version3 (for mbedTLS), so FFmpeg is LGPL 3 there.
+
+## LGPL: source and replacing the libraries
+
+The decision (November 2026) is to keep these LGPL 3 builds. What the LGPL asks of us:
+
+- **Source.** The exact sources are those of
+  [libmpv-darwin-build v0.6.0](https://github.com/media-kit/libmpv-darwin-build/releases/tag/v0.6.0)
+  (`libmpv-xcframeworks_v0.6.0_{macos,ios}-universal-video-default.tar.gz`), which lists
+  each library's version and download; mpv at https://github.com/mpv-player/mpv and
+  FFmpeg at https://ffmpeg.org. The in-app licenses page names each project's home.
+- **Replacing them.** The libraries ship as separate dynamic frameworks in
+  `Liquiflux.app/Contents/Frameworks` (Mpv, Avcodec, Avformat, Avutil, ...), not linked
+  statically. To rebuild with modified copies: build libmpv-darwin-build with your
+  changes, point `MPV_XCFRAMEWORKS_VERSION`/the download in
+  media_kit_libs_{macos,ios}_video's Makefile (or drop your xcframeworks in its
+  `.cache/xcframeworks`) and run `flutter build macos` / `flutter build ios` in `app/`.
