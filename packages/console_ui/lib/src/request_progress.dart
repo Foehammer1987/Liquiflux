@@ -21,9 +21,10 @@ class RequestProgress extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            ConsoleBadge(state.label, tone: state.tone),
-            const Spacer(),
+            // The badge gives way to the percentage on a narrow card.
+            Flexible(child: ConsoleBadge(state.label, tone: state.tone)),
             if (showBar && pct != null && pct > 0)
               Text(
                 '$pct%',

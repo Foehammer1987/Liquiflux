@@ -35,6 +35,28 @@ void main() {
     expect(find.text('100%'), findsNothing);
   });
 
+  testWidgets('a narrow card (a phone) cuts the badge short instead of overflowing', (t) async {
+    await t.pumpWidget(
+      MaterialApp(
+        theme: ConsoleTheme.dark(),
+        home: const Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 96,
+              child: RequestProgress(
+                state: RequestState(label: 'Partially Available', tone: Tone.info, progress: 0.42, requestable: false),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(t.takeException(), isNull);
+    expect(find.text('42%'), findsOneWidget);
+    final badge = t.getRect(find.text('Partially Available'));
+    expect(badge.right, lessThanOrEqualTo(t.getRect(find.text('42%')).left));
+  });
+
   testWidgets('button activates from the keyboard', (t) async {
     var taps = 0;
     await t.pumpWidget(wrap(ConsoleButton(label: 'Request', autofocus: true, onPressed: () => taps++)));

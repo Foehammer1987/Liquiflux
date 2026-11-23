@@ -287,6 +287,9 @@ class ConsoleBadge extends StatelessWidget {
     decoration: BoxDecoration(color: toneTint(context, tone), borderRadius: BorderRadius.circular(Radii.radiusSm)),
     child: Text(
       text,
+      // In a narrow card (a phone's request rows) the word is cut short rather than overflow.
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
       style: ConsoleText.caption.copyWith(fontWeight: FontWeight.w500, color: toneText(context, tone)),
     ),
   );
