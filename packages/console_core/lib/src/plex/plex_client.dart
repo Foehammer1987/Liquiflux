@@ -286,8 +286,9 @@ class PlexClient {
   }
 
   /// The transcode target asked for alongside [profileName] (see [transcodeUrl]): HLS in
-  /// MPEG-TS, H.264 with AAC, AC3 or MP3, which mpv plays everywhere.
-  static const hlsProfileExtra = 'add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mpegts&videoCodec=h264&audioCodec=aac,ac3,mp3&replace=true)';
+  /// MPEG-TS, H.264 with EAC3, AC3 or AAC, which mpv plays everywhere (MP3 is left out:
+  /// listed, the server chose it over AAC).
+  static const hlsProfileExtra = 'add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mpegts&videoCodec=h264&audioCodec=eac3,ac3,aac&replace=true)';
 
   /// HLS through the universal transcoder, for clients that can't direct play or want a lower
   /// quality. The chosen subtitle is burned in, since HLS sidecar text is patchy across servers.
