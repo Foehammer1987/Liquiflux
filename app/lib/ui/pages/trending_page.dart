@@ -62,23 +62,25 @@ class _TrendingPageState extends State<TrendingPage> {
 
     // Netflix's official weekly Top 10, matched to titles by name. Not in the App Store build
     // (AppState.brandRows), nor the per-service rows below.
-    if (app.brandRows) unawaited(() async {
-      try {
-        final tsv = await NetflixTop10.fetch(from: Platform.environment['CONSOLE_NETFLIX_TOP10']);
-        for (final kind in ['movie', 'tv']) {
-          final list = await _resolveAll(seerr, NetflixTop10.parse(tsv, kind).take(10).toList());
-          if (mounted) setState(() => _netflix[kind] = list);
+    if (app.brandRows) {
+      unawaited(() async {
+        try {
+          final tsv = await NetflixTop10.fetch(from: Platform.environment['CONSOLE_NETFLIX_TOP10']);
+          for (final kind in ['movie', 'tv']) {
+            final list = await _resolveAll(seerr, NetflixTop10.parse(tsv, kind).take(10).toList());
+            if (mounted) setState(() => _netflix[kind] = list);
+          }
+        } catch (e) {
+          debugPrint('netflix top 10: $e');
         }
-      } catch (e) {
-        debugPrint('netflix top 10: $e');
-      }
-    }());
+      }());
 
-    // What's popular on each service where you live.
-    for (final s in app.brandRows ? streamingServices : const <({String name, int provider})>[]) {
-      Future.wait([seerr.popularOn('movie', s.provider, region: app.settings.region), seerr.popularOn('tv', s.provider, region: app.settings.region)]).then((r) {
-        if (mounted) setState(() => _services[s.name] = mergeByPopularity(r[0], r[1], count: 40));
-      }, onError: (Object e) => debugPrint('popular on ${s.name}: $e'));
+      // What's popular on each service where you live.
+      for (final s in streamingServices) {
+        Future.wait([seerr.popularOn('movie', s.provider, region: app.settings.region), seerr.popularOn('tv', s.provider, region: app.settings.region)]).then((r) {
+          if (mounted) setState(() => _services[s.name] = mergeByPopularity(r[0], r[1], count: 40));
+        }, onError: (Object e) => debugPrint('popular on ${s.name}: $e'));
+      }
     }
 
     // Genre rows: Trakt when there's a client ID, falling back to TMDB per row.
@@ -224,7 +226,10 @@ class _TrendingPageState extends State<TrendingPage> {
         ],
         _heading('By Genre', _fromTrakt ? 'Live from Trakt: what people are watching right now.' : "TMDB's popularity, updated daily. Add a Trakt Client ID in Settings for live charts."),
         if (genres.isEmpty && _genresFailed >= trendingGenres.length)
-          Padding(padding: EdgeInsets.symmetric(horizontal: ConsoleDensity.inset(context)), child: ErrorNote('Couldn’t load the genre charts from Seerr.'))
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: ConsoleDensity.inset(context)),
+            child: ErrorNote('Couldn’t load the genre charts from Seerr.'),
+          )
         else if (genres.isEmpty)
           const LoadingNote(label: 'Finding what people are watching'),
         for (final (i, (name, items)) in genres.indexed) ...[if (i > 0) gap(), _shelf(name, items)],
