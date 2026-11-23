@@ -518,8 +518,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   : isTizen
                   ? "This TV's secure storage couldn't be used to keep sign-ins in, so $appName only remembers them until it closes (they are never saved in plain text). "
                         'Turning the TV off and on and signing in again usually fixes it.'
-                  : 'This computer has no keyring to keep sign-ins in, so $appName only remembers them until it closes (they are never saved in plain text). '
-                        'On Linux, install and unlock GNOME Keyring or KWallet, then sign in again.',
+                  : Platform.isLinux
+                  ? 'This computer has no keyring to keep sign-ins in, so $appName only remembers them until it closes (they are never saved in plain text). '
+                        'Install and unlock GNOME Keyring or KWallet, then sign in again.'
+                  : "$appName couldn't save your sign-in in this computer's secure storage, so it only remembers it until it closes (it is never saved in plain text). "
+                        'Quitting and opening $appName again, then signing in again, usually fixes it.',
             ),
           ],
           if (s.plexReady && sendsCredentialsInClear(s.plexUrl)) ...[
