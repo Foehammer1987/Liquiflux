@@ -45,4 +45,40 @@ void main() {
       await expectLater(auth({'id': 1}).createPin(strong: false), throwsA(isA<ApiException>()));
     });
   });
+
+  group('a passing plex.tv error', () {
+    PlexAuth flaky(List<int> statuses, Object answer) {
+      var i = 0;
+      final a = PlexAuth(
+        clientId: 'client-1',
+        product: 'Liquiflux',
+        http: JsonHttp(
+          client: MockClient((req) async {
+            final status = i < statuses.length ? statuses[i] : 200;
+            i++;
+            return http.Response(status == 200 ? jsonEncode(answer) : 'oops', status, headers: {'content-type': 'application/json'});
+          }),
+        ),
+      );
+      a.pollEvery = Duration.zero;
+      return a;
+    }
+
+    test('while waiting for the code doesn\'t end the sign-in', () async {
+      final a = flaky([500, 503, 429], {'id': 42, 'code': 'AB12', 'authToken': 'tok'});
+      expect(await a.waitForToken(PlexPin(id: 42, code: 'AB12'), timeout: const Duration(seconds: 5)), 'tok');
+    });
+
+    test('a real refusal still does', () async {
+      final a = flaky([401], {'id': 42});
+      await expectLater(a.waitForToken(PlexPin(id: 42, code: 'AB12'), timeout: const Duration(seconds: 5)), throwsA(isA<ApiException>()));
+    });
+
+    test('the server list is asked again, up to three times', () async {
+      final ok = flaky([500, 502], []);
+      expect(await ok.servers('tok'), isEmpty);
+      final down = flaky([500, 500, 500], []);
+      await expectLater(down.servers('tok'), throwsA(isA<ApiException>()));
+    });
+  });
 }

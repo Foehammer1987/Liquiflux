@@ -77,8 +77,9 @@ class PlexAuth {
     return t is String && t.isNotEmpty ? t : null;
   }
 
-  /// Polls until approved or [timeout] passes. A dropped connection along the way just
-  /// means asking again.
+  /// Polls until approved or [timeout] passes. A dropped connection or a passing plex.tv
+  /// error (5xx, or 429 for too many requests) along the way just means asking again: one
+  /// bad answer while the person is typing the code mustn't throw the sign-in away.
   Future<String?> waitForToken(PlexPin pin, {Duration timeout = const Duration(minutes: 5), bool Function()? cancelled}) async {
     final end = DateTime.now().add(timeout);
     while (DateTime.now().isBefore(end)) {
@@ -87,14 +88,34 @@ class PlexAuth {
         final t = await checkPin(pin);
         if (t != null) return t;
       } on ApiException catch (e) {
-        if (e.status != 0) rethrow;
+        if (!passing(e.status)) rethrow;
       }
-      await Future<void>.delayed(const Duration(seconds: 2));
+      await Future<void>.delayed(pollEvery);
     }
     return null;
   }
 
+  /// How long [waitForToken] waits between asks (tests make it short).
+  Duration pollEvery = const Duration(seconds: 2);
+
+  /// An answer worth asking again for: no connection (0), too many requests (429), or a
+  /// plex.tv server error (5xx).
+  static bool passing(int status) => status == 0 || status == 429 || status >= 500;
+
+  /// The account's servers. Asked up to three times when plex.tv has a passing error, right
+  /// after a sign-in that just worked.
   Future<List<PlexServerResource>> servers(String accountToken) async {
+    for (var attempt = 1; ; attempt++) {
+      try {
+        return await _servers(accountToken);
+      } on ApiException catch (e) {
+        if (attempt >= 3 || !passing(e.status)) rethrow;
+        await Future<void>.delayed(pollEvery);
+      }
+    }
+  }
+
+  Future<List<PlexServerResource>> _servers(String accountToken) async {
     final body = await _http.send('GET', Uri.parse('https://plex.tv/api/v2/resources?includeHttps=1&includeRelay=1'), headers: {..._headers, 'X-Plex-Token': accountToken});
     final list = JsonHttp.array(body, _odd);
     return list.whereType<Map<String, dynamic>>().where((r) => '${r['provides']}'.contains('server')).map((r) {
