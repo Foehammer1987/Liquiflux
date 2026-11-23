@@ -15,6 +15,7 @@ import 'package:console_app/ui/nav.dart';
 import 'package:console_app/ui/play.dart';
 import 'package:console_app/ui/player/seek_bar.dart';
 import 'package:console_core/console_core.dart';
+import 'package:console_ui/console_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -229,6 +230,28 @@ void main() {
     if (hd != null) {
       await playFor('hd', hd, during: () async {
         if (!_skip.contains('hd-panels')) await hdPanels();
+        if (!_skip.contains('gestures')) {
+          // Each gesture's indicator over a real film, the finger still down.
+          Future<void> held(String name, Offset from, Offset by) async {
+            final g = await t.startGesture(from);
+            for (var i = 1; i <= 8; i++) {
+              await g.moveBy(by / 8);
+              await t.pump(const Duration(milliseconds: 30));
+            }
+            await wait(t, 0.4);
+            await shot(t, name);
+            await g.up();
+            await wait(t, 2);
+          }
+
+          final s = screen(t);
+          await held('real-gesture-volume', Offset(s.width * 0.75, s.height * 0.7), Offset(0, -s.height * 0.3));
+          await held('real-gesture-brightness', Offset(s.width * 0.25, s.height * 0.7), Offset(0, -s.height * 0.2));
+          await held('real-gesture-seek', Offset(s.width * 0.4, s.height * 0.5), Offset(s.width * 0.25, 0));
+          await wait(t, 8);
+          await shot(t, 'real-gesture-seek-landed');
+        }
+        if (_skip.contains('rest')) return;
         // Leave the app mid-film and come back.
         debugPrint('HOST bg');
         await wait(t, 20);
@@ -248,8 +271,9 @@ void main() {
         }
       });
     }
-    if (uhdHdr != null && !_skip.contains('4k')) await playFor('4k-hdr', uhdHdr);
+    if (uhdHdr != null && !_skip.contains('4k') && !_skip.contains('rest')) await playFor('4k-hdr', uhdHdr);
 
+    if (_skip.contains('rest')) return;
     // An anime episode with ASS subtitles.
     PlexItem? anime;
     for (final sec in state.sections.where((s) => s.type == 'show')) {
@@ -297,6 +321,15 @@ void main() {
     await state.update(state.settings.copyWith(plexUrl: _plex, plexToken: 'x', seerrUrl: _seerr, seerrApiKey: 'x', seerrEnabled: true));
     await wait(t, 10);
     await shot(t, 'home');
+    // The long-press menu on the first Continue Watching card.
+    final card = find.byType(PosterCard);
+    if (card.evaluate().isNotEmpty) {
+      await t.longPress(card.first, warnIfMissed: false);
+      await wait(t, 1.5);
+      await shot(t, 'poster-menu');
+      await t.tapAt(const Offset(20, 120));
+      await wait(t, 1);
+    }
     await SystemChrome.setPreferredOrientations(const [DeviceOrientation.landscapeLeft]);
     await wait(t, 2);
     nav(t).push(const ItemDest('100'));
@@ -313,6 +346,23 @@ void main() {
     await wait(t, 4);
     unawaited(playTitle(t.element(find.byType(Navigator).first), (await state.plex!.metadata('100'))!, resume: false));
     await wait(t, 10);
+    // Each gesture's indicator, with the finger still down.
+    Future<void> held(String name, Offset from, Offset by) async {
+      final g = await t.startGesture(from);
+      for (var i = 1; i <= 8; i++) {
+        await g.moveBy(by / 8);
+        await t.pump(const Duration(milliseconds: 30));
+      }
+      await wait(t, 0.4);
+      await shot(t, name);
+      await g.up();
+      await wait(t, 1.5);
+    }
+
+    final s = screen(t);
+    await held('gesture-volume', Offset(s.width * 0.75, s.height * 0.7), Offset(0, -s.height * 0.3));
+    await held('gesture-brightness', Offset(s.width * 0.25, s.height * 0.7), Offset(0, -s.height * 0.2));
+    await held('gesture-seek', Offset(s.width * 0.4, s.height * 0.5), Offset(s.width * 0.25, 0));
     await t.tapAt(screen(t).center(Offset.zero));
     await wait(t, 1);
     final settings = find.byTooltip('Playback Settings');
