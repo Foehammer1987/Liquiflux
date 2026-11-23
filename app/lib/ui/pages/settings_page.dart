@@ -1388,8 +1388,9 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
     ),
-    // The player's keys are a keyboard's; a remote has its own.
-    if (!isTv)
+    // The player's keys are a keyboard's; a remote has its own, and a phone has none (an
+    // iPad or Android tablet may have one attached).
+    if (!isTv && !(isTouch && ConsoleDensity.compactOf(context)))
       ConsolePanel(
         title: 'Keyboard Shortcuts',
         child: Column(
