@@ -288,6 +288,46 @@ void main() {
     debugPrint('TOUR: done');
   }, skip: _tour != 'real', timeout: const Timeout(Duration(minutes: 25)));
 
+  // TOUR=polish, against the fake servers: the screens the phone layout work changes (Home's
+  // top, a film and a show on their side, the player's panels upright and on its side).
+  testWidgets('phone polish', (t) async {
+    unawaited(app.main());
+    await wait(t, 9);
+    final state = AppScope.read(t.element(find.byType(Navigator).first));
+    await state.update(state.settings.copyWith(plexUrl: _plex, plexToken: 'x', seerrUrl: _seerr, seerrApiKey: 'x', seerrEnabled: true));
+    await wait(t, 10);
+    await shot(t, 'home');
+    await SystemChrome.setPreferredOrientations(const [DeviceOrientation.landscapeLeft]);
+    await wait(t, 2);
+    nav(t).push(const ItemDest('100'));
+    await wait(t, 5);
+    await shot(t, 'film-sideways');
+    await scrollUp(t, 250);
+    await wait(t, 1.5);
+    await shot(t, 'film-sideways-scrolled');
+    nav(t).push(const ItemDest('200'));
+    await wait(t, 5);
+    await shot(t, 'show-sideways');
+    // The player, its quality panel on its side, then upright.
+    nav(t).push(const ItemDest('100'));
+    await wait(t, 4);
+    unawaited(playTitle(t.element(find.byType(Navigator).first), (await state.plex!.metadata('100'))!, resume: false));
+    await wait(t, 10);
+    await t.tapAt(screen(t).center(Offset.zero));
+    await wait(t, 1);
+    final settings = find.byTooltip('Playback Settings');
+    if (settings.evaluate().isNotEmpty) await t.tap(settings.first, warnIfMissed: false);
+    await wait(t, 2);
+    await shot(t, 'player-panel-sideways');
+    await SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
+    await wait(t, 4);
+    await shot(t, 'player-panel-upright');
+    await t.state<NavigatorState>(find.byType(Navigator).first).maybePop();
+    await wait(t, 3);
+    await SystemChrome.setPreferredOrientations(const []);
+    await wait(t, 2);
+  }, skip: _tour != 'polish', timeout: const Timeout(Duration(minutes: 8)));
+
   testWidgets('signed in: every page', (t) async {
     unawaited(app.main());
     await wait(t, 9);

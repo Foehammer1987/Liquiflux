@@ -4,7 +4,7 @@
 # (node tools/mock-servers.mjs) for the signed-in tour, which signs in to them as Enter Address
 # Manually would.
 #
-#   tools/ios-tour.sh <simulator name or udid> <out folder> [app|welcome|signin|real] [prefix]
+#   tools/ios-tour.sh <simulator name or udid> <out folder> [app|welcome|polish|signin|real] [prefix]
 #
 # signin and real keep the app installed between runs: signin prints a plex.tv/link code
 # ("CODE ABCD") and waits for it (SERVER=<name> picks the server), then real plays from it.
