@@ -300,10 +300,15 @@ class _HomePageState extends State<HomePage> with RouteAware {
 
     return LayoutBuilder(
       builder: (context, box) {
-        // A phone: the poster across the screen, as tall as it can be while the first row still peeks in.
+        // A phone: the poster across the screen, as tall as it can be while the first row still
+        // peeks in. Held upright with something to continue, short enough that the whole
+        // Continue Watching row shows below it without scrolling.
         final compact = ConsoleDensity.compactOf(context);
         final heroH = compact
-            ? (box.maxWidth < box.maxHeight ? min(box.maxWidth * 1.3, box.maxHeight * 0.78) : box.maxHeight * 0.86).roundToDouble()
+            ? (box.maxWidth < box.maxHeight
+                      ? min(box.maxWidth * 1.3, (_onDeck?.isNotEmpty ?? false) ? phoneSpotlightHeight(box.biggest, MediaQuery.textScalerOf(context)) : box.maxHeight * 0.78)
+                      : box.maxHeight * 0.86)
+                  .roundToDouble()
             : (box.maxHeight * 0.74).clamp(440.0, 820.0).roundToDouble();
         return SingleChildScrollView(
           controller: _scroll,
@@ -336,7 +341,8 @@ class _HomePageState extends State<HomePage> with RouteAware {
                     if (_onDeck?.isNotEmpty ?? false)
                       Shelf(
                         title: 'Continue Watching',
-                        itemWidth: 340,
+                        // Narrower on a phone: two and a bit across instead of one and a half.
+                        itemWidth: compact ? phoneContinueWidth : 340,
                         children: [for (final i in _onDeck!) PlexPoster(item: i, wide: true, onHighlight: _hoverFor(i))],
                       ),
                     // Top 10 on the server takes the ranked slot when there's enough watching to rank.
@@ -417,3 +423,17 @@ class _HomePageState extends State<HomePage> with RouteAware {
 
 /// The mood rows Home showed last, so the next visit picks others.
 Set<String> _lastMoods = const {};
+
+/// Continue Watching's card width on a phone, before the phone layout's scale (0.64): about
+/// 160 points, two and a half across an iPhone.
+const phoneContinueWidth = 250.0;
+
+/// The Home spotlight's height on a phone held upright when Continue Watching has something:
+/// what's left above the row (its heading, a wide card and its two caption lines, at the
+/// text size in use), and never shorter than a square nor taller than the poster.
+@visibleForTesting
+double phoneSpotlightHeight(Size page, TextScaler text) {
+  final card = phoneContinueWidth * ConsoleDensity.compactScale;
+  final row = text.scale(22) + 8 + card * 9 / 16 + 6 + text.scale(17) * 2 + 16;
+  return (page.height - row).clamp(page.width * 0.9, page.width * 1.3);
+}
