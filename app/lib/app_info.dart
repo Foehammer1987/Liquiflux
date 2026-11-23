@@ -1,4 +1,4 @@
-import 'dart:io' show Platform;
+import 'platform.dart' show isApple;
 
 /// The app's name and version, in one place. The version must match `version:` in
 /// pubspec.yaml (a test checks), which also stamps the Windows .exe.
@@ -25,9 +25,10 @@ const previousAppNames = ['Console'];
 const storeBuild = String.fromEnvironment('LIQUIFLUX_STORE');
 
 /// Whether the app looks for and installs its own updates (Settings > Advanced > Updates).
-/// Not in a store build, and never on Apple's platforms: the App Store doesn't allow an app
-/// to fetch new code (guideline 2.5.2), so a Mac or iPhone build stays updated by its store.
-final bool selfUpdates = storeBuild.isEmpty && !Platform.isMacOS && !Platform.isIOS;
+/// Not in a store build, and never on Apple's platforms (Mac, iPhone, iPad, Apple TV): the
+/// App Store doesn't allow an app to fetch new code (guideline 2.5.2), and there's no
+/// installer for them outside it either.
+final bool selfUpdates = storeBuild.isEmpty && !isApple;
 
 /// Whether this build has the TV Networks page and the Networks & Blocks channel sources
 /// (the bundled collection pack of real network and block names, with posters of shows you

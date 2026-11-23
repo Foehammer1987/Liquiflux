@@ -352,6 +352,10 @@ class AppState extends ChangeNotifier {
       ? 'Android'
       : Platform.isMacOS
       ? 'macOS'
+      : isTvOS
+      ? 'tvOS'
+      : Platform.isIOS
+      ? 'iOS'
       : 'Linux';
 
   Future<void> init() async {

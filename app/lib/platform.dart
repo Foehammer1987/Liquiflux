@@ -10,6 +10,15 @@ final bool isTizen = tizenEnvironment(Platform.environment);
 /// Whether [env] is a Tizen app's environment.
 bool tizenEnvironment(Map<String, String> env) => env.containsKey('TIZEN_API_VERSION');
 
+/// Apple TV (tvOS, built with the flutter-tvos engine). There Dart's Platform.isIOS is true
+/// too and there's no Platform.isTvOS, so it is told apart by the operating system's name.
+/// Ask this (or [isApple]) rather than Platform.isIOS / isMacOS directly.
+final bool isTvOS = Platform.operatingSystem == 'tvos';
+
+/// Any of Apple's platforms: Mac, iPhone, iPad, Apple TV. One team, one bundle id, one
+/// store; store rules (LIQUIFLUX_STORE=apple) apply to all of them alike.
+final bool isApple = Platform.isMacOS || Platform.isIOS || isTvOS;
+
 /// Which Android build this is: 'mobile' for the phone and tablet one (built with
 /// `--dart-define=LIQUIFLUX_FORM=mobile -P liquiflux.form=mobile`, see tools/build-android.ps1
 /// -Mobile), empty for the TV one.
@@ -21,7 +30,7 @@ const formBuild = String.fromEnvironment('LIQUIFLUX_FORM');
 ///
 /// Everything touch-specific asks this, never Platform.isAndroid, so the same layout serves
 /// iOS. Phone or tablet is then a matter of screen size (see [compactWidth]).
-final bool isTouch = touchBuild(android: Platform.isAndroid, ios: Platform.isIOS, flavor: formBuild, env: Platform.environment);
+final bool isTouch = touchBuild(android: Platform.isAndroid, ios: Platform.isIOS && !isTvOS, flavor: formBuild, env: Platform.environment);
 
 /// Whether a build with these traits is a phone/tablet one.
 bool touchBuild({required bool android, required bool ios, required String? flavor, required Map<String, String> env}) =>
@@ -36,9 +45,9 @@ const compactWidth = 600.0;
 final bool isDesktop = (Platform.isWindows || Platform.isLinux || Platform.isMacOS) && !isTizen && !isTouch;
 
 /// The 10-foot TV layout and remote-control behaviour: every Android TV build (Shield, Google
-/// TV, Fire TV), every Samsung TV, or a desktop dev build started with CONSOLE_TV=1 to try it
+/// TV, Fire TV), every Samsung TV, an Apple TV, or a desktop dev build started with CONSOLE_TV=1 to try it
 /// out with the arrow keys, Enter and Esc. Not the Android phone/tablet build ([isTouch]).
-final bool isTv = (Platform.isAndroid || isTizen || Platform.environment['CONSOLE_TV'] == '1') && !isTouch;
+final bool isTv = (Platform.isAndroid || isTizen || isTvOS || Platform.environment['CONSOLE_TV'] == '1') && !isTouch;
 
 /// The Android TV build (Shield, Google TV, Fire TV): the Android features only a TV has,
 /// such as the accessibility sleep service, refresh-rate and resolution switching, leaving

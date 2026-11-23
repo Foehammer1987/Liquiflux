@@ -1,5 +1,3 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
@@ -10,13 +8,13 @@ import '../platform.dart';
 typedef NativeLicense = ({String name, String note, List<String> files});
 
 /// The native libraries in this build, for the Open-Source Licenses page. Flutter lists the
-/// Dart packages and its own engine itself; these are the player's. None on a Samsung TV,
-/// which plays through the TV's own player instead of mpv.
+/// Dart packages and its own engine itself; these are the player's. None on a Samsung TV or
+/// an Apple TV, which play through the system's own player instead of mpv.
 List<NativeLicense> nativeLicenses({bool? apple, bool? tizen}) {
-  if (tizen ?? isTizen) return const [];
+  if (tizen ?? (isTizen || isTvOS)) return const [];
   // The Mac and iPhone builds carry media_kit's libmpv frameworks: FFmpeg there is
   // configured with --enable-version3 (for mbedTLS), so it is LGPL 3.
-  final darwin = apple ?? (Platform.isMacOS || Platform.isIOS);
+  final darwin = apple ?? isApple;
   return [
     (
       name: 'mpv',
