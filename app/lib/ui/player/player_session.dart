@@ -515,25 +515,33 @@ class PlayerSession extends ChangeNotifier {
       _goodPosition = Duration.zero;
       final q = streamQuality;
       notifyListeners();
-      await player.open(
-        Media(
-          plex.transcodeUrl(
-            item,
-            session: _session!,
-            offsetSec: from.inSeconds,
-            maxBitrateKbps: q.isOriginal ? 20000 : q.kbps,
-            resolution: q.resolution,
-            mediaIndex: mediaIndex,
-            directStream: prefs.allowDirectStream,
-            remote: !local,
-            audioStreamId: audio?.id,
-            subtitleStreamId: subtitle?.id ?? 0,
-            subtitleSize: subtitleSize,
-          ),
-          httpHeaders: plex.headers,
-        ),
-        play: waitFor == null,
+      final start = plex.transcodeUrl(
+        item,
+        session: _session!,
+        offsetSec: from.inSeconds,
+        maxBitrateKbps: q.isOriginal ? 20000 : q.kbps,
+        resolution: q.resolution,
+        mediaIndex: mediaIndex,
+        directStream: prefs.allowDirectStream,
+        remote: !local,
+        audioStreamId: audio?.id,
+        subtitleStreamId: subtitle?.id ?? 0,
+        subtitleSize: subtitleSize,
       );
+      // Asked first, as Plex's own apps do: start.m3u8 may just close the connection when the
+      // server won't convert the title, and the decision says why. No answer doesn't stop it.
+      final decision = await plex.transcodeDecision(start).then<TranscodeDecision?>((d) => d, onError: (Object e) {
+        debugPrint('transcode decision: ${errorText(e)}');
+        return null;
+      });
+      if (_disposed) return;
+      if (decision != null) debugPrint('transcode decision: $decision');
+      if (decision != null && decision.refused) {
+        error = 'Your Plex server can’t convert this title. ${decision.reason}';
+        notifyListeners();
+        return;
+      }
+      await player.open(Media(start, httpHeaders: plex.headers), play: waitFor == null);
     }
     if (waitFor != null) {
       await waitFor;

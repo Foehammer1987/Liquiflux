@@ -308,6 +308,19 @@ class PlexClient {
     'X-Plex-Client-Identifier': clientId,
   }).toString();
 
+  /// What the server will do with the transcode [startUrl] (from [transcodeUrl]) before it's
+  /// played: Plex answers the same request at /decision with a code and a reason, where
+  /// start.m3u8 itself may just close the connection when it can't convert the title.
+  /// Only for an address on this server; anything else is refused without a request.
+  Future<TranscodeDecision> transcodeDecision(String startUrl) async {
+    final start = Uri.tryParse(startUrl);
+    if (start == null || !isOnServer(startUrl) || !start.path.endsWith('/transcode/universal/start.m3u8')) {
+      throw ArgumentError('not a transcode address on this server');
+    }
+    final query = {...start.queryParameters}..remove('X-Plex-Token');
+    return TranscodeDecision.fromJson(await _get('/video/:/transcode/universal/decision', query));
+  }
+
   /// Ends a transcode session so the server stops encoding for it.
   Future<void> stopTranscode(String session) async {
     try {
@@ -353,3 +366,37 @@ class PlexClient {
 /// Server JSON is untrusted: a field of the wrong type reads as missing.
 List<Object?> _list(Object? v) => v is List ? v : const [];
 int? _toInt(Object? v) => v is num && v.isFinite ? v.toInt() : null;
+
+/// The server's answer to a transcode request (PlexClient.transcodeDecision). Plex's codes:
+/// 1xxx the title can be played (directly or converted), 2xxx it can't, 3xxx the server
+/// or the file isn't available. Each comes with a sentence saying why.
+class TranscodeDecision {
+  const TranscodeDecision({this.generalCode, this.generalText, this.transcodeCode, this.transcodeText});
+
+  factory TranscodeDecision.fromJson(Map<String, dynamic> c) {
+    int? code(Object? v) => v is int ? v : int.tryParse('${v ?? ''}');
+    String? text(Object? v) => v is String && v.trim().isNotEmpty ? v.trim() : null;
+    return TranscodeDecision(
+      generalCode: code(c['generalDecisionCode']),
+      generalText: text(c['generalDecisionText']),
+      transcodeCode: code(c['transcodeDecisionCode']),
+      transcodeText: text(c['transcodeDecisionText']),
+    );
+  }
+
+  final int? generalCode;
+  final String? generalText;
+  final int? transcodeCode;
+  final String? transcodeText;
+
+  /// The server said it can't play or convert this (a 2xxx or 3xxx general code, or a
+  /// transcode code from 2000 up). No answer at all doesn't count: older servers skip it.
+  bool get refused => (generalCode ?? 0) >= 2000 || (transcodeCode ?? 0) >= 2000;
+
+  /// The server's own reason, the most specific one first.
+  String get reason => transcodeText ?? generalText ?? 'The server gave no reason.';
+
+  @override
+  String toString() => 'general ${generalCode ?? '-'} (${generalText ?? ''}), transcode ${transcodeCode ?? '-'} (${transcodeText ?? ''})';
+}
+
