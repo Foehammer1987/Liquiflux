@@ -60,8 +60,9 @@ class _TrendingPageState extends State<TrendingPage> {
       );
     }
 
-    // Netflix's official weekly Top 10, matched to titles by name.
-    unawaited(() async {
+    // Netflix's official weekly Top 10, matched to titles by name. Not in the App Store build
+    // (AppState.brandRows), nor the per-service rows below.
+    if (app.brandRows) unawaited(() async {
       try {
         final tsv = await NetflixTop10.fetch(from: Platform.environment['CONSOLE_NETFLIX_TOP10']);
         for (final kind in ['movie', 'tv']) {
@@ -74,7 +75,7 @@ class _TrendingPageState extends State<TrendingPage> {
     }());
 
     // What's popular on each service where you live.
-    for (final s in streamingServices) {
+    for (final s in app.brandRows ? streamingServices : const <({String name, int provider})>[]) {
       Future.wait([seerr.popularOn('movie', s.provider, region: app.settings.region), seerr.popularOn('tv', s.provider, region: app.settings.region)]).then((r) {
         if (mounted) setState(() => _services[s.name] = mergeByPopularity(r[0], r[1], count: 40));
       }, onError: (Object e) => debugPrint('popular on ${s.name}: $e'));

@@ -29,12 +29,13 @@ enum Conn { unknown, ok, failed, off }
 
 /// App-wide state: settings, the Plex and Seerr clients, and the live request list.
 class AppState extends ChangeNotifier {
-  AppState(this._store, {Updater? updater, Scrobbler? scrobbler, ChannelStore? channels, TvPackStore? tvPack, bool? tvNetworks})
+  AppState(this._store, {Updater? updater, Scrobbler? scrobbler, ChannelStore? channels, TvPackStore? tvPack, bool? tvNetworks, bool? brandRows})
     : updater = updater ?? Updater(),
       scrobbler = scrobbler ?? Scrobbler(),
       channels = channels ?? ChannelStore(),
       tvPack = tvPack ?? TvPackStore(),
-      tvNetworks = tvNetworks ?? (tvNetworksInBuild && !isTizen);
+      tvNetworks = tvNetworks ?? (tvNetworksInBuild && !isTizen),
+      brandRows = brandRows ?? brandRowsInBuild;
   final SettingsStore _store;
 
   /// TV networks and programming blocks (TV Collections page, Channels).
@@ -44,6 +45,10 @@ class AppState extends ChangeNotifier {
   /// on Samsung TVs (the store build): no rail item, no pack read or fetched, and a channel's
   /// "pack" source plays nothing.
   final bool tvNetworks;
+
+  /// Whether Trending shows the rows named after streaming services (Netflix's Top 10,
+  /// "Popular on ..."). Off in the App Store build (brandRowsInBuild): not fetched or shown.
+  final bool brandRows;
 
   /// Newer Liquiflux releases on GitHub (Settings > Advanced > Updates).
   final Updater updater;

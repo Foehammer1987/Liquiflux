@@ -30,11 +30,11 @@ Future<List<String>> pickerTabs(WidgetTester t) async {
   ];
 }
 
-/// The Samsung store build (LIQUIFLUX_STORE=samsung) has no TV Networks: no rail item, no
+/// The Samsung and Apple store builds (LIQUIFLUX_STORE=samsung or apple) have no TV Networks: no rail item, no
 /// page, no pack read or fetched, and no Networks & Blocks source for a channel.
 void main() {
-  test('only the Samsung store build leaves TV Networks out', () {
-    expect(tvNetworksInBuild, storeBuild != 'samsung');
+  test('only the Samsung and Apple store builds leave TV Networks out', () {
+    expect(tvNetworksInBuild, storeBuild != 'samsung' && storeBuild != 'apple');
   });
 
   testWidgets('with TV Networks on, the rail, the page and the picker tab are there', (t) async {

@@ -24,5 +24,12 @@ final bool selfUpdates = storeBuild.isEmpty && !Platform.isMacOS && !Platform.is
 
 /// Whether this build has the TV Networks page and the Networks & Blocks channel sources
 /// (the bundled collection pack of real network and block names, with posters of shows you
-/// may not own). The Samsung store build leaves all of it out, for the store review.
-const tvNetworksInBuild = storeBuild != 'samsung';
+/// may not own).
+/// The Samsung and Apple store builds leave all of it out, for the store review.
+const tvNetworksInBuild = storeBuild != 'samsung' && storeBuild != 'apple';
+
+/// Whether Trending has the rows named after streaming services ("Top 10 Movies on Netflix",
+/// "Popular on Prime Video"). The App Store build (LIQUIFLUX_STORE=apple) leaves them out:
+/// Apple doesn't want other companies' brands in an app without their permission
+/// (guideline 4.1(c)/5.2.1). Samsung's build keeps them.
+const brandRowsInBuild = storeBuild != 'apple';
