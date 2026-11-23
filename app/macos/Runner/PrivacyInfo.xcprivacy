@@ -32,7 +32,8 @@
 				<string>35F9.1</string>
 			</array>
 		</dict>
-		<!-- The app's own preferences (AppKit window state, plugins' own keys). -->
+		<!-- The app's own preferences (AppKit or UIKit window and scene state, plugins' own
+		     keys). -->
 		<dict>
 			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>

@@ -1,0 +1,13 @@
+	<key>CFBundleDisplayName</key>
+	<string>Liquiflux</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.entertainment</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Liquiflux finds and plays from your Plex Media Server on your home network.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>

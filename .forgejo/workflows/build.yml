@@ -55,6 +55,8 @@ jobs:
           restore-keys: pub-${{ env.FLUTTER_VERSION }}-test-
       - name: Flutter
         run: tools/ci/setup-flutter.sh
+      - name: Apple targets match app/apple
+        run: dart tools/apple_sync.dart --check
       - name: console_core tests
         working-directory: packages/console_core
         run: dart pub get && dart test

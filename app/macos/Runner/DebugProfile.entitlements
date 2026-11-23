@@ -10,9 +10,11 @@
 	<true/>
 	<key>com.apple.security.network.server</key>
 	<true/>
+	<!-- Shared by every Apple target: app/apple/keychain.entitlements (tools/apple_sync.dart writes this block). -->
 	<key>keychain-access-groups</key>
 	<array>
 		<string>$(AppIdentifierPrefix)com.foehammer.liquiflux</string>
 	</array>
+	<!-- End of app/apple/keychain.entitlements. -->
 </dict>
 </plist>

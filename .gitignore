@@ -8,6 +8,7 @@ node_modules/
 dist/
 tools/collection-pack/.cache/
 
-# Made by media_kit_video's podspec when the Mac build runs (mpv headers).
+# Made by media_kit_video's podspec when the Mac or iOS build runs (mpv headers).
 packages/media_kit_video/common/darwin/.cache/
 packages/media_kit_video/macos/Headers/
+packages/media_kit_video/ios/Headers/
