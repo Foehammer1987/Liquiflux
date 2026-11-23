@@ -498,7 +498,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   ConsoleButton(
                     label: _signingIn ? 'Waiting for Plex' : (s.plexReady ? 'Sign In Again' : 'Sign In with Plex'),
                     kind: ButtonKind.primary,
-                    autofocus: widget.welcome,
+                    // A remote needs focus somewhere to start; on a computer a focus ring on
+                    // a page nobody has typed on yet looks like a glitch (Tab still gets here).
+                    autofocus: widget.welcome && !isDesktop,
                     onPressed: _unlessBusy(_signingIn, _signIn),
                   ),
                   if (_signingIn && !isTv) ConsoleButton(label: 'Cancel', onPressed: () => setState(() => _cancelSignIn = true)),

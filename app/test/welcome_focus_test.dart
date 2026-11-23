@@ -48,4 +48,10 @@ void main() {
     }
     expect(focused(), contains('Sign In with Plex'));
   }, skip: !isTv);
+
+  testWidgets('signed out on a computer: no focus ring until a key is pressed', (t) async {
+    await welcome(t);
+    expect(find.text('Welcome'), findsOneWidget);
+    expect(focused(), isNot(contains('Sign In with Plex')));
+  }, skip: !isDesktop);
 }
