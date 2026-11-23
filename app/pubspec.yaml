@@ -56,3 +56,5 @@ flutter:
     - assets/tls/cacert.pem
     # TV networks and programming blocks (tools/collection-pack builds it).
     - assets/collections/tv-pack.json
+    # License texts of the player's native libraries (lib/services/native_licenses.dart).
+    - assets/licenses/

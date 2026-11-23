@@ -17,7 +17,9 @@ import '../nav.dart';
 import '../player/player_dock.dart';
 import '../profiles.dart';
 import '../settings/focus_handle.dart';
+import '../settings/licenses_view.dart';
 import '../settings/plex_link_code.dart';
+import '../settings/qr_view.dart';
 import '../settings/settings_field.dart';
 import '../settings/tracking_panel.dart';
 import '../settings/updates_panel.dart';
@@ -1409,6 +1411,28 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
         ),
       ),
+    ConsolePanel(
+      title: 'About',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _Row(
+            label: 'Open-Source Licenses',
+            help: '$appName is built on open-source software, including mpv and FFmpeg for playback. Their licenses, and every other package\'s.',
+            control: ConsoleButton(label: 'View', icon: LucideIcons.scrollText, onPressed: () => unawaited(showLicenses(context))),
+          ),
+          // A TV shows the address (and a QR code for a phone) instead of opening a browser.
+          _Row(
+            label: 'Privacy Policy',
+            help: isTv || !canOpenLinks ? 'Read it on your phone or computer: $privacyPolicyUrl' : 'What $appName keeps, and where your sign-ins and history go.',
+            control: isTv || !canOpenLinks
+                ? ClipRRect(borderRadius: BorderRadius.circular(Radii.radiusSm), child: QrView(privacyPolicyUrl, size: 96, label: 'QR code for the privacy policy'))
+                : ConsoleButton(label: 'Open', icon: LucideIcons.externalLink, onPressed: () => unawaited(openExternal(privacyPolicyUrl))),
+            last: true,
+          ),
+        ],
+      ),
+    ),
     Padding(
       padding: const EdgeInsets.symmetric(horizontal: Space.space1),
       child: Text('$appName $appVersion', style: ConsoleText.caption.copyWith(color: c.text300)),

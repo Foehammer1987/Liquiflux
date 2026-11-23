@@ -9,6 +9,9 @@ const appVersion = '1.1.6';
 /// Settings > Advanced, the README and the store listings).
 const plexAttribution = 'Works with Plex. Plex is a trademark of Plex, Inc. $appName is not affiliated with or endorsed by Plex, Inc.';
 
+/// Liquiflux's privacy policy, linked from Settings > Advanced > About (and the store listings).
+const privacyPolicyUrl = 'https://liquiflux.app/privacy';
+
 /// The name the first builds used; settings saved under it are carried over once.
 const previousAppNames = ['Console'];
 

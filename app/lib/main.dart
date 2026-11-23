@@ -12,6 +12,7 @@ import 'package:window_manager/window_manager.dart';
 import 'app_info.dart';
 import 'platform.dart';
 import 'services/gpu_memory.dart';
+import 'services/native_licenses.dart';
 import 'services/notifier.dart';
 import 'services/probe.dart';
 import 'services/settings_store.dart';
@@ -66,6 +67,7 @@ Future<void> _main() async {
   }
   // mpv: there's none on a Samsung TV, where Samsung's player is used instead.
   if (!isTizen) MediaKit.ensureInitialized();
+  registerNativeLicenses();
   // Android starts in touch mode, where Flutter hides the focus highlight until the first key
   // press (and hides it again after any touch): on a TV the first press moved focus you
   // couldn't see yet. A remote always shows where focus is.
