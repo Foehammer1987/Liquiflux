@@ -9,10 +9,10 @@ import 'tokens.dart';
 
 const _fast = Duration(milliseconds: 150);
 
-/// 2px primary ring, 2px offset — the Console focus style.
-/// The ring round a focused control: the text colour (white on dark), which shows on every
-/// surface. The primary blue it used to be vanished on blue buttons, switches that are on and
-/// the chosen pill of a segmented control, the controls a remote lands on most.
+/// The Console focus style: a 2px ring, 2px outside the control, in the text colour (white on
+/// dark), which shows on every surface. The primary blue it used to be vanished on blue
+/// buttons, switches that are on and the chosen pill of a segmented control, the controls a
+/// remote lands on most.
 BoxDecoration focusRing(BuildContext context, double radius) => BoxDecoration(
   borderRadius: BorderRadius.circular(radius + 2),
   border: Border.all(color: context.c.text100, width: 2),

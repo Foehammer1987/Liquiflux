@@ -11,7 +11,7 @@ TV: the remote moves row by row everywhere, and Settings is one column.
 - The focus ring is white on the dark theme (the text colour on the light one), so it shows on blue buttons, switches that are on and the chosen option of a segmented control.
 - Home's spotlight page marks are no longer a stop for a remote.
 - Desktop, phone and tablet layouts are unchanged apart from the focus ring's colour when moving by keyboard.
-- Version 1.1.5+82 (Samsung packages 1.1.500, 1.1.501, 1.1.502). 1.1.4 is held for the Riptide gap-smoothing work.
+- Version 1.1.5+82 (Samsung packages 1.1.500, 1.1.501, 1.1.502). 1.1.4 is skipped; the Riptide gap-smoothing work will be 1.1.6.
 
 ## 1.1.3
 

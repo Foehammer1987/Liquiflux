@@ -164,8 +164,8 @@ FocusNode? verticalTarget(FocusNode from, Iterable<FocusNode> nodes, TraversalDi
   return best?.node;
 }
 
-/// [a] and [b] are on one line: each one's middle lies within the other's height, or they
-/// share more than half of the shorter one's height.
+/// [a] and [b] are on one line: they share more than half of the shorter one's height (so one
+/// lying wholly within the other's height counts).
 bool _level(Rect a, Rect b) {
   if (identical(a, b)) return true;
   final shared = math.min(a.bottom, b.bottom) - math.max(a.top, b.top);
