@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.1.8
+
+Liquiflux on iPhone and iPad, App Store ready, with a better touch layout everywhere.
+
+- **iPhone and iPad app.** The first iOS build (iOS 15 and later): bundle id com.foehammer.liquiflux, its own icon and a dark launch screen with the Liquiflux mark, iPhone in portrait and on its side, iPad in every orientation with Split View and Slide Over. Sign-ins are kept in the keychain. Video sound plays with the silent switch on. Built with `--dart-define=LIQUIFLUX_STORE=apple` it has no updater, no TV Networks page and no streaming-service rows, as on the Mac.
+- **Shared Apple files.** The privacy manifest, the Info.plist texts (local network, App Transport Security, export compliance, category) and the keychain group live once in `app/apple/`; `dart tools/apple_sync.dart` writes them into the Mac and iOS projects, and CI checks that they match. The Mac app's files are unchanged in content.
+- **Phones and tablets** (iPhone, iPad and the Android phone/tablet build):
+  - The Welcome page no longer has the top bar's small logo over its own big one, and starts below the status bar.
+  - A phone on its side keeps pages, the top bar and the bottom bar clear of the camera housing and rounded corners.
+  - The status bar's text stays white and readable over posters scrolled up beneath it.
+  - Larger text sizes (Dynamic Type, Android's font size) enlarge the app's text up to 130% without cutting off the bottom bar, the Home spotlight's buttons or panel headers.
+  - The bottom bar stays behind the keyboard while you type in search or sign-in fields.
+  - The player's buttons take two rows when the screen is narrow (a phone held upright, a narrow iPad window), instead of running off the edge.
+  - Request cards cut a long status short instead of overflowing on a phone.
+  - The link code page says to enter the code on another device.
+  - No keyboard shortcuts list in Settings on a phone (an iPad with a keyboard still has it).
+- **iOS:** a swipe in from the left edge goes back a page.
+- **App Store build:** no Streaming Region setting either; it only served the streaming services' rows, and its help named one.
+- **Apple:** deleting the app now signs you out. The keychain outlives the app, so a reinstall used to find the old sign-in.
+- For developers: `app/integration_test/touch_tour_test.dart` and `tools/ios-tour.sh` walk every screen on a simulator and save screenshots; `test/touch_layout_test.dart` (run with CONSOLE_TOUCH=1 in CI) checks safe areas, the largest text on the smallest iPhone, the keyboard and the swipe back.
+- Version 1.1.8+85 (Samsung packages 1.1.800, 1.1.801, 1.1.802).
+
 ## 1.1.7
 
 Liquiflux on the Mac, ready for the App Store, and server conversion that works there.
