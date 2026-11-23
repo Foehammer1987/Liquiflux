@@ -176,4 +176,50 @@ void main() {
     await t.pump(const Duration(milliseconds: 400));
     expect(taps, 1, reason: 'taps still work');
   });
+
+  testWidgets('a drag on the scrubber is the scrubber\'s, not a seek gesture', (t) async {
+    t.view.physicalSize = screen;
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    Duration? seeked;
+    var scrubbed = 0.0;
+    await t.pumpWidget(
+      MaterialApp(
+        home: Stack(
+          children: [
+            Positioned.fill(
+              child: PlayerGestures(
+                enabled: true,
+                position: () => Duration.zero,
+                duration: () => const Duration(hours: 1),
+                volume: () => 50,
+                onVolume: (_) {},
+                onSeek: (d) => seeked = d,
+                fill: false,
+                onFill: (_) {},
+                brightness: _FakeBrightness(),
+                child: const ColoredBox(color: Colors.black),
+              ),
+            ),
+            // The control bar over the picture, as in the player.
+            Positioned(
+              left: 100,
+              right: 100,
+              bottom: 60,
+              height: 40,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onHorizontalDragUpdate: (d) => scrubbed += d.delta.dx,
+                child: const SizedBox.expand(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    await t.dragFrom(const Offset(200, 320), const Offset(300, 0));
+    await t.pump();
+    expect(scrubbed, greaterThan(200));
+    expect(seeked, isNull);
+  });
 }
