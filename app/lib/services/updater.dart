@@ -201,7 +201,7 @@ class Updater extends ChangeNotifier {
     } catch (e) {
       debugPrint('update settings: ${e.runtimeType}');
     }
-    if (storeBuild.isNotEmpty) {
+    if (!selfUpdates) {
       selfUpdate = false;
     } else if (_os == 'android') {
       _channel.setMethodCallHandler(_fromAndroid);

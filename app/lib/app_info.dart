@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 /// The app's name and version, in one place. The version must match `version:` in
 /// pubspec.yaml (a test checks), which also stamps the Windows .exe.
 const appName = 'Liquiflux';
@@ -14,6 +16,11 @@ const previousAppNames = ['Console'];
 /// app, so the in-app updater is off, and the sleep timer can't turn the TV off (no
 /// accessibility service). Empty for the GitHub builds.
 const storeBuild = String.fromEnvironment('LIQUIFLUX_STORE');
+
+/// Whether the app looks for and installs its own updates (Settings > Advanced > Updates).
+/// Not in a store build, and never on Apple's platforms: the App Store doesn't allow an app
+/// to fetch new code (guideline 2.5.2), so a Mac or iPhone build stays updated by its store.
+final bool selfUpdates = storeBuild.isEmpty && !Platform.isMacOS && !Platform.isIOS;
 
 /// Whether this build has the TV Networks page and the Networks & Blocks channel sources
 /// (the bundled collection pack of real network and block names, with posters of shows you

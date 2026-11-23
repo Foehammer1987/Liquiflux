@@ -1297,8 +1297,9 @@ class _SettingsPageState extends State<SettingsPage> {
   ];
 
   List<Widget> _advanced(AppState app, ConsoleColors c, PlaybackPrefs p) => [
-    // A store build is updated by its store (and a Samsung TV installs nothing else).
-    if (storeBuild.isEmpty) UpdatesPanel(updater: app.updater, start: widget.update),
+    // A store build, or a Mac or iPhone, is updated by its store (and a Samsung TV installs
+    // nothing else).
+    if (selfUpdates) UpdatesPanel(updater: app.updater, start: widget.update),
     if (!isTizen) ConsolePanel(
       title: 'mpv Options',
       child: Column(

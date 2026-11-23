@@ -84,8 +84,9 @@ class _ShellState extends State<Shell> {
       _roomSub = app.openParty.opens.stream.listen(_roomTitle);
       _updateSub = app.updater.found.stream.listen(_updateFound);
       // Once things have settled after launch: is there a newer Liquiflux on GitHub? Not in a
-      // store build: the store updates the app, and Samsung's TVs install nothing else.
-      if (storeBuild.isEmpty) _updateCheck = Timer(const Duration(seconds: 20), () => unawaited(app.updater.checkInBackground()));
+      // store build or on Apple's platforms (selfUpdates): the store updates the app, and
+      // Samsung's TVs install nothing else.
+      if (selfUpdates) _updateCheck = Timer(const Duration(seconds: 20), () => unawaited(app.updater.checkInBackground()));
       Notifier.instance.onAction = _onNotification;
       unawaited(Probe.atHome(context, openTitle: (key) => push(ItemDest(key))));
       // "Who's watching?" as Liquiflux opens, when asked for (it closes itself without a Home).
