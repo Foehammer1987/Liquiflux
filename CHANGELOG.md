@@ -16,6 +16,12 @@ Liquiflux on iPhone and iPad, App Store ready, with a better touch layout everyw
   - Request cards cut a long status short instead of overflowing on a phone.
   - The link code page says to enter the code on another device.
   - No keyboard shortcuts list in Settings on a phone (an iPad with a keyboard still has it).
+- **iPhone polish** (and Android phones):
+  - A title on a phone on its side shows a smaller poster beside the title, buttons and summary, instead of a poster that filled the screen.
+  - Home on a phone held upright leaves room for the whole Continue Watching row below the spotlight, and its cards are narrower: two and a half across instead of one and a half.
+  - The player's settings (quality, audio, subtitles and the rest) come up from the bottom as a sheet with a handle on a narrow screen held upright, such as an iPad in Slide Over.
+- **Player gestures on phones and tablets:** up or down on the right of the picture for volume, on the left for screen brightness (put back when the player closes), sideways to skip through with the time shown (on release; drag back to cancel), and pinch to fill or fit the screen. Taps and double-tap skips work as before, swipes from the screen's edges stay the system's, and Settings > Playback > Touch > Player Gestures turns them off.
+- **iOS feel:** a long press on a poster opens a menu (Play or Resume, Mark as Watched or Unwatched, Go to Show and Go to Season for an episode, More Info); light haptics on switches, double-tap skips, gestures and each chapter mark the scrubber crosses; lists bounce at their ends on Apple platforms as before.
 - **iOS:** a swipe in from the left edge goes back a page.
 - **App Store build:** no Streaming Region setting either; it only served the streaming services' rows, and its help named one.
 - **Sound on Mac, iPhone and iPad for films with Dolby TrueHD.** The player's FFmpeg on Apple platforms has no TrueHD (or MLP) decoder, so such films played silently, including on the Mac app of 1.1.7. Liquiflux now knows what each platform's player decodes: a sound track it can't decode is converted by Plex with the picture sent as it is, and a picture it can't decode (VC-1 on Apple) is converted whole. Windows, Linux, Android and Samsung TVs are unchanged.
