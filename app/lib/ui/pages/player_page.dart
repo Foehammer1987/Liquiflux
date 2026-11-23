@@ -1167,7 +1167,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
           duration: const Duration(milliseconds: 260),
           curve: Curves.easeOutCubic,
           top: Space.space4,
-          bottom: 132,
+          bottom: playerPanelBottom(MediaQuery.sizeOf(context)),
           right: _sheet == null ? -420 : Space.space5,
           width: 380,
           // The region stays mounted so closing the panel under the pointer still counts as
@@ -1204,8 +1204,8 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
         AnimatedPositioned(
           duration: const Duration(milliseconds: 260),
           curve: Curves.easeOutCubic,
-          top: 96,
-          bottom: 132,
+          top: playerPanelBottom(MediaQuery.sizeOf(context)) < 132 ? Space.space4 : 96,
+          bottom: playerPanelBottom(MediaQuery.sizeOf(context)),
           right: _together ? Space.space5 : -420,
           width: 380,
           child: IgnorePointer(
@@ -1543,6 +1543,16 @@ class _BottomBar extends StatelessWidget {
 
 /// Below this width the player's bottom bar takes two rows of buttons.
 const _twoRowWidth = 600.0;
+
+/// Where the player's side panels (settings, Watch Together) end above the bottom of the
+/// screen: clear of the control bar, which takes two rows on a narrow screen. A phone on its
+/// side is too short for that (a panel showed one row of choices), so there the panels take
+/// the full height, over the right end of the bar (they have their own tabs and close).
+@visibleForTesting
+double playerPanelBottom(Size screen) {
+  if (screen.height < 500) return Space.space4;
+  return screen.width < _twoRowWidth + 2 * Space.space6 ? 190 : 132;
+}
 
 class _Volume extends StatefulWidget {
   const _Volume({required this.session, required this.tint, required this.accent});
