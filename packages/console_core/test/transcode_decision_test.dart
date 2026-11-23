@@ -61,4 +61,47 @@ void main() {
       expect(seen, isEmpty);
     });
   });
+
+  group('client profile', () {
+    PlexClient on(String platform) => PlexClient(baseUrl: 'https://plex.example:32400', token: 'tok', clientId: 'c', platform: platform);
+
+    test('macOS and Linux ask for the Generic profile and state the HLS target', () {
+      for (final p in ['macOS', 'Linux']) {
+        final plex = on(p);
+        expect(plex.headers['X-Plex-Client-Profile-Name'], 'Generic', reason: p);
+        expect(plex.headers['X-Plex-Platform'], p, reason: 'the dashboard still shows the real system');
+        final q = Uri.parse(plex.transcodeUrl(movie(), session: 's')).queryParameters;
+        expect(q['X-Plex-Client-Profile-Extra'], contains('protocol=hls'), reason: p);
+        expect(q['X-Plex-Client-Profile-Extra'], contains('videoCodec=h264'), reason: p);
+      }
+    });
+
+    test('Windows, Android and iOS keep the server\'s own profile, as before', () {
+      for (final p in ['Windows', 'Android', 'iOS']) {
+        final plex = on(p);
+        expect(plex.headers.containsKey('X-Plex-Client-Profile-Name'), isFalse, reason: p);
+        expect(Uri.parse(plex.transcodeUrl(movie(), session: 's')).queryParameters.containsKey('X-Plex-Client-Profile-Extra'), isFalse, reason: p);
+      }
+    });
+
+    test('the decision is asked with the same profile', () async {
+      final seen = <http.Request>[];
+      final plex = PlexClient(
+        baseUrl: 'https://plex.example:32400',
+        token: 'tok',
+        clientId: 'c',
+        platform: 'macOS',
+        http: JsonHttp(
+          client: MockClient((req) async {
+            seen.add(req);
+            return http.Response(jsonEncode({'MediaContainer': {'generalDecisionCode': 1001}}), 200, headers: {'content-type': 'application/json'});
+          }),
+        ),
+      );
+      await plex.transcodeDecision(plex.transcodeUrl(movie(), session: 's'));
+      expect(seen.single.headers['X-Plex-Client-Profile-Name'], 'Generic');
+      expect(seen.single.url.queryParameters['X-Plex-Client-Profile-Extra'], PlexClient.hlsProfileExtra);
+    });
+  });
 }
+

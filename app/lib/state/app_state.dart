@@ -344,7 +344,10 @@ class AppState extends ChangeNotifier {
 
   /// What Plex is told the app runs on (its dashboard shows it, and it picks the server's
   /// stream profile). Tizen comes first: Dart sees a Samsung TV as Linux.
-  String get _platform => isTizen
+  /// CONSOLE_PLEX_PLATFORM overrides it in a dev build, to see how a server treats another name.
+  String get _platform => Platform.environment['CONSOLE_PLEX_PLATFORM'] ?? _osName;
+
+  String get _osName => isTizen
       ? 'Tizen'
       : Platform.isWindows
       ? 'Windows'

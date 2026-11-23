@@ -7,8 +7,9 @@ import 'plex_models.dart';
 
 /// Talks to one Plex Media Server.
 class PlexClient {
-  PlexClient({required String baseUrl, required this.token, required this.clientId, JsonHttp? http, this.product = 'Console', this.platform = 'Windows', this.expectMachineId = ''})
+  PlexClient({required String baseUrl, required this.token, required this.clientId, JsonHttp? http, this.product = 'Console', this.platform = 'Windows', String? profileName, this.expectMachineId = ''})
     : baseUrl = baseUrl.replaceAll(RegExp(r'/+$'), ''),
+      profileName = profileName ?? profileNameFor(platform),
       _http = http ?? JsonHttp();
 
   final String baseUrl;
@@ -16,6 +17,18 @@ class PlexClient {
   final String clientId;
   final String product;
   final String platform;
+
+  /// The Plex client profile the server is asked to use (X-Plex-Client-Profile-Name), or
+  /// null for the one it picks from [platform]. See [profileNameFor].
+  final String? profileName;
+
+  /// The profile to ask for on [platform]. A Plex server picks a built-in profile from
+  /// X-Plex-Platform, and for "macOS" and "Linux" those belong to Plex's own desktop apps:
+  /// a transcode from any other client gets 400 Bad Request (seen on Plex Media Server
+  /// 1.42, directly and through Cloudflare). "Generic", with an HLS target stated in the
+  /// request ([hlsProfileExtra]), converts on any server. Windows, Android and iOS keep the
+  /// server's own profiles, which work.
+  static String? profileNameFor(String platform) => const {'macOS', 'Linux'}.contains(platform) ? 'Generic' : null;
   final JsonHttp _http;
 
   /// The server the token belongs to. When set, nothing carrying the token goes out until
@@ -53,6 +66,7 @@ class PlexClient {
     'X-Plex-Product': product,
     'X-Plex-Platform': platform,
     'X-Plex-Device': platform,
+    'X-Plex-Client-Profile-Name': ?profileName,
     'X-Plex-Version': '0.1.0',
   };
 
@@ -271,6 +285,10 @@ class PlexClient {
     return _uri(part.key, {'X-Plex-Token': token, 'X-Plex-Client-Identifier': clientId}).toString();
   }
 
+  /// The transcode target asked for alongside [profileName] (see [transcodeUrl]): HLS in
+  /// MPEG-TS, H.264 with AAC, AC3 or MP3, which mpv plays everywhere.
+  static const hlsProfileExtra = 'add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mpegts&videoCodec=h264&audioCodec=aac,ac3,mp3&replace=true)';
+
   /// HLS through the universal transcoder, for clients that can't direct play or want a lower
   /// quality. The chosen subtitle is burned in, since HLS sidecar text is patchy across servers.
   String transcodeUrl(
@@ -304,6 +322,9 @@ class PlexClient {
     'subtitleStreamID': subtitleStreamId,
     'subtitles': subtitleStreamId != null && subtitleStreamId > 0 ? 'burn' : 'none',
     'subtitleSize': subtitleSize,
+    // With the Generic profile (profileName), what the player takes from the transcoder
+    // is said outright: Generic has no transcode target of its own.
+    if (profileName != null) 'X-Plex-Client-Profile-Extra': hlsProfileExtra,
     'X-Plex-Token': token,
     'X-Plex-Client-Identifier': clientId,
   }).toString();
