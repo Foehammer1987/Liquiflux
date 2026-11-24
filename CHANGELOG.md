@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.9
+
+Collection and person pages that fit a phone held upright.
+
+- **Collection pages on a phone held upright** (iPhone and the Android phone build): the series' poster now sits above the title, the "You have 4 of 4" line, the overview and the buttons, which get the full width. Before, they were squeezed into a strip beside the poster and wrapped a letter or two per line. A phone on its side, tablets, TVs and desktop windows 720 px and wider keep the poster beside the details as before.
+- The collection page's Collections back button on a phone or tablet sits below the status bar and the search strip instead of behind them.
+- **Person pages on a phone:** the photo goes above the name, credits and biography instead of beside them (they had about 90 px).
+- The collection page's section subtitles and each film's status line end in "…" on a narrow screen instead of overflowing.
+- For developers: `test/phone_hero_test.dart` (run with CONSOLE_TOUCH=1) checks both pages upright, with the largest text on the smallest iPhone, on a phone on its side and on a tablet.
+- Version 1.1.9+86 (Samsung packages 1.1.900, 1.1.901, 1.1.902).
+
 ## 1.1.8
 
 Liquiflux on iPhone and iPad, App Store ready, with a better touch layout everywhere.

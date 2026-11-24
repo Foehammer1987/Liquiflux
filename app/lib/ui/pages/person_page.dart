@@ -123,12 +123,15 @@ class _PersonPageState extends State<PersonPage> {
         GlassSurface(
           padding: const EdgeInsets.all(Space.space6),
           elevation: 1.5,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 168,
-                height: 168,
+          // On a phone the photo goes above the details: beside them it left the name and
+          // biography about 90 px.
+          child: LayoutBuilder(
+            builder: (context, box) {
+              final narrow = box.maxWidth < 480;
+              final size = narrow ? 120.0 : 168.0;
+              final photoCircle = Container(
+                width: size,
+                height: size,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: c.surface300,
@@ -147,10 +150,8 @@ class _PersonPageState extends State<PersonPage> {
                     : Center(
                         child: Text(initials, style: ConsoleText.display.copyWith(fontSize: 44, color: c.text300)),
                       ),
-              ),
-              const SizedBox(width: Space.space8),
-              Expanded(
-                child: Column(
+              );
+              final details = Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(p.name, style: ConsoleText.display.copyWith(fontSize: 30, height: 1.2, color: c.text100)),
@@ -169,9 +170,22 @@ class _PersonPageState extends State<PersonPage> {
                     ],
                     if (!seerrOn && bio == null && app.settings.seerrEnabled) ...[const SizedBox(height: Space.space3), muted(context, 'Connect Seerr in Settings to see their biography and everything else they have been in.')],
                   ],
-                ),
-              ),
-            ],
+                );
+              if (narrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [photoCircle, const SizedBox(height: Space.space5), details],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  photoCircle,
+                  const SizedBox(width: Space.space8),
+                  Expanded(child: details),
+                ],
+              );
+            },
           ),
         ),
         ConsolePanel(

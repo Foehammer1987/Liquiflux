@@ -6,6 +6,7 @@ import 'package:console_core/console_core.dart';
 import 'package:console_ui/console_ui.dart';
 import 'package:flutter/material.dart';
 
+import '../../platform.dart';
 import '../common.dart';
 
 import '../../state/scope.dart';
@@ -149,6 +150,23 @@ class _CollectionPageState extends State<CollectionPage> {
       builder: (context, tint) => LayoutBuilder(
         builder: (context, box) {
           final heroH = (box.maxHeight * 0.78).clamp(480.0, 760.0);
+          // A phone held upright (or any narrow window): too narrow for the details beside
+          // the poster, so the poster goes above them and the hero grows to fit.
+          final narrow = box.maxWidth < _Hero.narrowWidth;
+          final hero = _Hero(
+            franchise: f,
+            tint: tint,
+            urls: SeriesArt.montage(f, plex),
+            focus: _focus,
+            poster: SeriesArt.seriesPoster(f, plex),
+            requesting: _requesting,
+            canRequest: app.seerr != null && _toRequest.isNotEmpty,
+            toRequest: _toRequest.length,
+            onPlay: _play,
+            onRequest: _requestMissing,
+            narrow: narrow,
+            top: _backTop(context) + 56,
+          );
           return Stack(
             children: [
               SingleChildScrollView(
@@ -156,21 +174,7 @@ class _CollectionPageState extends State<CollectionPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SizedBox(
-                      height: heroH,
-                      child: _Hero(
-                        franchise: f,
-                        tint: tint,
-                        urls: SeriesArt.montage(f, plex),
-                        focus: _focus,
-                        poster: SeriesArt.seriesPoster(f, plex),
-                        requesting: _requesting,
-                        canRequest: app.seerr != null && _toRequest.isNotEmpty,
-                        toRequest: _toRequest.length,
-                        onPlay: _play,
-                        onRequest: _requestMissing,
-                      ),
-                    ),
+                    if (narrow) hero else SizedBox(height: heroH, child: hero),
                     Transform.translate(
                       offset: const Offset(0, -Space.space8),
                       child: Column(
@@ -235,8 +239,8 @@ class _CollectionPageState extends State<CollectionPage> {
                 ),
               ),
               Positioned(
-                left: 40,
-                top: Space.space4,
+                left: narrow ? ConsoleDensity.inset(context, 40) : 40,
+                top: _backTop(context),
                 child: _Back(tint: tint),
               ),
             ],
@@ -245,6 +249,10 @@ class _CollectionPageState extends State<CollectionPage> {
       ),
     );
   }
+
+  /// Where the back button sits: on a phone or tablet the search strip is drawn over the top
+  /// of this page (below the status bar), so the button goes under it rather than behind it.
+  double _backTop(BuildContext context) => isTouch ? MediaQuery.paddingOf(context).top + _touchChrome + Space.space4 : Space.space4;
 
   void _open(FranchisePart p) {
     final nav = ShellNav.of(context);
@@ -255,6 +263,9 @@ class _CollectionPageState extends State<CollectionPage> {
     }
   }
 }
+
+/// Height of the shell's floating search strip (its _chromeHeight).
+const _touchChrome = 44.0;
 
 class _Heading extends StatelessWidget {
   const _Heading(this.title, this.sub);
@@ -269,7 +280,7 @@ class _Heading extends StatelessWidget {
       children: [
         Text(title, style: ConsoleText.titleLg.copyWith(fontSize: 22, color: context.c.text100)),
         const SizedBox(width: Space.space3),
-        Text(sub, style: ConsoleText.small.copyWith(color: context.c.text300)),
+        Flexible(child: Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis, style: ConsoleText.small.copyWith(color: context.c.text300))),
       ],
     ),
   );
@@ -289,7 +300,14 @@ class _Hero extends StatelessWidget {
     required this.toRequest,
     required this.onPlay,
     required this.onRequest,
+    this.narrow = false,
+    this.top = 0,
   });
+
+  /// Below this width the poster goes above the details instead of beside them (they had
+  /// about 0 px left on a phone held upright). Tablets upright (800+) and TVs keep the wide layout.
+  static const narrowWidth = 720.0;
+
   final Franchise franchise;
   final Color tint;
   final List<String> urls;
@@ -300,6 +318,12 @@ class _Hero extends StatelessWidget {
   final int toRequest;
   final void Function(FranchisePart from, {bool marathon}) onPlay;
   final VoidCallback onRequest;
+
+  /// The stacked phone layout: sized by its contents rather than filling a fixed height.
+  final bool narrow;
+
+  /// Room left at the top in the [narrow] layout, for the search strip and back button.
+  final double top;
 
   @override
   Widget build(BuildContext context) {
@@ -315,11 +339,8 @@ class _Hero extends StatelessWidget {
       if (f.totalMinutes > 0) '${SeriesArt.hours(f.totalMinutes)} in all',
       if (score != null) '★ ${score.toStringAsFixed(1)} average',
     ];
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        // The montage fades out at the bottom into whatever is behind the page.
-        ShaderMask(
+    // The montage fades out at the bottom into whatever is behind the page.
+    final backdrop = ShaderMask(
           blendMode: BlendMode.dstIn,
           shaderCallback: (r) =>
               const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.white, Colors.white, Colors.transparent], stops: [0, 0.55, 1]).createShader(r),
@@ -329,23 +350,27 @@ class _Hero extends StatelessWidget {
               ClipRect(
                 child: _Montage(urls: urls, focus: focus),
               ),
-              // The series' colour washes in from the left.
+              // The series' colour washes in from the left (from the top on a phone, where the
+              // details run the full width).
               DecoratedBox(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color.alphaBlend(tint.withValues(alpha: 0.22), const Color(0xF2050608)), const Color(0x99050608), const Color(0x00050608)],
-                    stops: const [0, 0.45, 0.8],
-                  ),
+                  gradient: narrow
+                      ? LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [const Color(0x66050608), Color.alphaBlend(tint.withValues(alpha: 0.18), const Color(0xD9050608))],
+                          stops: const [0, 0.5],
+                        )
+                      : LinearGradient(
+                          colors: [Color.alphaBlend(tint.withValues(alpha: 0.22), const Color(0xF2050608)), const Color(0x99050608), const Color(0x00050608)],
+                          stops: const [0, 0.45, 0.8],
+                        ),
                 ),
               ),
             ],
           ),
-        ),
-        Positioned(
-          left: 48,
-          bottom: 72,
-          right: 360,
-          child: Column(
+        );
+    final details = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -362,12 +387,12 @@ class _Hero extends StatelessWidget {
               const SizedBox(height: Space.space2),
               Text(
                 f.name,
-                maxLines: 2,
+                maxLines: narrow ? 3 : 2,
                 style: ConsoleText.display.copyWith(
-                  fontSize: 64,
+                  fontSize: narrow ? 38 : 64,
                   height: 1.02,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: -1.5,
+                  letterSpacing: narrow ? -0.8 : -1.5,
                   color: Colors.white,
                   shadows: [Shadow(color: tint.withValues(alpha: 0.55), blurRadius: 40)],
                 ),
@@ -380,7 +405,7 @@ class _Hero extends StatelessWidget {
               ),
               const SizedBox(height: Space.space4),
               SizedBox(
-                width: 420,
+                width: narrow ? double.infinity : 420,
                 child: SeriesBar(franchise: f, color: tint, height: 6),
               ),
               const SizedBox(height: Space.space2),
@@ -434,14 +459,9 @@ class _Hero extends StatelessWidget {
                 ],
               ),
             ],
-          ),
-        ),
-        // The series' own poster, lit in its colour.
-        if (poster != null)
-          Positioned(
-            right: 64,
-            bottom: 80,
-            child: TweenAnimationBuilder<double>(
+          );
+    // The series' own poster, lit in its colour.
+    Widget posterCard(double width, double height) => TweenAnimationBuilder<double>(
               tween: Tween(begin: 0.92, end: 1),
               duration: const Duration(milliseconds: 900),
               curve: Curves.easeOutCubic,
@@ -457,8 +477,8 @@ class _Hero extends StatelessWidget {
                 ),
               ),
               child: Container(
-                width: 232,
-                height: 348,
+                width: width,
+                height: height,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(Radii.radiusLg),
                   border: Border.all(color: tint.withValues(alpha: 0.6)),
@@ -470,8 +490,33 @@ class _Hero extends StatelessWidget {
                 clipBehavior: Clip.antiAlias,
                 child: ArtImage(poster!, fit: BoxFit.cover, gaplessPlayback: true, errorBuilder: (_, _, _) => const SizedBox()),
               ),
+            );
+    if (narrow) {
+      final sides = MediaQuery.paddingOf(context);
+      final inset = ConsoleDensity.inset(context, 40);
+      return Stack(
+        children: [
+          Positioned.fill(child: backdrop),
+          Padding(
+            // The page pulls the next section up by space8, so the bottom keeps that clear.
+            padding: EdgeInsets.fromLTRB(inset + sides.left, top, inset + sides.right, Space.space8 + Space.space6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (poster != null) ...[Center(child: posterCard(160, 240)), const SizedBox(height: Space.space6)],
+                details,
+              ],
             ),
           ),
+        ],
+      );
+    }
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        backdrop,
+        Positioned(left: 48, bottom: 72, right: 360, child: details),
+        if (poster != null) Positioned(right: 64, bottom: 80, child: posterCard(232, 348)),
       ],
     );
   }
@@ -787,9 +832,13 @@ class _ChapterState extends State<_Chapter> {
                 children: [
                   Icon(status.$2, size: 13, color: p.owned ? color : c.text300),
                   const SizedBox(width: 4),
-                  Text(
-                    status.$1,
-                    style: ConsoleText.caption.copyWith(color: p.owned ? color : c.text300, fontWeight: FontWeight.w600),
+                  Flexible(
+                    child: Text(
+                      status.$1,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ConsoleText.caption.copyWith(color: p.owned ? color : c.text300, fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ],
               ),
