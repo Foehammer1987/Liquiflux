@@ -34,6 +34,14 @@ class Aether {
   static Future<int?> addSubtitle(String url, {String? title, String? language}) =>
       _channel.invokeMethod<int>('externalSubtitle', {'url': url, 'title': title, 'language': language});
 
+  /// The picture's fit: 'fit' (letterbox), 'fill' (crop to fill the screen) or 'stretch'.
+  static Future<void> setFit(String aspect) => _channel.invokeMethod('fit', {'aspect': aspect});
+
+  /// What the system's Now Playing card shows for the next title (the engine fills in time
+  /// and rate, and answers the remote's commands). [artwork] is an image address.
+  static Future<void> nowPlaying({required String title, String? subtitle, String? artwork}) =>
+      _channel.invokeMethod('nowPlaying', {'title': title, 'subtitle': subtitle, 'artwork': artwork});
+
   /// Ends the session and hides the picture.
   static Future<void> stop() => _channel.invokeMethod('stop');
 }

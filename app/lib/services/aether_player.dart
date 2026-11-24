@@ -198,6 +198,14 @@ class AetherPlayer extends mk.PlatformPlayer {
     _set(rate: rate);
   }
 
+  /// The picture's fit: Liquiflux's Aspect setting ('fit', 'fill', 'stretch').
+  Future<void> setFit(String aspect) => Aether.setFit(aspect);
+
+  /// The system's Now Playing card for the next title: [title], [subtitle] (a show and
+  /// episode), and [artwork], an image address.
+  Future<void> nowPlaying({required String title, String? subtitle, String? artwork}) =>
+      Aether.nowPlaying(title: title, subtitle: subtitle, artwork: artwork).catchError((Object e) => debugPrint('now playing: ${_short(e)}'));
+
   @override
   Future<void> setPitch(double pitch) async {}
 

@@ -493,6 +493,11 @@ class PlayerSession extends ChangeNotifier {
     _pendingSeek = null;
     _openedAt = from;
     error = null;
+    if (player.platform case final AetherPlayer ae) {
+      unawaited(ae.setFit(aspect));
+      final (title, subtitle) = nowPlayingText(item);
+      unawaited(ae.nowPlaying(title: title, subtitle: subtitle, artwork: plex.imageUrl(item.grandparentThumb ?? item.thumb, width: 600, height: 900)));
+    }
     final old = _session;
     // The server refuses the file itself (503) to a client whose transcode it's still
     // running, so the old one is ended before anything else opens (a moment at most).
@@ -1066,6 +1071,7 @@ class PlayerSession extends ChangeNotifier {
   void _planeAspect() {
     if (_disposed) return;
     if (player.platform case final AvPlayPlayer av) unawaited(av.setFit(aspect));
+    if (player.platform case final AetherPlayer ae) unawaited(ae.setFit(aspect));
     if (!plane) return;
     final v = player.state.videoParams;
     final turned = v.rotate == 90 || v.rotate == 270;
@@ -1583,6 +1589,16 @@ extension on PlayerSession {
 Color playerShade(Color tint, double alpha) => Color.alphaBlend(tint.withValues(alpha: 0.2), const Color(0xFF05060A)).withValues(alpha: alpha);
 
 /// The picture fit for each aspect choice.
+/// What the system's Now Playing card says for [item]: an episode under its show's name with
+/// its season, number and title beneath; anything else under its own title, with its year.
+(String, String?) nowPlayingText(PlexItem item) {
+  if (item.type == 'episode') {
+    final se = [if (item.parentIndex != null) 'S${item.parentIndex}', if (item.index != null) 'E${item.index}'].join(' · ');
+    return (item.grandparentTitle ?? item.title, [if (se.isNotEmpty) se, item.title].join(' · '));
+  }
+  return (item.title, item.year?.toString());
+}
+
 BoxFit fitFor(String aspect) => switch (aspect) {
   'fill' => BoxFit.cover,
   'stretch' => BoxFit.fill,

@@ -1,13 +1,20 @@
+import AVFoundation
 import AetherEngine
 import Combine
 import Flutter
+import MediaPlayer
 import UIKit
 
 /// Liquiflux's Apple TV player: one AetherEngine for the app, its picture in an
 /// AetherPlayerView behind the (transparent) Flutter view.
 ///
 /// Channel `liquiflux/aether`: open, play, pause, seek, setRate, setVolume, audio, subtitle,
-/// externalSubtitle, stop. Events on `liquiflux/aether/events`: maps holding only what
+/// externalSubtitle, fit, nowPlaying, stop.
+///
+/// The engine owns the system Now Playing card (the Apple TV's overlay, Control Center on a
+/// paired iPhone) and answers its transport commands itself; the app hands it the title and
+/// artwork with `nowPlaying`, and sees play, pause and seeks the remote made through the
+/// usual state and position events. Events on `liquiflux/aether/events`: maps holding only what
 /// changed (state, position, duration, buffering, tracks, cue, error).
 public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   public static func register(with registrar: FlutterPluginRegistrar) {
@@ -28,6 +35,10 @@ public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStream
   /// calls then, so it is applied once the load returns.
   private var pendingPlay: Bool?
   private var loading = false
+  /// The fit asked for before the engine existed, applied when it's made.
+  private var pendingGravity: AVLayerVideoGravity = .resizeAspect
+  /// The artwork request for the current Now Playing card, replaced by the next title's.
+  private var artworkTask: URLSessionDataTask?
 
   // MARK: FlutterStreamHandler
 
@@ -126,6 +137,19 @@ public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStream
           ExternalSubtitleTrack(url: url, name: args["title"] as? String, language: args["language"] as? String))
         engine.selectSubtitleTrack(index: track.id)
         result(track.id)
+      case "fit":
+        // Liquiflux's Aspect setting: fit (letterbox), fill (crop to fill), stretch.
+        let gravity: AVLayerVideoGravity = switch args["aspect"] as? String {
+        case "fill": .resizeAspectFill
+        case "stretch": .resize
+        default: .resizeAspect
+        }
+        if let engine { engine.videoGravity = gravity }
+        pendingGravity = gravity
+        result(nil)
+      case "nowPlaying":
+        nowPlaying(args)
+        result(nil)
       case "stop":
         loadTask?.cancel()
         engine?.stop()
@@ -147,6 +171,11 @@ public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStream
       return engine
     }
     let engine = try AetherEngine()
+    // The engine publishes Now Playing for every route and answers the remote's commands.
+    engine.ownsVideoNowPlayingSession = true
+    engine.ownsVideoNowPlayingCommands = true
+    engine.ownsSoftwareNowPlaying = true
+    engine.videoGravity = pendingGravity
     self.engine = engine
     let view = AetherPlayerView(frame: .zero)
     view.backgroundColor = .black
@@ -242,6 +271,29 @@ public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStream
       .removeDuplicates()
       .sink { [weak self] text in self?.send(["cue": text]) }
       .store(in: &subscriptions)
+  }
+
+  /// The card's title, subtitle (show and episode) and artwork, fetched here so the token in
+  /// its address never leaves the app.
+  @MainActor
+  private func nowPlaying(_ args: [String: Any]) {
+    guard let engine = try? ensureEngine() else { return }
+    var info: [String: Any] = [:]
+    if let title = args["title"] as? String, !title.isEmpty { info[MPMediaItemPropertyTitle] = title }
+    if let subtitle = args["subtitle"] as? String, !subtitle.isEmpty { info[MPMediaItemPropertyArtist] = subtitle }
+    engine.setNowPlayingInfo(info)
+    artworkTask?.cancel()
+    guard let s = args["artwork"] as? String, let url = URL(string: s) else { return }
+    artworkTask = URLSession.shared.dataTask(with: url) { data, _, _ in
+      guard let data, let image = UIImage(data: data) else { return }
+      DispatchQueue.main.async { [weak self] in
+        guard let self, let engine = self.engine else { return }
+        var withArt = info
+        withArt[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+        engine.setNowPlayingInfo(withArt)
+      }
+    }
+    artworkTask?.resume()
   }
 
   private static func track(_ t: TrackInfo) -> [String: Any] {
