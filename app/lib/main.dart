@@ -73,8 +73,8 @@ Future<void> _main() async {
     runApp(const ColoredBox(color: Color(0xFF000000)));
     return;
   }
-  // mpv: there's none on a Samsung TV, where Samsung's player is used instead.
-  if (!isTizen) MediaKit.ensureInitialized();
+  // mpv: there's none on a Samsung TV or an Apple TV, where the system player is used instead.
+  if (playerIsMpv) MediaKit.ensureInitialized();
   registerNativeLicenses();
   // Android starts in touch mode, where Flutter hides the focus highlight until the first key
   // press (and hides it again after any touch): on a TV the first press moved focus you
@@ -155,8 +155,8 @@ class ConsoleApp extends StatelessWidget {
   );
 }
 
-/// TVs report 1920×1080 at a pixel ratio of 2, which leaves a 960-wide logical screen: too
-/// cramped for the desktop layout. The app is laid out on a 1440-wide canvas instead and scaled
+/// Android TVs report 1920×1080 at a pixel ratio of 2, which leaves a 960-wide logical screen:
+/// too cramped for the desktop layout (an Apple TV's is 1920 wide, which is too sparse). The app is laid out on a 1440-wide canvas instead and scaled
 /// to fill the screen, so it looks the same from the sofa as on a desktop at 1440.
 class TvCanvas extends StatelessWidget {
   const TvCanvas({super.key, required this.child});
@@ -179,10 +179,17 @@ class TvCanvas extends StatelessWidget {
           viewInsets: mq.viewInsets / scale,
           navigationMode: NavigationMode.directional,
         ),
-        child: FittedBox(
-          fit: BoxFit.fill,
-          alignment: Alignment.topLeft,
-          child: SizedBox.fromSize(size: size, child: child),
+        // Tight to the screen: FittedBox under loose constraints keeps the canvas's own size
+        // when the screen is bigger than it (an Apple TV's 1920-wide logical screen, a large
+        // CONSOLE_TV window), which left the app in the top-left three quarters.
+        child: SizedBox(
+          width: box.maxWidth,
+          height: box.maxHeight,
+          child: FittedBox(
+            fit: BoxFit.fill,
+            alignment: Alignment.topLeft,
+            child: SizedBox.fromSize(size: size, child: child),
+          ),
         ),
       );
     },

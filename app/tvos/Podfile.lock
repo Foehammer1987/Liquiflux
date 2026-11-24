@@ -1,0 +1,22 @@
+PODS:
+  - Flutter (1.0.0)
+  - wakelock_plus (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `FlutterPod`)
+  - wakelock_plus (from `/Users/hunterdavis/.pub-cache/hosted/pub.dev/wakelock_plus-1.8.1/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: FlutterPod
+  wakelock_plus:
+    :path: "/Users/hunterdavis/.pub-cache/hosted/pub.dev/wakelock_plus-1.8.1/ios"
+
+SPEC CHECKSUMS:
+  Flutter: 55544fdbd4480b476e961f64715765ac01f5eb9b
+  wakelock_plus: d4ca1e4e4bc9de42cb55d57b5bdc158af318e3c6
+
+PODFILE CHECKSUM: e4322f1837ebc6269ac349b683b2b8ae71070a42
+
+COCOAPODS: 1.17.0
