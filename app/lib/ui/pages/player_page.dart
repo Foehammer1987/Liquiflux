@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../main.dart' show customTitleBar;
 import '../../platform.dart';
+import '../../services/aether_player.dart';
 import '../../services/avplay_player.dart';
 import '../../services/network_watch.dart';
 import '../../services/pip.dart';
@@ -920,6 +921,8 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
         null => switch (_s.player.platform) {
           // Samsung's player: a hole in the app over the TV's video plane.
           final AvPlayPlayer av => AvPlayView(player: av),
+          // AetherEngine on an Apple TV: its picture is a view behind the app.
+          AetherPlayer() => const AetherView(),
           _ => const SizedBox.expand(),
         },
       },
@@ -1314,7 +1317,7 @@ class _PlayerPageState extends State<PlayerPage> with WindowListener {
         child: Scaffold(
           // With the video plane, the picture and its black bars are behind the app. Black
           // while the pages behind are drawn again for 4K (see GpuMemory), so they don't show.
-          backgroundColor: (_s.plane || isTizen) && !ArtMemory.releaseAll.value ? Colors.transparent : Colors.black,
+          backgroundColor: (_s.plane || isTizen || isTvOS) && !ArtMemory.releaseAll.value ? Colors.transparent : Colors.black,
           body: Focus(
             focusNode: _focus,
             autofocus: true,

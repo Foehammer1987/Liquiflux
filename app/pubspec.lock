@@ -405,6 +405,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.0"
+  liquiflux_aether:
+    dependency: "direct main"
+    description:
+      path: "../packages/liquiflux_aether"
+      relative: true
+    source: path
+    version: "0.1.0"
   logging:
     dependency: transitive
     description:

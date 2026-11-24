@@ -108,5 +108,5 @@ bool lowMemoryRam(int? ramMb) => ramMb != null && ramMb < lowMemoryRamMb;
 final bool homeTrailersSupported = !isLowMemoryTv;
 
 /// Whether trailers can play at all: they need mpv (and its YouTube support), which Samsung
-/// TVs don't have.
-final bool trailersSupported = !isTizen;
+/// TVs and Apple TVs don't have.
+final bool trailersSupported = playerIsMpv;

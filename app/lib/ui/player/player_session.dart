@@ -15,6 +15,7 @@ import 'decoders.dart';
 import '../../services/channels.dart';
 import '../../services/display_match.dart';
 import '../../services/gpu_memory.dart';
+import '../../services/aether_player.dart';
 import '../../services/avplay_player.dart';
 import '../../services/live_players.dart';
 import '../../services/mpv_tls.dart';
@@ -105,14 +106,18 @@ class PlayerSession extends ChangeNotifier {
   /// way, so the player page draws text ones and Plex burns in picture-based ones.
   /// On a Samsung TV, Samsung's player always works this way: it draws on the TV's own
   /// video plane and the app draws the subtitles ([AvPlayPlayer]).
-  late final bool direct = isTizen || prefs.directVideo(android: Platform.isAndroid, lowMemory: isLowMemoryTv);
+  late final bool direct = isTizen || isTvOS || prefs.directVideo(android: Platform.isAndroid, lowMemory: isLowMemoryTv);
 
   late final Player player = () {
     // Streams may only pull in more over the web, never local files.
     // A low-memory TV gets half the read-ahead: Android kills the app outright when memory runs low.
     final config = PlayerConfiguration(title: appName, bufferSize: (isLowMemoryTv ? 32 : 64) * 1024 * 1024, libass: !direct, protocolWhitelist: streamProtocols);
-    // A Samsung TV has no mpv: Samsung's own player stands in behind the same API.
-    final p = Player(configuration: config, platformPlayer: isTizen ? AvPlayPlayer(configuration: config) : null);
+    // A Samsung TV and an Apple TV have no mpv: the system's own player stands in behind the
+    // same API (Samsung's AVPlay, AetherEngine on tvOS).
+    final p = Player(
+      configuration: config,
+      platformPlayer: isTizen ? AvPlayPlayer(configuration: config) : (isTvOS ? AetherPlayer(configuration: config) : null),
+    );
     // Leaving the app lets it go first, if the page hasn't yet (see LivePlayers).
     LivePlayers.add(p, _releasePlayer);
     return p;
@@ -135,7 +140,7 @@ class PlayerSession extends ChangeNotifier {
   /// how Plex's app and Plezy show 4K on the 2019 Shield, where a texture got Liquiflux killed.
   late final bool plane = prefs.planeVideo(android: Platform.isAndroid, lowMemory: isLowMemoryTv);
 
-  late final VideoController? video = plane || isTizen
+  late final VideoController? video = plane || isTizen || isTvOS
       ? null
       : VideoController(
           player,

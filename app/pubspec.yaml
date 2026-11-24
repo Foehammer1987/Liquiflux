@@ -44,6 +44,9 @@ dependencies:
   path_provider_tvos: 0.0.3
   flutter_secure_storage_tvos: 0.0.2
   url_launcher_tvos: 0.0.1
+  # The Apple TV's player (AetherEngine), our own tvOS-only plugin (services/aether_player.dart).
+  liquiflux_aether:
+    path: ../packages/liquiflux_aether
 # Our copy of media_kit_video 2.0.1 with the Windows picture handed to Flutter without
 # tearing (see packages/media_kit_video/LIQUIFLUX.md). Android and the rest are unchanged.
 dependency_overrides:
