@@ -249,6 +249,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.1.6"
+  flutter_secure_storage_tvos:
+    dependency: "direct main"
+    description:
+      name: flutter_secure_storage_tvos
+      sha256: "4a6a82255d5068ea7e548aecf85da7a2a80d88db8be9032b4983469925736bf8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.2"
   flutter_secure_storage_web:
     dependency: transitive
     description:
@@ -596,6 +604,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.3"
+  path_provider_tvos:
+    dependency: "direct main"
+    description:
+      name: path_provider_tvos
+      sha256: "0ace599821a8a283a79339cad41bcda12f7941d1f4bb0973d5d419b87e1fdb47"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.3"
   path_provider_windows:
     dependency: transitive
     description:
@@ -897,6 +913,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.9"
+  url_launcher_tvos:
+    dependency: "direct main"
+    description:
+      name: url_launcher_tvos
+      sha256: "2d5af4398b76a990e7efc263a32b662845b9f9d0a172e6f58f3b99d73e1a9929"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.1"
   url_launcher_web:
     dependency: transitive
     description:

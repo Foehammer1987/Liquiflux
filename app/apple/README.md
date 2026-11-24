@@ -1,12 +1,12 @@
 # Shared Apple files
 
-One copy of what the Mac, iPhone/iPad and (later) Apple TV apps share. Edit these, then run
+One copy of what the Mac, iPhone/iPad and Apple TV apps share. Edit these, then run
 
 ```sh
 dart tools/apple_sync.dart            # from the repository root
 ```
 
-which writes them into each Xcode project (`macos/`, `ios/`, later `tvos/`):
+which writes them into each Xcode project (`macos/`, `ios/`, `tvos/`):
 
 | File | Goes to |
 | --- | --- |

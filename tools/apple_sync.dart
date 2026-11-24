@@ -1,5 +1,5 @@
 // Writes the files every Apple target shares (app/apple/) into each Xcode project, so the
-// Mac, iPhone/iPad and (later) Apple TV apps can't drift apart:
+// Mac, iPhone/iPad and Apple TV apps can't drift apart:
 //
 //   app/apple/PrivacyInfo.xcprivacy   copied whole into each target's Runner folder
 //   app/apple/Info.plist.keys         the keys between the app/apple markers in each Info.plist
@@ -13,7 +13,7 @@
 //   dart tools/apple_sync.dart --icons    also redraw every target's app icon (needs a Mac:
 //                                         tools/make-apple-icons.swift)
 //
-// A new target (tvos/) is one more entry in [targets]. No packages: dart:io only, so CI runs
+// Each target (macos/, ios/, tvos/) is one entry in [targets]. No packages: dart:io only, so CI runs
 // it as it is.
 
 import 'dart:io';
@@ -49,6 +49,13 @@ const targets = [
       entitlements: ['ios/Runner/Runner.entitlements'],
       iconMode: 'ios',
       iconSet: 'ios/Runner/Assets.xcassets/AppIcon.appiconset'),
+  // Apple TV (flutter-tvos). Its icon is a layered brand asset (AppIcon.brandassets), which
+  // --icons doesn't draw yet: iconMode is empty, so it is skipped.
+  AppleTarget('tvos',
+      plists: ['tvos/Runner/Info.plist'],
+      entitlements: ['tvos/Runner/Runner.entitlements'],
+      iconMode: '',
+      iconSet: 'tvos/Runner/Assets.xcassets/AppIcon.brandassets'),
 ];
 
 String begin(String piece) => '\t<!-- Shared by every Apple target: app/apple/$piece (tools/apple_sync.dart writes this block). -->\n';
@@ -114,7 +121,7 @@ void main(List<String> args) {
     if (args.contains('--icons')) {
       final root = File.fromUri(Platform.script).parent.parent.path;
       for (final t in targets) {
-        if (!Directory('$appDir/${t.dir}').existsSync()) continue;
+        if (!Directory('$appDir/${t.dir}').existsSync() || t.iconMode.isEmpty) continue;
         final r = Process.runSync('swift', ['$root/tools/make-apple-icons.swift', t.iconMode, '$root/docs/brand/liquiflux-mark.svg', '$appDir/${t.iconSet}']);
         stdout.write(r.stdout);
         stderr.write(r.stderr);
