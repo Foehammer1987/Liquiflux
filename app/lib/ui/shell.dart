@@ -576,11 +576,13 @@ class _ShellState extends State<Shell> {
     SystemChannels.textInput.invokeMethod<void>('TextInput.show');
   }
 
-  /// Back from the top of Home leaves the app on Android, like any TV app. A Samsung TV asks
-  /// first (Samsung's Return key policy): only Yes closes the app.
+  /// Back from the top of Home leaves the app on Android, like any TV app. On an Apple TV,
+  /// Menu there goes to the Home screen, as in every Apple TV app (tvOS keeps the app
+  /// suspended where it was; there's no exit() on tvOS). A Samsung TV asks first (Samsung's
+  /// Return key policy): only Yes closes the app.
   void _back() {
     if (_backPressed()) return;
-    if (Platform.isAndroid) unawaited(_leaveApp());
+    if (Platform.isAndroid || isTvOS) unawaited(_leaveApp());
     if (isTizen) unawaited(_askToLeave());
   }
 
@@ -597,7 +599,8 @@ class _ShellState extends State<Shell> {
 
   /// Lets go of every mpv player (a Spotlight trailer, a player still closing) before the
   /// activity finishes: one left open crashed natively in libmpv once Dart was gone. On a
-  /// Samsung TV, SystemNavigator.pop is the app's exit() (ui_app_exit in flutter-tizen).
+  /// Samsung TV, SystemNavigator.pop is the app's exit() (ui_app_exit in flutter-tizen); on
+  /// an Apple TV, flutter-tvos's goes to the Home screen and leaves the app suspended.
   Future<void> _leaveApp() async {
     if (_leaving) return;
     _leaving = true;
