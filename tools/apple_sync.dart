@@ -49,12 +49,11 @@ const targets = [
       entitlements: ['ios/Runner/Runner.entitlements'],
       iconMode: 'ios',
       iconSet: 'ios/Runner/Assets.xcassets/AppIcon.appiconset'),
-  // Apple TV (flutter-tvos). Its icon is a layered brand asset (AppIcon.brandassets), which
-  // --icons doesn't draw yet: iconMode is empty, so it is skipped.
+  // Apple TV (flutter-tvos): the whole AppIcon.brandassets, layered icons and Top Shelf.
   AppleTarget('tvos',
       plists: ['tvos/Runner/Info.plist'],
       entitlements: ['tvos/Runner/Runner.entitlements'],
-      iconMode: '',
+      iconMode: 'tvos',
       iconSet: 'tvos/Runner/Assets.xcassets/AppIcon.brandassets'),
 ];
 

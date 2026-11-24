@@ -15,6 +15,10 @@
 // The two layers at any size (e.g. an Apple TV layered icon's back and front, or iPhone's
 // full-bleed 1024 square, which iOS rounds itself):
 //   swift tools/make-apple-icons.swift layers docs/brand/liquiflux-mark.svg <out folder> <width> <height>
+// Apple TV (the whole AppIcon.brandassets: the layered icon, back and front, at 400x240 1x/2x
+// for the Home screen and 1280x768 for the App Store, and both Top Shelf images; tvOS adds
+// the parallax and the rounded corners itself):
+//   swift tools/make-apple-icons.swift tvos docs/brand/liquiflux-mark.svg app/tvos/Runner/Assets.xcassets/AppIcon.brandassets
 
 import AppKit
 
@@ -87,6 +91,67 @@ func ios() -> Data {
 
 func write(_ text: String, _ path: String) { try! text.write(toFile: path, atomically: true, encoding: .utf8) }
 
+/// The Apple TV brand assets in [dir]: a two-layer image stack per icon size (Back opaque,
+/// Front the mark on transparent) and the two Top Shelf images (opaque, the mark a little
+/// above centre, smaller, so the shelf reads as a banner rather than a giant icon).
+func tvos(_ dir: String) {
+  let fm = FileManager.default
+  try? fm.removeItem(atPath: dir)
+  func folder(_ path: String) -> String { try! fm.createDirectory(atPath: "\(dir)/\(path)", withIntermediateDirectories: true); return "\(dir)/\(path)" }
+  func json(_ obj: Any, _ path: String) {
+    let data = try! JSONSerialization.data(withJSONObject: obj, options: [.prettyPrinted, .sortedKeys])
+    try! data.write(to: URL(fileURLWithPath: path))
+  }
+  let info: [String: Any] = ["author": "xcode", "version": 1]
+  // name, points, scales
+  let stacks: [(String, Int, Int, [Int])] = [("App Icon - Small", 400, 240, [1, 2]), ("App Icon - Large", 1280, 768, [1])]
+  for (name, w, h, scales) in stacks {
+    let stack = folder("\(name).imagestack")
+    json(["info": info, "layers": [["filename": "Front.imagestacklayer"], ["filename": "Back.imagestacklayer"]]], "\(stack)/Contents.json")
+    for layer in ["Front", "Back"] {
+      let set = folder("\(name).imagestack/\(layer).imagestacklayer/Content.imageset")
+      json(["info": info], "\(stack)/\(layer).imagestacklayer/Contents.json")
+      var images: [[String: Any]] = []
+      for scale in scales {
+        let pw = w * scale, ph = h * scale
+        let file = "\(layer.lowercased())_\(w)x\(h)@\(scale)x.png"
+        let rect = NSRect(x: 0, y: 0, width: pw, height: ph)
+        let side = CGFloat(min(pw, ph))
+        let png = layer == "Back"
+          ? canvas(pw, ph, opaque: true) { _ in back(in: rect) }
+          : canvas(pw, ph) { _ in front(in: NSRect(x: (CGFloat(pw) - side)/2, y: (CGFloat(ph) - side)/2, width: side, height: side)) }
+        try! png.write(to: URL(fileURLWithPath: "\(set)/\(file)"))
+        images.append(["idiom": "tv", "filename": file, "scale": "\(scale)x"])
+      }
+      json(["info": info, "images": images], "\(set)/Contents.json")
+    }
+  }
+  let shelves: [(String, String, Int, Int)] = [("Top Shelf Image", "top-shelf-image", 1920, 720), ("Top Shelf Image Wide", "top-shelf-image-wide", 2320, 720)]
+  for (name, _, w, h) in shelves {
+    let set = folder("\(name).imageset")
+    var images: [[String: Any]] = []
+    for scale in [1, 2] {
+      let pw = w * scale, ph = h * scale
+      let file = "\(name.lowercased().replacingOccurrences(of: " ", with: "_"))@\(scale)x.png"
+      let rect = NSRect(x: 0, y: 0, width: pw, height: ph)
+      let side = CGFloat(ph) * 0.62
+      let png = canvas(pw, ph, opaque: true) { _ in
+        back(in: rect)
+        front(in: NSRect(x: (CGFloat(pw) - side)/2, y: (CGFloat(ph) - side)/2 + CGFloat(ph) * 0.04, width: side, height: side))
+      }
+      try! png.write(to: URL(fileURLWithPath: "\(set)/\(file)"))
+      images.append(["idiom": "tv", "filename": file, "scale": "\(scale)x"])
+    }
+    json(["info": info, "images": images], "\(set)/Contents.json")
+  }
+  json(["info": info, "assets": [
+    ["filename": "App Icon - Large.imagestack", "idiom": "tv", "role": "primary-app-icon", "size": "1280x768"],
+    ["filename": "App Icon - Small.imagestack", "idiom": "tv", "role": "primary-app-icon", "size": "400x240"],
+    ["filename": "Top Shelf Image Wide.imageset", "idiom": "tv", "role": "top-shelf-image-wide", "size": "2320x720"],
+    ["filename": "Top Shelf Image.imageset", "idiom": "tv", "role": "top-shelf-image", "size": "1920x720"],
+  ]], "\(dir)/Contents.json")
+}
+
 switch mode {
 case "mac":
   for px in [16, 32, 64, 128, 256, 512, 1024] {
@@ -118,6 +183,8 @@ case "ios":
   }
 
   """, "\(out)/Contents.json")
+case "tvos":
+  tvos(out)
 case "launch":
   // 120 points wide, the mark's own shape (480 x 360).
   for (scale, name) in [(1, "LaunchImage.png"), (2, "LaunchImage@2x.png"), (3, "LaunchImage@3x.png")] {
@@ -127,5 +194,5 @@ case "launch":
     }.write(to: URL(fileURLWithPath: "\(out)/\(name)"))
   }
 default:
-  print("mode is mac, ios, launch or layers"); exit(1)
+  print("mode is mac, ios, tvos, launch or layers"); exit(1)
 }

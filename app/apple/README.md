@@ -19,5 +19,6 @@ and scenes). CI runs `dart tools/apple_sync.dart --check`, and `app/test/apple_f
 does the same, so a hand edit to a generated copy fails the build.
 
 App icons come from `docs/brand/liquiflux-mark.svg` through `tools/make-apple-icons.swift`
-(`mac`, `ios`, `launch` and `layers` modes); `dart tools/apple_sync.dart --icons` redraws
-every target's icon on a Mac.
+(`mac`, `ios`, `tvos`, `launch` and `layers` modes); `dart tools/apple_sync.dart --icons` redraws
+every target's icon on a Mac. The Apple TV's is the whole `AppIcon.brandassets`: a two-layer
+icon (dark face behind, the mark in front, so tvOS can give it parallax) and the Top Shelf images.
