@@ -7,12 +7,18 @@ import 'package:console_core/console_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'doc_store.dart';
 import 'safe_file.dart';
 
 /// The shuffle channels saved on this device, per Plex server, and what each has played.
 class ChannelStore extends ChangeNotifier {
-  ChannelStore({Future<File> Function()? file, this.disk = true}) : _fileFor = file;
+  ChannelStore({Future<File> Function()? file, this.disk = true, DocStore? docs}) : _fileFor = file, _docs = docs;
   final Future<File> Function()? _fileFor;
+
+  /// Where channels.json lives when it isn't a file of its own: user defaults on an Apple TV
+  /// ([DefaultsDocStore]). Null keeps it in the support folder.
+  final DocStore? _docs;
+  static const _name = 'channels.json';
 
   /// Off keeps the channels in memory only (tests).
   final bool disk;
@@ -33,7 +39,12 @@ class ChannelStore extends ChangeNotifier {
     final f = _fileFor;
     if (f != null) return f();
     final dir = await getApplicationSupportDirectory();
-    return File('${dir.path}${Platform.pathSeparator}channels.json');
+    return File('${dir.path}${Platform.pathSeparator}$_name');
+  }
+
+  Future<void> _write(String text) async {
+    if (_docs case final docs?) return docs.write(_name, text);
+    await writeAtomically(await _file(), text);
   }
 
   /// Reads the channels saved for [server] (its machine id).
@@ -52,9 +63,15 @@ class ChannelStore extends ChangeNotifier {
   Future<void> _readFile() async {
     if (!disk) return;
     try {
-      final f = await _file();
-      if (await f.exists() && await f.length() <= maxBytes) {
-        final j = jsonDecode(await f.readAsString());
+      final String? text;
+      if (_docs case final docs?) {
+        text = await docs.read(_name);
+      } else {
+        final f = await _file();
+        text = await f.exists() && await f.length() <= maxBytes ? await f.readAsString() : null;
+      }
+      if (text != null && text.length <= maxBytes) {
+        final j = jsonDecode(text);
         if (j is Map<String, dynamic> && j['servers'] is Map<String, dynamic>) _all = j['servers'] as Map<String, dynamic>;
       }
     } catch (e) {
@@ -129,7 +146,7 @@ class ChannelStore extends ChangeNotifier {
     };
     if (!disk) return;
     try {
-      await writeAtomically(await _file(), jsonEncode({'servers': _all}));
+      await _write(jsonEncode({'servers': _all}));
     } catch (e) {
       debugPrint('channels save: $e');
     }

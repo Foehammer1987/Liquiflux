@@ -8,6 +8,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../app_info.dart';
+import 'doc_store.dart';
 import 'playback_prefs.dart';
 import 'safe_file.dart';
 
@@ -341,12 +342,18 @@ class OsSecretStore implements SecretStore {
 /// all (a Linux desktop without a keyring), credentials are never written in plain text:
 /// they last until Liquiflux closes and [secureStorageOk] turns false so Settings can say so.
 class SettingsStore {
-  SettingsStore({SecretStore? secrets, Future<Directory> Function()? folder, this.forgetOnFreshInstall = false})
+  SettingsStore({SecretStore? secrets, Future<Directory> Function()? folder, this.forgetOnFreshInstall = false, DocStore? docs})
     : _secrets = secrets ?? const OsSecretStore(),
-      _folder = folder ?? getApplicationSupportDirectory;
+      _folder = folder ?? getApplicationSupportDirectory,
+      _docs = docs;
 
   final SecretStore _secrets;
   final Future<Directory> Function() _folder;
+
+  /// Where settings.json lives when it isn't a file of its own: user defaults on an Apple TV
+  /// ([DefaultsDocStore]). Null keeps it in the support folder.
+  final DocStore? _docs;
+  static const _name = 'settings.json';
 
   /// Apple's keychain outlives the app: deleting Liquiflux from an iPhone, iPad or Mac
   /// leaves its sign-ins behind, and a reinstall would find them. With this set (on Apple
@@ -387,7 +394,7 @@ class SettingsStore {
   Future<File> _file() async {
     final dir = await _folder();
     await dir.create(recursive: true);
-    final f = File('${dir.path}${Platform.pathSeparator}settings.json');
+    final f = File('${dir.path}${Platform.pathSeparator}$_name');
     if (!await f.exists()) await _carryOver(dir);
     return f;
   }
@@ -413,10 +420,16 @@ class SettingsStore {
   Future<Settings> load() async {
     Map<String, dynamic> j = {};
     try {
-      final f = await _file();
-      if (forgetOnFreshInstall && !await f.exists()) await _forgetAll();
-      if (await f.exists()) {
-        final decoded = jsonDecode(await f.readAsString());
+      final String? text;
+      if (_docs case final docs?) {
+        text = await docs.read(_name);
+      } else {
+        final f = await _file();
+        text = await f.exists() ? await f.readAsString() : null;
+      }
+      if (forgetOnFreshInstall && text == null) await _forgetAll();
+      if (text != null) {
+        final decoded = jsonDecode(text);
         if (decoded is Map<String, dynamic>) j = decoded;
       }
     } catch (e) {
@@ -549,7 +562,12 @@ class SettingsStore {
     for (final e in values.entries) {
       if (_fromEnv[e.key] != e.value) await _write(_keys[e.key]!, e.value);
     }
-    await writeAtomically(await _file(), const JsonEncoder.withIndent('  ').convert(j));
+    final text = const JsonEncoder.withIndent('  ').convert(j);
+    if (_docs case final docs?) {
+      await docs.write(_name, text);
+    } else {
+      await writeAtomically(await _file(), text);
+    }
   }
 
   /// Takes credentials out of settings.json in the folders of the app's earlier names.
