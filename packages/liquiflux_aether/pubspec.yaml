@@ -1,0 +1,18 @@
+name: liquiflux_aether
+description: "Liquiflux's Apple TV player: AetherEngine (FFmpeg demux, VideoToolbox, AVPlayer) behind a method channel."
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.10.0
+  flutter: ">=3.38.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      tvos:
+        pluginClass: LiquifluxAetherPlugin
