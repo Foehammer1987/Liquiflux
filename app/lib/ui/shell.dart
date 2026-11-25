@@ -623,6 +623,7 @@ class _ShellState extends State<Shell> {
   /// arriving after either) waits a moment for the text to land, then searches what's in
   /// the box.
   void _searchKeyboardClosed() {
+    if (Probe.on) debugPrint('search: field focus ${_searchFocus.hasFocus}, ${_search.text.length} characters');
     if (_searchFocus.hasFocus) {
       _lastSearch = null;
       _typing = true;
@@ -633,10 +634,12 @@ class _ShellState extends State<Shell> {
   }
 
   void _searchTextArrived() {
+    if (Probe.on) debugPrint('search: text now ${_search.text.length} characters, field focus ${_searchFocus.hasFocus}, typing $_typing');
     if (_typing && (!_searchFocus.hasFocus || _submitSeen)) _typingOver('text');
   }
 
   void _typingOver(String why) {
+    if (Probe.on) debugPrint('search: $why');
     if (!_typing) return;
     if (why == 'submit') _submitSeen = true;
     _typed?.cancel();
