@@ -31,6 +31,11 @@ sets building the same way: a change to how the app is built goes into both file
   `SHA256SUMS.txt` as a Forgejo release. `v1.0.15-rc1`, `-rc2`... make pre-releases (test
   builds); `v1.0.15` makes a normal release with that version's `CHANGELOG.md` section. It never
   touches GitHub, and the rc tags stay on Forgejo.
+- `apple.yml`: on pull requests and pushes to `main` that touch an Apple target (`app/macos`,
+  `app/ios`, `app/tvos`, `app/apple`, the two Apple TV packages, `tools/apple_sync.dart`,
+  `tools/make-apple-icons.swift`) and Run workflow. Checks `dart tools/apple_sync.dart --check`,
+  then debug builds for the Mac, the iPhone/iPad simulator and the Apple TV simulator, unsigned
+  and not uploaded. Runs on the Mac runner (see below).
 - `collection-pack.yml`: on the 1st of each month (and Run workflow) rebuilds the TV collection
   pack and opens a pull request with it on a `collection-pack/<date>` branch, instead of
   committing to `main`. On GitHub the same workflow now only runs by hand or when its builder
@@ -136,3 +141,47 @@ Host mode has no container: a workflow runs as that user, with everything that u
 Keep it to private repositories that only trusted people push to.
 
 Without a Windows runner, `tools/build-windows.ps1` builds Windows locally.
+
+## The Mac runner
+
+Apple jobs (`runs-on: macos`) need a Mac. For now that's a borrowed MacBook, so the runner is
+temporary: while the Mac is off, asleep or away, `apple.yml` jobs just wait in the queue, and
+the workflow isn't a required check, so nothing else waits on it.
+
+It is Forgejo's runner (`forgejo-runner` v12, built from source, since there's no official
+macOS build) in host mode, named `macbook-apple`, registered for your Forgejo user with the
+single label `macos:host`, capacity 1 and a 2-hour job timeout. It lives in `~/forgejo-runner`
+(`config.yaml`, the `.runner` credentials file, `runner.log` and the binary, wrapped in a small
+`ForgejoRunner.app` bundle, id `org.forgejo.runner`, so macOS's Local Network privacy can
+identify it) and is started at logon by a launchd user agent,
+`~/Library/LaunchAgents/org.forgejo.runner.plist`, which runs
+`ForgejoRunner.app/Contents/MacOS/forgejo-runner daemon` and restarts it if it stops. Its
+`config.yaml` puts `~/dev/flutter/bin`, `~/dev/flutter-tvos/bin` and `/opt/homebrew/bin` on
+the jobs' `PATH` and sets `LANG`/`LC_ALL` to `en_US.UTF-8` for CocoaPods. It needs Xcode,
+CocoaPods, Node.js (for the checkout action), Flutter and flutter-tvos (README.md, "Apple TV").
+If `runner.log` says `no route to host` for the Forgejo address, macOS is blocking it from the
+local network: allow Forgejo Runner under System Settings > Privacy & Security > Local Network.
+A bare binary started by launchd isn't listed there, which is why it is wrapped in the bundle.
+
+Each job's checkout lands in a new random folder, and Xcode keys its DerivedData on the
+project's path, so `tools/ci/apple-build.sh` copies the checkout into one fixed folder per
+target, `~/forgejo-runner/apple-build/<macos|ios|tvos>`, and builds there. Xcode's intermediate
+builds, the Swift packages (AetherEngine, FFmpeg) and Pods then carry over between runs, and the
+downloads stay in the Mac's shared caches (`~/.pub-cache`, `~/Library/Caches/org.swift.swiftpm`,
+`~/.cocoapods`, Flutter's and flutter-tvos's `bin/cache`). Only `app/build` is deleted after each
+run. To force a cold build, delete that target's folder.
+
+Like the Windows runner, host mode runs jobs as the Mac's user with everything that user can
+reach, so keep it to private repositories that only trusted people push to.
+
+Before the Mac goes back, remove the runner:
+
+```sh
+launchctl bootout gui/$(id -u)/org.forgejo.runner
+rm ~/Library/LaunchAgents/org.forgejo.runner.plist
+rm -rf ~/forgejo-runner
+grep -l forgejo-runner/apple-build ~/Library/Developer/Xcode/DerivedData/Runner-*/info.plist \
+  | xargs -n1 dirname | xargs rm -rf     # the runner's Xcode builds
+```
+
+then delete `macbook-apple` in Forgejo under forgeadmin > Settings > Actions > Runners.

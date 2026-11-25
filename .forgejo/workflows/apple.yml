@@ -1,0 +1,88 @@
+# Apple builds: checks that the Mac, iPhone/iPad and Apple TV apps still build, on pull
+# requests and pushes to main that touch an Apple target, and by hand (Run workflow). Debug
+# builds only, no signing, nothing uploaded: this proves the build, it doesn't ship it.
+#
+# Runs on the Mac runner (label `macos`, host mode, see docs/CI.md). Host mode has no
+# container, so the jobs use the Mac's own toolchains: Xcode, CocoaPods from Homebrew, Flutter
+# in ~/dev/flutter and flutter-tvos in ~/dev/flutter-tvos (README.md, "Apple TV"), all on the
+# PATH the runner's config.yaml sets. While the Mac is off or away, these jobs wait in the
+# queue; the workflow isn't a required check.
+#
+# The runner runs one job at a time, so the four jobs below run one after another. Each build
+# runs through tools/ci/apple-build.sh, which builds in one fixed folder per target
+# (~/forgejo-runner/apple-build/<target>) instead of the job's random checkout folder, so Xcode's
+# DerivedData and the Swift packages are reused instead of rebuilt and copied (and piling up)
+# every run. Downloads stay in the Mac's shared caches (pub, SwiftPM, CocoaPods, Flutter); the
+# script deletes only the build output when it ends, pass or fail.
+
+name: apple
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - app/tvos/**
+      - app/ios/**
+      - app/macos/**
+      - app/apple/**
+      - packages/liquiflux_aether/**
+      - packages/liquiflux_tvos/**
+      - tools/apple_sync.dart
+      - tools/make-apple-icons.swift
+      - tools/ci/apple-build.sh
+      - .forgejo/workflows/apple.yml
+  pull_request:
+    paths:
+      - app/tvos/**
+      - app/ios/**
+      - app/macos/**
+      - app/apple/**
+      - packages/liquiflux_aether/**
+      - packages/liquiflux_tvos/**
+      - tools/apple_sync.dart
+      - tools/make-apple-icons.swift
+      - tools/ci/apple-build.sh
+      - .forgejo/workflows/apple.yml
+  workflow_dispatch:
+
+env:
+  # CocoaPods refuses to run without a UTF-8 locale.
+  LANG: en_US.UTF-8
+  LC_ALL: en_US.UTF-8
+
+jobs:
+  apple-sync:
+    name: apple_sync --check
+    runs-on: macos
+    timeout-minutes: 10
+    steps:
+      - uses: https://code.forgejo.org/actions/checkout@v4
+      - name: Shared Apple files match app/apple
+        run: dart tools/apple_sync.dart --check
+
+  macos:
+    name: macOS debug build
+    runs-on: macos
+    timeout-minutes: 60
+    steps:
+      - uses: https://code.forgejo.org/actions/checkout@v4
+      - name: flutter build macos --debug
+        run: tools/ci/apple-build.sh macos
+
+  ios:
+    name: iOS simulator debug build
+    runs-on: macos
+    timeout-minutes: 60
+    steps:
+      - uses: https://code.forgejo.org/actions/checkout@v4
+      - name: flutter build ios --simulator --debug
+        run: tools/ci/apple-build.sh ios
+
+  tvos:
+    name: tvOS simulator debug build
+    runs-on: macos
+    timeout-minutes: 60
+    steps:
+      - uses: https://code.forgejo.org/actions/checkout@v4
+      - name: flutter-tvos build tvos --simulator --debug
+        run: tools/ci/apple-build.sh tvos
