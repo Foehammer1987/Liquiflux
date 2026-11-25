@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1.11
+
+Liquiflux on Apple TV.
+
+- **Apple TV app** (tvOS 18 and later; tried on an Apple TV 4K, 2nd generation, tvOS 27.2.1). The TV layout, the Siri Remote and the Plex link-code sign-in, as on Android TV. Built with flutter-tvos (see the README). The same bundle id, team and keychain group as the Mac and iPhone apps.
+  - **Player:** AetherEngine, through Apple's own video pipeline. H.264, HEVC, VC-1 and older codecs and AV1 up to 1080p play as they are; 4K HDR10 and Dolby Vision switch the TV into HDR or Dolby Vision (with Match Content › Match Dynamic Range on in the Apple TV's settings). Picture-based subtitles (PGS, VobSub, DVB) are drawn on the Apple TV, so a 4K film with SDH subtitles keeps its HDR instead of being transcoded. Text subtitles, sidecar files, audio tracks, Fit / Fill / Stretch, seeking and Play/Pause work as elsewhere. The TV leaves HDR only after the player has closed, so the page behind it no longer freezes half-way in.
+  - **Remote:** swipes and the click pad move focus, Select presses, Back goes back and from the top of Home to the Apple TV's Home screen (no exit prompt), Play/Pause toggles the player. Search opens the Apple TV's own keyboard; its Search key searches.
+  - **Now Playing:** the title, show and poster go to tvOS, so the iPhone's Apple TV Remote shows them. tvOS itself shows no Control Center tile for the app on screen (none for YouTube either).
+  - **Storage:** settings and channels are kept in tvOS's user defaults, since tvOS may clear an app's files; caches go to Caches, the only folder an Apple TV app may write besides tmp.
+  - **Icon:** a three-layer icon and the Top Shelf images, drawn from the Liquiflux mark.
+  - **Not in this version:** the height channels of TrueHD Atmos and DTS:X (they play as 7.1; the decoders may need patent licences, so they stay off). Dolby Vision Profile 7 (UHD Blu-ray rips) plays its HDR10 base layer. 4K AV1 is converted by Plex (no Apple TV has an AV1 decoder). No trailers behind the Home spotlight (they need mpv).
+- **TV layout on wide screens:** the 1440-wide TV canvas now fills a screen wider than that (an Apple TV, or a large `CONSOLE_TV` window) instead of sitting in its top-left corner. Android TVs are unchanged.
+- **Licenses:** the Open-Source Licenses page lists AetherEngine, its FFmpeg, dav1d, zimg, libzvbi and libdovi on Apple TV.
+- For developers: a probe launch (`LIQUIFLUX_PROBE`) works on Apple TV too, logging to the app's `tmp` folder with the player's own log beside it; `tools/make-apple-icons.swift tvos` draws the Apple TV icon set and `tools/apple_sync.dart` covers `app/tvos`. There is no Apple TV CI job yet (it needs a Mac runner).
+- Version 1.1.11+88 (Samsung packages 1.1.1100, 1.1.1101, 1.1.1102).
+
 ## 1.1.10
 
 The sidebar names its buttons.
