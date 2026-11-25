@@ -22,6 +22,10 @@ public final class LiquifluxTvosPlugin: NSObject, FlutterPlugin {
         UserDefaults.standard.removeObject(forKey: key)
       }
       result(nil)
+    case "environment":
+      // Dart's Platform.environment is empty on tvOS; launch switches are read here.
+      guard let key = args["key"] as? String else { return result(nil) }
+      result(ProcessInfo.processInfo.environment[key])
     default:
       result(FlutterMethodNotImplemented)
     }

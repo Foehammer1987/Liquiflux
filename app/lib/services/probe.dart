@@ -6,8 +6,10 @@ import 'package:console_ui/console_ui.dart' show DrawProbe;
 import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../platform.dart';
 import '../state/app_state.dart';
 import '../state/scope.dart';
 import '../ui/play.dart';
@@ -18,7 +20,7 @@ import 'gpu_memory.dart';
 ///
 ///     adb shell am start -n com.foehammer.liquiflux/com.foehammer.console_app.Probe --es probe noglass,cover=25
 ///
-/// On Windows they come from the environment, and the log goes to a file
+/// On Windows and an Apple TV they come from the environment, and the log goes to a file
 /// (LIQUIFLUX_PROBE_LOG, or liquiflux-probe.log in the temp folder):
 ///
 ///     $env:LIQUIFLUX_PROBE = 'play=1234,full'; .\Liquiflux.exe
@@ -91,10 +93,16 @@ abstract final class Probe {
 
   /// At launch, before anything else is set up.
   static Future<void> init() async {
-    if (Platform.isWindows) {
-      set(Platform.environment['LIQUIFLUX_PROBE']);
+    if (Platform.isWindows || isTvOS) {
+      // An Apple TV gets the same switches from the launch's environment (devicectl device
+      // process launch --environment-variables), and its log in the app's tmp folder, to copy
+      // off with devicectl device copy from: a release build's own lines aren't on its console.
+      // Dart's Platform.environment is empty in an Apple TV build, so the launch's variable
+      // is read natively there.
+      set(isTvOS ? await _tvosEnv('LIQUIFLUX_PROBE') : Platform.environment['LIQUIFLUX_PROBE']);
       if (!on) return;
-      _logToFile(Platform.environment['LIQUIFLUX_PROBE_LOG'] ?? '${Directory.systemTemp.path}\\liquiflux-probe.log');
+      final tmp = isTvOS ? (await getTemporaryDirectory()).path : Directory.systemTemp.path;
+      _logToFile(Platform.environment['LIQUIFLUX_PROBE_LOG'] ?? '$tmp${Platform.pathSeparator}liquiflux-probe.log');
       final quit = int.tryParse(value('quit') ?? '');
       if (quit != null) Timer(Duration(seconds: quit), () => exit(0));
     } else if (Platform.isAndroid) {
@@ -118,6 +126,14 @@ abstract final class Probe {
     });
   }
 
+  static Future<String?> _tvosEnv(String key) async {
+    try {
+      return await const MethodChannel('liquiflux/tvos').invokeMethod<String>('environment', {'key': key});
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Every log line also goes to [path], with the time since launch (Windows has no logcat).
   static void _logToFile(String path) {
     final file = File(path);
@@ -138,7 +154,7 @@ abstract final class Probe {
     };
   }
 
-  static void log() => debugPrint('probe ${_clock.elapsed.inSeconds}s $_phase: ${GpuMemory.status()}$_mapped');
+  static void log() => debugPrint('probe ${_clock.elapsed.inSeconds}s $_phase: ${isTvOS ? 'rss ${ProcessInfo.currentRss >> 20} MB, ' : ''}${GpuMemory.status()}$_mapped');
 
   /// Once the app's shell is up: runs `cover` and `play`. [openTitle] opens a title page.
   static Future<void> atHome(BuildContext context, {required void Function(String ratingKey) openTitle}) async {

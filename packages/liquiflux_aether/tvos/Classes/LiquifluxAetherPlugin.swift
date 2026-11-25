@@ -23,6 +23,10 @@ public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStream
     registrar.addMethodCallDelegate(plugin, channel: channel)
     FlutterEventChannel(name: "liquiflux/aether/events", binaryMessenger: registrar.messenger())
       .setStreamHandler(plugin)
+    // A probe launch (LIQUIFLUX_PROBE in the environment, see app/lib/services/probe.dart) also
+    // copies the engine's log into tmp/aetherengine.log: os_log isn't on a release build's
+    // console, and the file can be copied off the Apple TV with devicectl.
+    if ProcessInfo.processInfo.environment["LIQUIFLUX_PROBE"] != nil { EngineLogFile.start() }
   }
 
   private var engine: AetherEngine?
@@ -300,5 +304,23 @@ public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStream
     var m: [String: Any] = ["id": t.id, "name": t.name, "codec": t.codec, "channels": t.channels, "default": t.isDefault]
     if let l = t.language { m["language"] = l }
     return m
+  }
+}
+
+/// The engine's log lines appended to tmp/aetherengine.log, one at a time on a queue of their
+/// own (the handler fires on the engine's threads and must not block).
+private enum EngineLogFile {
+  static let queue = DispatchQueue(label: "liquiflux.aether.log")
+  static var handle: FileHandle?
+
+  static func start() {
+    let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("aetherengine.log")
+    FileManager.default.createFile(atPath: url.path, contents: nil)
+    handle = try? FileHandle(forWritingTo: url)
+    let started = Date()
+    EngineLog.handler = { line in
+      let stamp = String(format: "%.3f ", Date().timeIntervalSince(started))
+      queue.async { handle?.write(Data((stamp + line + "\n").utf8)) }
+    }
   }
 }
