@@ -145,7 +145,7 @@ class Updater extends ChangeNotifier {
   Updater({http.Client? client, Future<Directory> Function()? folder, Future<Directory> Function()? downloadFolder, String? os, Abi? abi, MethodChannel? channel})
     : _client = client ?? http.Client(),
       _downloadFolder = downloadFolder,
-      _folder = folder ?? getApplicationSupportDirectory,
+      _folder = folder ?? appDataDirectory,
       _os = os ?? Platform.operatingSystem,
       _abi = abi ?? Abi.current(),
       _channel = channel ?? const MethodChannel('liquiflux/update');

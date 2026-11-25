@@ -5,7 +5,6 @@ import 'dart:math';
 
 import 'package:console_core/console_core.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 
 import 'doc_store.dart';
 import 'safe_file.dart';
@@ -38,7 +37,7 @@ class ChannelStore extends ChangeNotifier {
   Future<File> _file() async {
     final f = _fileFor;
     if (f != null) return f();
-    final dir = await getApplicationSupportDirectory();
+    final dir = await appDataDirectory();
     return File('${dir.path}${Platform.pathSeparator}$_name');
   }
 

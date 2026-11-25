@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:console_core/console_core.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../app_info.dart';
 import 'safe_file.dart';
@@ -28,7 +27,7 @@ const builtInAniListId = String.fromEnvironment('LIQUIFLUX_ANILIST_CLIENT_ID');
 class Scrobbler extends ChangeNotifier {
   Scrobbler({SecretStore? secrets, Future<Directory> Function()? folder, JsonHttp Function()? http, String? traktBase, String? anilistEndpoint})
     : _secrets = secrets ?? const OsSecretStore(),
-      _folder = folder ?? getApplicationSupportDirectory,
+      _folder = folder ?? appDataDirectory,
       _newHttp = http,
       _traktBase = traktBase ?? Platform.environment['CONSOLE_TRAKT_URL'] ?? 'https://api.trakt.tv',
       _anilistEndpoint = anilistEndpoint ?? 'https://graphql.anilist.co';

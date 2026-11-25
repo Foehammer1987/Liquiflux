@@ -5,7 +5,6 @@ import 'dart:math';
 import 'package:console_core/console_core.dart' show SpoilerPrefs, Taste, errorText, isWebUrl;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../app_info.dart';
 import 'doc_store.dart';
@@ -344,7 +343,7 @@ class OsSecretStore implements SecretStore {
 class SettingsStore {
   SettingsStore({SecretStore? secrets, Future<Directory> Function()? folder, this.forgetOnFreshInstall = false, DocStore? docs})
     : _secrets = secrets ?? const OsSecretStore(),
-      _folder = folder ?? getApplicationSupportDirectory,
+      _folder = folder ?? appDataDirectory,
       _docs = docs;
 
   final SecretStore _secrets;

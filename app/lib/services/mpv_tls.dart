@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:path_provider/path_provider.dart';
+
+import 'safe_file.dart';
 
 /// Certificate checks for mpv's https streams.
 ///
@@ -27,7 +28,7 @@ abstract final class MpvTls {
       final data = await rootBundle.load(asset);
       final bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
       final sep = Platform.pathSeparator;
-      final dir = Directory('${(await getApplicationSupportDirectory()).path}${sep}tls');
+      final dir = Directory('${(await appDataDirectory()).path}${sep}tls');
       await dir.create(recursive: true);
       final f = File('${dir.path}${sep}cacert.pem');
       if (await f.exists() && listEquals(await f.readAsBytes(), bytes)) return f.path;

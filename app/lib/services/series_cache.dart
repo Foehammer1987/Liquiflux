@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 
 import 'safe_file.dart';
 
@@ -15,7 +14,7 @@ class SeriesCache {
   final _saves = SaveQueue();
 
   Future<File> _file() async {
-    final dir = await getApplicationSupportDirectory();
+    final dir = await appDataDirectory();
     return File('${dir.path}${Platform.pathSeparator}series_cache.json');
   }
 

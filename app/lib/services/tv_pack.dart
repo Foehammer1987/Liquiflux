@@ -5,7 +5,8 @@ import 'package:console_core/console_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
+
+import 'safe_file.dart';
 
 /// Liquiflux's TV collection pack: the shows of each TV network and programming block
 /// (Adult Swim, Toonami, Nick at Nite...). The same list for everyone; each install matches
@@ -17,7 +18,7 @@ import 'package:path_provider/path_provider.dart';
 class TvPackStore {
   TvPackStore({http.Client? client, Future<Directory> Function()? folder, Future<String> Function()? bundled})
     : _client = client ?? http.Client(),
-      _folder = folder ?? getApplicationSupportDirectory,
+      _folder = folder ?? appDataDirectory,
       _bundled = bundled ?? (() => rootBundle.loadString(asset));
 
   static const asset = 'assets/collections/tv-pack.json';

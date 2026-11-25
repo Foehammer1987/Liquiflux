@@ -7,7 +7,6 @@ import 'package:console_ui/console_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app_info.dart';
@@ -18,6 +17,7 @@ import 'services/gpu_memory.dart';
 import 'services/native_licenses.dart';
 import 'services/notifier.dart';
 import 'services/probe.dart';
+import 'services/safe_file.dart';
 import 'services/settings_store.dart';
 import 'services/trusted_roots.dart';
 import 'state/app_state.dart';
@@ -120,7 +120,7 @@ Future<void> _main() async {
   final tmdbImages = Platform.environment['CONSOLE_TMDB_IMAGES'];
   if (tmdbImages != null) SeerrImages.base = tmdbImages;
   // An Apple TV may purge the app's files, so settings and channels go in user defaults there.
-  final docs = isTvOS ? DefaultsDocStore(values: const TvosDefaults(), legacy: getApplicationSupportDirectory) : null;
+  final docs = isTvOS ? DefaultsDocStore(values: const TvosDefaults(), legacy: appDataDirectory) : null;
   final state = AppState(SettingsStore(forgetOnFreshInstall: isApple, docs: docs), channels: ChannelStore(docs: docs));
   if (_intro) await Intro.preload();
   runApp(ConsoleApp(state: state));

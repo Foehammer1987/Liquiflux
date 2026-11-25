@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:console_core/console_core.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 
 import 'safe_file.dart';
 
@@ -29,7 +28,7 @@ class CollectionsCache {
   static const maxBytes = 64 * 1024 * 1024;
 
   Future<File> _file() async {
-    final dir = await getApplicationSupportDirectory();
+    final dir = await appDataDirectory();
     return File('${dir.path}${Platform.pathSeparator}collections_cache.json');
   }
 
