@@ -19,18 +19,20 @@ Future<void> settle(WidgetTester t, [int frames = 20]) async {
 /// Settings > Advanced > About: the Open-Source Licenses page (with the player's native
 /// libraries) and the privacy policy.
 void main() {
-  test('the player\'s native libraries: none on a Samsung TV, FFmpeg as LGPL 3 on Apple', () async {
+  test('the player\'s native libraries: none on a Samsung TV, FFmpeg as LGPL 3 on Apple, AetherEngine on an Apple TV', () async {
     expect(nativeLicenses(tizen: true), isEmpty);
-    final apple = nativeLicenses(apple: true, tizen: false);
+    final tv = nativeLicenses(tizen: false, tvos: true);
+    expect(tv.map((l) => l.name), containsAll(['AetherEngine', 'FFmpeg', 'dav1d', 'libdovi']));
+    final apple = nativeLicenses(apple: true, tizen: false, tvos: false);
     final ffmpeg = apple.firstWhere((l) => l.name == 'FFmpeg');
     expect(ffmpeg.files, containsAll(['LGPL-3.0.txt', 'GPL-3.0.txt']));
     expect(apple.map((l) => l.name), containsAll(['mpv', 'Mbed TLS', 'dav1d', 'libass', 'FreeType']));
-    final other = nativeLicenses(apple: false, tizen: false);
+    final other = nativeLicenses(apple: false, tizen: false, tvos: false);
     expect(other.map((l) => l.name), ['mpv', 'FFmpeg']);
     expect(other.last.files, contains('LGPL-2.1.txt'));
     // Every file named is in the app's assets.
     TestWidgetsFlutterBinding.ensureInitialized();
-    for (final f in {for (final l in [...apple, ...other]) ...l.files}) {
+    for (final f in {for (final l in [...apple, ...other, ...tv]) ...l.files}) {
       expect(await rootBundle.loadString('assets/licenses/$f'), isNotEmpty, reason: f);
     }
   });

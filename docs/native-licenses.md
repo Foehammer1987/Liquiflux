@@ -37,3 +37,16 @@ The decision (November 2026) is to keep these LGPL 3 builds. What the LGPL asks 
   changes, point `MPV_XCFRAMEWORKS_VERSION`/the download in
   media_kit_libs_{macos,ios}_video's Makefile (or drop your xcframeworks in its
   `.cache/xcframeworks`) and run `flutter build macos` / `flutter build ios` in `app/`.
+
+## Apple TV
+
+The Apple TV build plays through AetherEngine (LGPL-3.0 with an App Store exception,
+statically linked, pinned to one tag in `packages/liquiflux_aether/tvos/Package.swift`) and
+FFmpegBuild's dynamic frameworks (FFmpeg under LGPL-2.1-or-later, dav1d, zimg, libzvbi),
+with libdovi (MIT). Their texts are in `app/assets/licenses/` (`aetherengine.txt`,
+`LGPL-2.1.txt`, `dav1d.txt`, `zimg.txt`, `libzvbi-ure.txt`, `libdovi.txt`) and the app lists
+them on its Open-Source Licenses page (`appleTvLicenses` in
+`app/lib/services/native_licenses.dart`). The FFmpeg frameworks stay dynamic, as the LGPL
+asks. AetherEngine's optional TrueHD and DTS:X height components are not built in; turning
+them on adds LibTrueHD (Apache-2.0) and, per AetherEngine's own documentation, possible
+third-party patent licensing.

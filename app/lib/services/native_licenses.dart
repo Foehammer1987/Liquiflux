@@ -8,10 +8,11 @@ import '../platform.dart';
 typedef NativeLicense = ({String name, String note, List<String> files});
 
 /// The native libraries in this build, for the Open-Source Licenses page. Flutter lists the
-/// Dart packages and its own engine itself; these are the player's. None on a Samsung TV or
-/// an Apple TV, which play through the system's own player instead of mpv.
-List<NativeLicense> nativeLicenses({bool? apple, bool? tizen}) {
-  if (tizen ?? (isTizen || isTvOS)) return const [];
+/// Dart packages and its own engine itself; these are the player's. None on a Samsung TV,
+/// which plays through Samsung's own player; AetherEngine and its libraries on an Apple TV.
+List<NativeLicense> nativeLicenses({bool? apple, bool? tizen, bool? tvos}) {
+  if (tizen ?? isTizen) return const [];
+  if (tvos ?? isTvOS) return appleTvLicenses;
   // The Mac and iPhone builds carry media_kit's libmpv frameworks: FFmpeg there is
   // configured with --enable-version3 (for mbedTLS), so it is LGPL 3.
   final darwin = apple ?? isApple;
@@ -41,6 +42,31 @@ List<NativeLicense> nativeLicenses({bool? apple, bool? tizen}) {
     ],
   ];
 }
+
+/// The Apple TV's player: AetherEngine (statically linked, LGPL 3 with an App Store
+/// exception) and FFmpegBuild's dynamic frameworks, as FFmpegBuild's LICENSES lists them,
+/// plus libdovi (MIT, quietvoid's notice). The optional TrueHD Atmos part (LibTrueHD) isn't
+/// built in.
+const appleTvLicenses = <NativeLicense>[
+  (
+    name: 'AetherEngine',
+    note: 'The video player (7.73.0). GNU Lesser General Public License, version 3, with an App Store exception. Source: https://github.com/superuser404notfound/AetherEngine/tree/7.73.0',
+    files: ['aetherengine.txt'],
+  ),
+  (
+    name: 'FFmpeg',
+    note: 'Decodes audio and video, as dynamic frameworks (FFmpegBuild 3.19.0, FFmpeg n8.1.3 with local patches). GNU Lesser General Public License, version 2.1 or later. Source and build: https://github.com/superuser404notfound/FFmpegBuild/tree/3.19.0',
+    files: ['LGPL-2.1.txt'],
+  ),
+  (name: 'dav1d', note: 'AV1 video decoding. BSD 2-clause license.', files: ['dav1d.txt']),
+  (name: 'zimg', note: 'Picture scaling and colour conversion. WTFPL.', files: ['zimg.txt']),
+  (
+    name: 'libzvbi',
+    note: 'Teletext subtitles. GNU Lesser General Public License, version 2.0 or later (conveyed under 2.1), its GPL files removed; ure.c under the MIT license. Source and changes: https://github.com/superuser404notfound/FFmpegBuild/tree/3.19.0',
+    files: ['LGPL-2.1.txt', 'libzvbi-ure.txt'],
+  ),
+  (name: 'libdovi', note: 'Reads Dolby Vision metadata. MIT license (dovi_tool by quietvoid and contributors).', files: ['libdovi.txt']),
+];
 
 /// Adds [nativeLicenses] to Flutter's LicenseRegistry, read from the assets only when the
 /// licenses page asks.
