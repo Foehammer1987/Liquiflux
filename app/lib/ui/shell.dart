@@ -1256,38 +1256,44 @@ class _RailState extends State<_Rail> {
     final app = widget.app;
     Widget item(String id, IconData icon, String label, Dest d, {int badge = 0, bool alert = false}) => Padding(
       padding: const EdgeInsets.symmetric(vertical: Space.space1),
-      child: Tooltip(
-        message: label,
-        preferBelow: false,
-        child: Focusable(
-          onTap: () => _go(d),
-          focusNode: _node(id),
-          semanticLabel: label,
-          // Ringed whenever it has focus: Flutter's focus highlight didn't show in the rail on the Shield.
-          builder: (context, hover, focus) => ListenableBuilder(
-            listenable: _node(id),
-            builder: (context, _) => _RailIcon(icon: icon, on: widget.current == id, hover: hover, focus: focus || _node(id).hasPrimaryFocus, badge: badge, alert: alert),
-          ),
+      child: Focusable(
+        onTap: () => _go(d),
+        focusNode: _node(id),
+        semanticLabel: label,
+        // Ringed whenever it has focus: Flutter's focus highlight didn't show in the rail on the Shield.
+        builder: (context, hover, focus) => ListenableBuilder(
+          listenable: _node(id),
+          builder: (context, _) {
+            final ring = focus || _node(id).hasPrimaryFocus;
+            return _RailTip(
+              label: label,
+              show: _open && (hover || ring),
+              child: _RailIcon(icon: icon, on: widget.current == id, hover: hover, focus: ring, badge: badge, alert: alert),
+            );
+          },
         ),
       ),
     );
     // A button that does something rather than going somewhere.
     Widget action(String id, IconData icon, String label, VoidCallback onTap) => Padding(
       padding: const EdgeInsets.symmetric(vertical: Space.space1),
-      child: Tooltip(
-        message: label,
-        preferBelow: false,
-        child: Focusable(
-          onTap: () {
-            onTap();
-            _hideSoon();
+      child: Focusable(
+        onTap: () {
+          onTap();
+          _hideSoon();
+        },
+        focusNode: _node(id),
+        semanticLabel: label,
+        builder: (context, hover, focus) => ListenableBuilder(
+          listenable: _node(id),
+          builder: (context, _) {
+            final ring = focus || _node(id).hasPrimaryFocus;
+            return _RailTip(
+              label: label,
+              show: _open && (hover || ring),
+              child: _RailIcon(icon: icon, on: false, hover: hover, focus: ring),
+            );
           },
-          focusNode: _node(id),
-          semanticLabel: label,
-          builder: (context, hover, focus) => ListenableBuilder(
-            listenable: _node(id),
-            builder: (context, _) => _RailIcon(icon: icon, on: false, hover: hover, focus: focus || _node(id).hasPrimaryFocus),
-          ),
         ),
       ),
     );
@@ -1297,10 +1303,7 @@ class _RailState extends State<_Rail> {
       final label = who == null ? 'Switch Profile' : 'Watching as ${who.name}. Switch Profile';
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: Space.space1),
-        child: Tooltip(
-          message: label,
-          preferBelow: false,
-          child: Focusable(
+        child: Focusable(
             onTap: () {
               _hideSoon();
               widget.profiles();
@@ -1311,25 +1314,29 @@ class _RailState extends State<_Rail> {
               listenable: _node('profile'),
               builder: (context, _) {
                 final ring = focus || _node('profile').hasPrimaryFocus;
-                return SizedBox(
-                  width: _railWidth,
-                  height: 44,
-                  child: Center(
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: ring ? c.primary : (hover ? c.border300 : Colors.transparent), width: 2),
+                return _RailTip(
+                  label: 'Switch Profile',
+                  detail: who?.name,
+                  show: _open && (hover || ring),
+                  child: SizedBox(
+                    width: _railWidth,
+                    height: 44,
+                    child: Center(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: ring ? c.primary : (hover ? c.border300 : Colors.transparent), width: 2),
+                        ),
+                        child: who == null ? const Icon(LucideIcons.usersRound, size: 24) : ProfileAvatar(user: who, size: 34),
                       ),
-                      child: who == null ? const Icon(LucideIcons.usersRound, size: 24) : ProfileAvatar(user: who, size: 34),
                     ),
                   ),
                 );
               },
             ),
           ),
-        ),
       );
     }
 
@@ -1378,16 +1385,23 @@ class _RailState extends State<_Rail> {
                 onTap: () => _go(const HomeDest()),
                 focusNode: _node('logo'),
                 semanticLabel: 'Home',
-                builder: (_, _, focus) => ListenableBuilder(
+                builder: (_, hover, focus) => ListenableBuilder(
                   listenable: _node('logo'),
-                  builder: (_, _) => Container(
-                    padding: const EdgeInsets.all(Space.space1),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(Radii.radiusLg),
-                      border: Border.all(color: focus || _node('logo').hasPrimaryFocus ? c.primary : Colors.transparent, width: 2),
-                    ),
-                    child: const ConsoleLogo(height: 26),
-                  ),
+                  builder: (_, _) {
+                    final ring = focus || _node('logo').hasPrimaryFocus;
+                    return _RailTip(
+                      label: 'Home',
+                      show: _open && (hover || ring),
+                      child: Container(
+                        padding: const EdgeInsets.all(Space.space1),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(Radii.radiusLg),
+                          border: Border.all(color: ring ? c.primary : Colors.transparent, width: 2),
+                        ),
+                        child: const ConsoleLogo(height: 26),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -1465,6 +1479,92 @@ class _RailState extends State<_Rail> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The name of a rail button, in a small label just right of the rail, while the button has
+/// D-pad / keyboard focus or the pointer is over it.
+///
+/// It lives in the page's overlay, pinned to the button, so the rail's frosted clip can't cut
+/// it off and it sits over the page. It never takes the pointer or focus.
+class _RailTip extends StatefulWidget {
+  const _RailTip({required this.label, required this.show, required this.child, this.detail});
+  final String label;
+
+  /// A quieter second line, e.g. who's watching.
+  final String? detail;
+  final bool show;
+  final Widget child;
+
+  @override
+  State<_RailTip> createState() => _RailTipState();
+}
+
+class _RailTipState extends State<_RailTip> {
+  final _link = LayerLink();
+  final _tip = OverlayPortalController();
+
+  @override
+  void initState() {
+    super.initState();
+    _tip.show();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return CompositedTransformTarget(
+      link: _link,
+      child: OverlayPortal(
+        controller: _tip,
+        overlayChildBuilder: (context) => Align(
+          alignment: Alignment.topLeft,
+          child: CompositedTransformFollower(
+            link: _link,
+            showWhenUnlinked: false,
+            // Centred on the button's row, starting just past the rail's right edge.
+            targetAnchor: Alignment.centerLeft,
+            followerAnchor: Alignment.centerLeft,
+            offset: const Offset(_railWidth + Space.space2, 0),
+            child: IgnorePointer(
+              child: ExcludeSemantics(
+                child: AnimatedOpacity(
+                  opacity: widget.show ? 1 : 0,
+                  duration: Duration(milliseconds: widget.show ? 140 : 90),
+                  child: AnimatedSlide(
+                    offset: widget.show ? Offset.zero : const Offset(-0.06, 0),
+                    duration: const Duration(milliseconds: 160),
+                    curve: Curves.easeOutCubic,
+                    child: Container(
+                      key: ValueKey('rail-tip:${widget.label}'),
+                      constraints: const BoxConstraints(maxWidth: 260),
+                      padding: const EdgeInsets.symmetric(horizontal: Space.space3, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: dark ? c.surface200 : c.surface000,
+                        borderRadius: BorderRadius.circular(Radii.radiusMd),
+                        border: Border.all(color: c.border200),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: dark ? 0.5 : 0.18), blurRadius: 12, offset: const Offset(0, 3))],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(widget.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: ConsoleText.bodyStrong.copyWith(color: c.text100)),
+                          if (widget.detail != null)
+                            Text(widget.detail!, maxLines: 1, overflow: TextOverflow.ellipsis, style: ConsoleText.caption.copyWith(color: c.text300)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        child: widget.child,
       ),
     );
   }

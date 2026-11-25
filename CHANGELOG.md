@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.10
+
+The sidebar names its buttons.
+
+- **Sidebar labels.** Each button in the left sidebar now shows its name in a small label just to the right of the sidebar: on a TV or with a keyboard as soon as the focus ring lands on it, and with a mouse while the pointer is over it. It follows the focus as you move up and down and disappears when you leave the sidebar. Every button has one: the logo (Home), Home, Trending, Collections, TV Networks, Moods, Shuffle Play, Channels, each library by its own name, Requests, Switch Profile (with who's watching underneath) and Settings. This replaces the old mouse-only tooltip, which popped up above the button over its neighbour and never showed for a remote. Android TV, Fire TV, the Shield, Samsung, Windows, Mac and the Apple TV build all share this sidebar; phones and tablets use the bottom bar and are unchanged.
+- For developers: `test/rail_tip_test.dart` checks the labels with a mouse, and with the D-pad when run with CONSOLE_TV=1.
+- Version 1.1.10+87 (Samsung packages 1.1.1000, 1.1.1001, 1.1.1002).
+
 ## 1.1.9
 
 Collection and person pages that fit a phone held upright.

@@ -39,7 +39,7 @@ void main() {
 
   testWidgets('with TV Networks on, the rail, the page and the picker tab are there', (t) async {
     final app = await tvApp(t);
-    expect(find.byTooltip('TV Networks'), findsOneWidget);
+    expect(find.byKey(const ValueKey('rail-tip:TV Networks')), findsOneWidget);
     ShellNav.of(t.element(find.byType(HomePage))).go(const TvCollectionsDest());
     await settle(t, 30);
     expect(find.byType(TvCollectionsPage), findsOneWidget);
@@ -52,7 +52,7 @@ void main() {
 
   testWidgets('with TV Networks off, nothing of the pack shows or loads', (t) async {
     final app = await tvApp(t, tvNetworks: false);
-    expect(find.byTooltip('TV Networks'), findsNothing);
+    expect(find.byKey(const ValueKey('rail-tip:TV Networks')), findsNothing);
     // A stray way to the page (an old link) lands on Home instead.
     ShellNav.of(t.element(find.byType(HomePage))).go(const TvCollectionsDest());
     await settle(t, 30);
