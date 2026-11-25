@@ -96,6 +96,7 @@ class _ShellState extends State<Shell> {
       });
     });
     if (isTv) FocusManager.instance.addListener(_focusMoved);
+    if (isTvOS) _searchFocus.addListener(_searchKeyboardClosed);
     playerHandoff.addListener(_fromPlayer);
     if (isTizen) {
       NetworkWatch.instance.online.addListener(_networkChanged);
@@ -179,6 +180,7 @@ class _ShellState extends State<Shell> {
     _updateSub?.cancel();
     _updateCheck?.cancel();
     Notifier.instance.onAction = null;
+    if (isTvOS) _searchFocus.removeListener(_searchKeyboardClosed);
     _searchFocus.dispose();
     _searchButton.dispose();
     _welcome.dispose();
@@ -610,8 +612,25 @@ class _ShellState extends State<Shell> {
     _leaving = false;
   }
 
+  /// Apple TV: the system keyboard's Search button closes the keyboard without telling the
+  /// field it was pressed (no submit reaches Flutter; the text arrives and the field loses
+  /// focus), so a search is made when the field lets go of focus with new text in it.
+  void _searchKeyboardClosed() {
+    if (_searchFocus.hasFocus) {
+      _lastSearch = null;
+      return;
+    }
+    final q = _search.text.trim();
+    if (q.isEmpty || q == _lastSearch) return;
+    _submitSearch(q);
+  }
+
+  /// The text just searched for, so a submit that did reach the field isn't searched twice.
+  String? _lastSearch;
+
   void _submitSearch(String q) {
     if (q.trim().isEmpty) return;
+    _lastSearch = q.trim();
     // On a TV the results take focus once they load.
     if (isTv) _searchFocus.unfocus();
     go(SearchDest(q.trim()));
