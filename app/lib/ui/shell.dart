@@ -96,7 +96,10 @@ class _ShellState extends State<Shell> {
       });
     });
     if (isTv) FocusManager.instance.addListener(_focusMoved);
-    if (isTvOS) _searchFocus.addListener(_searchKeyboardClosed);
+    if (isTvOS) {
+      _searchFocus.addListener(_searchKeyboardClosed);
+      _search.addListener(_searchTextArrived);
+    }
     playerHandoff.addListener(_fromPlayer);
     if (isTizen) {
       NetworkWatch.instance.online.addListener(_networkChanged);
@@ -181,6 +184,7 @@ class _ShellState extends State<Shell> {
     _updateCheck?.cancel();
     Notifier.instance.onAction = null;
     if (isTvOS) _searchFocus.removeListener(_searchKeyboardClosed);
+    _typed?.cancel();
     _searchFocus.dispose();
     _searchButton.dispose();
     _welcome.dispose();
@@ -612,20 +616,46 @@ class _ShellState extends State<Shell> {
     _leaving = false;
   }
 
-  /// Apple TV: the system keyboard's Search button closes the keyboard without telling the
-  /// field it was pressed (no submit reaches Flutter; the text arrives and the field loses
-  /// focus), so a search is made when the field lets go of focus with new text in it.
+  /// Apple TV: the system keyboard types into a field of its own and hands the text over as
+  /// it closes, so the keyboard's Search button can reach the app before the text does (an
+  /// empty submit, which searched for nothing; only leaving the field afterwards searched).
+  /// There, each sign that typing is over (a submit, the field letting go of focus, text
+  /// arriving after either) waits a moment for the text to land, then searches what's in
+  /// the box.
   void _searchKeyboardClosed() {
     if (_searchFocus.hasFocus) {
       _lastSearch = null;
+      _typing = true;
+      _submitSeen = false;
       return;
     }
-    final q = _search.text.trim();
-    if (q.isEmpty || q == _lastSearch) return;
-    _submitSearch(q);
+    _typingOver('focus');
   }
 
-  /// The text just searched for, so a submit that did reach the field isn't searched twice.
+  void _searchTextArrived() {
+    if (_typing && (!_searchFocus.hasFocus || _submitSeen)) _typingOver('text');
+  }
+
+  void _typingOver(String why) {
+    if (!_typing) return;
+    if (why == 'submit') _submitSeen = true;
+    _typed?.cancel();
+    _typed = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      final q = _search.text.trim();
+      if (Probe.on) debugPrint('search: typing over ($why), ${q.length} characters');
+      if (q.isEmpty || q == _lastSearch) return;
+      _typing = false;
+      _submitSearch(q);
+    });
+  }
+
+  /// The keyboard is (or was just) up for the search field.
+  bool _typing = false;
+  bool _submitSeen = false;
+  Timer? _typed;
+
+  /// The text just searched for, so the same text isn't searched twice on its way out.
   String? _lastSearch;
 
   void _submitSearch(String q) {
@@ -726,7 +756,7 @@ class _ShellState extends State<Shell> {
                         top: 0,
                         // No search before sign-in: there's nothing to search yet, and on a TV the pill was a
                         // focus trap above the welcome page.
-                        child: _TopChrome(search: _search, searchFocus: _searchFocus, searchButton: _searchButton, onSearch: _submitSearch, toPage: _toPage, showSearch: !needsSetup, showLogo: !needsSetup, onLogo: () => go(const HomeDest())),
+                        child: _TopChrome(search: _search, searchFocus: _searchFocus, searchButton: _searchButton, onSearch: isTvOS ? (_) => _typingOver('submit') : _submitSearch, toPage: _toPage, showSearch: !needsSetup, showLogo: !needsSetup, onLogo: () => go(const HomeDest())),
                       ),
                       if (_toasts.isNotEmpty)
                         Positioned(
