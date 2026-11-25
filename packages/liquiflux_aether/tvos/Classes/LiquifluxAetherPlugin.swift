@@ -30,6 +30,7 @@ public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStream
   }
 
   private var engine: AetherEngine?
+  private let subtitleImages = SubtitleImageView()
   private var view: AetherPlayerView?
   private var sink: FlutterEventSink?
   private var subscriptions = Set<AnyCancellable>()
@@ -155,6 +156,7 @@ public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStream
         nowPlaying(args)
         result(nil)
       case "stop":
+        subtitleImages.show([])
         loadTask?.cancel()
         engine?.stop()
         view?.isHidden = true
@@ -184,6 +186,11 @@ public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStream
     let view = AetherPlayerView(frame: .zero)
     view.backgroundColor = .black
     self.view = view
+    // Picture-based subtitles (PGS, VobSub, DVB) are drawn here, over the video and under the
+    // app, so a title keeps its own picture (and HDR) instead of Plex burning them in.
+    subtitleImages.frame = view.bounds
+    subtitleImages.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    view.addSubview(subtitleImages)
     engine.bind(view: view)
     attachView()
     observe(engine)
@@ -261,6 +268,15 @@ public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStream
     // Text cues are drawn by the app; picture-based ones would need an image overlay (not yet).
     engine.$subtitleCues
       .combineLatest(engine.clock.$sourceTime)
+      .sink { [weak self] cues, t in
+        self?.subtitleImages.show(cues.filter { $0.startTime <= t && t < $0.endTime }.compactMap { cue in
+          if case .image(let image) = cue.body { return image }
+          return nil
+        })
+      }
+      .store(in: &subscriptions)
+    engine.$subtitleCues
+      .combineLatest(engine.clock.$sourceTime)
       .map { cues, t in
         cues.filter { $0.startTime <= t && t < $0.endTime }
           .compactMap { cue -> String? in
@@ -321,6 +337,52 @@ private enum EngineLogFile {
     EngineLog.handler = { line in
       let stamp = String(format: "%.3f ", Date().timeIntervalSince(started))
       queue.async { handle?.write(Data((stamp + line + "\n").utf8)) }
+    }
+  }
+}
+
+/// Draws the picture-based subtitle cues showing now: each bitmap at the place its canvas
+/// gives it, mapped onto the picture (aspect-fit in the view), as AetherEngine's own
+/// compositor maps them (width-aligned, centred vertically).
+final class SubtitleImageView: UIView {
+  private var shown: [SubtitleImage] = []
+
+  override init(frame: CGRect) {
+    super.init(frame: frame)
+    isUserInteractionEnabled = false
+    backgroundColor = .clear
+  }
+
+  required init?(coder: NSCoder) { fatalError("not used") }
+
+  func show(_ images: [SubtitleImage]) {
+    // Most frames repeat the same cues: only a change redraws.
+    if images.count == shown.count, zip(images, shown).allSatisfy({ $0.cgImage === $1.cgImage && $0.position == $1.position }) { return }
+    shown = images
+    setNeedsLayout()
+  }
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    layer.sublayers?.forEach { $0.removeFromSuperlayer() }
+    for image in shown {
+      let canvas = image.canvasSize == .zero ? CGSize(width: 16, height: 9) : image.canvasSize
+      let picture = AVMakeRect(aspectRatio: canvas, insideRect: bounds)
+      let scale = picture.width / canvas.width
+      let rect: CGRect
+      if image.canvasSize == .zero {
+        rect = CGRect(x: picture.minX + image.position.minX * picture.width, y: picture.minY + image.position.minY * picture.height,
+                      width: image.position.width * picture.width, height: image.position.height * picture.height)
+      } else {
+        rect = CGRect(x: picture.minX + image.position.minX * canvas.width * scale,
+                      y: picture.midY + (image.position.minY * canvas.height - canvas.height / 2) * scale,
+                      width: image.position.width * canvas.width * scale, height: image.position.height * canvas.height * scale)
+      }
+      let sub = CALayer()
+      sub.contents = image.cgImage
+      sub.contentsGravity = .resize
+      sub.frame = rect
+      layer.addSublayer(sub)
     }
   }
 }

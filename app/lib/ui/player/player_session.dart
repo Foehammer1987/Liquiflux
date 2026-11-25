@@ -513,7 +513,11 @@ class PlayerSession extends ChangeNotifier {
       return;
     }
     // For the probe's log: which way the stream goes (never the address's query, which holds the token).
-    if (Probe.on) debugPrint('probe stream: ${url != null ? 'direct' : 'transcode'} ${Uri.tryParse(plex.baseUrl)?.scheme} ${Uri.tryParse(plex.baseUrl)?.host}');
+    if (Probe.on) {
+      debugPrint('probe stream: ${url != null ? 'direct' : 'transcode'} ${Uri.tryParse(plex.baseUrl)?.scheme} ${Uri.tryParse(plex.baseUrl)?.host}');
+      // And why a title isn't played as it is, with the tracks that decide it.
+      if (url == null) debugPrint('probe stream why: quality ${quality == 0 ? 'original' : quality}, direct play ${prefs.allowDirectPlay ? 'on' : 'off'}${_directFailed ? ', direct failed' : ''}, needs server $needsServer (video ${_video?.codec}, audio ${audio?.codec}, subtitle ${subtitle?.codec})');
+    }
     if (url != null) {
       transcoding = false;
       offset = Duration.zero;
@@ -626,7 +630,7 @@ class PlayerSession extends ChangeNotifier {
 
   /// With [direct] output, what the player can't show itself goes through Plex: a
   /// picture-based subtitle (burned in) or a video codec the hardware decoder doesn't take.
-  bool get needsServer => directNeedsServer(direct: direct, subtitle: subtitle, video: _video, audio: audio, samsung: isTizen) || decodersNeedServer(PlayerDecoders.current, audio: audio, video: _video);
+  bool get needsServer => directNeedsServer(direct: direct, subtitle: subtitle, video: _video, audio: audio, samsung: isTizen, drawsImages: isTvOS) || decodersNeedServer(PlayerDecoders.current, audio: audio, video: _video);
 
   PlexStream? get _video => streams.where((s) => s.isVideo).firstOrNull;
 
@@ -635,7 +639,7 @@ class PlayerSession extends ChangeNotifier {
   bool get soundNeedsServer => !PlayerDecoders.current.playsAudio(audio?.codec);
 
   /// The sound goes through Plex but nothing about the picture does.
-  bool get _pictureAsIs => soundNeedsServer && PlayerDecoders.current.playsVideo(_video?.codec) && !directNeedsServer(direct: direct, subtitle: subtitle, video: _video, samsung: isTizen);
+  bool get _pictureAsIs => soundNeedsServer && PlayerDecoders.current.playsVideo(_video?.codec) && !directNeedsServer(direct: direct, subtitle: subtitle, video: _video, samsung: isTizen, drawsImages: isTvOS);
 
   /// Whether a track [decoders] can't decode sends the title through Plex. On a Mac, iPhone
   /// or iPad a film with Dolby TrueHD sound played silently ("Failed to initialize a decoder
@@ -652,10 +656,13 @@ class PlayerSession extends ChangeNotifier {
   /// 2021 and later sets; VC-1 is gone from 2025 sets, so it still goes through Plex.
   static const samsungExtraCodecs = {'av1'};
 
+  /// [drawsImages]: the player draws picture-based subtitles itself (AetherEngine on an
+  /// Apple TV), so they don't need Plex to burn them in, which would also cost a 4K HDR
+  /// title its HDR.
   @visibleForTesting
-  static bool directNeedsServer({required bool direct, PlexStream? subtitle, PlexStream? video, PlexStream? audio, bool samsung = false}) {
+  static bool directNeedsServer({required bool direct, PlexStream? subtitle, PlexStream? video, PlexStream? audio, bool samsung = false, bool drawsImages = false}) {
     if (!direct) return false;
-    if (subtitle?.isImageSubtitle ?? false) return true;
+    if ((subtitle?.isImageSubtitle ?? false) && !drawsImages) return true;
     if (samsung && samsungUnplayableAudio.contains(audio?.codec?.toLowerCase())) return true;
     final codec = video?.codec?.toLowerCase();
     return codec != null && !hardwareCodecs.contains(codec) && !(samsung && samsungExtraCodecs.contains(codec));

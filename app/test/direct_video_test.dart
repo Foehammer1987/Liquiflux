@@ -78,6 +78,9 @@ void main() {
       expect(PlayerSession.directNeedsServer(direct: true, video: hevc), isFalse);
       expect(PlayerSession.directNeedsServer(direct: true), isFalse);
       expect(PlayerSession.directNeedsServer(direct: false, video: av1, subtitle: pgs), isFalse);
+      // An Apple TV's player draws picture-based subtitles itself: no burn-in.
+      expect(PlayerSession.directNeedsServer(direct: true, video: hevc, subtitle: pgs, drawsImages: true), isFalse);
+      expect(PlayerSession.directNeedsServer(direct: true, video: av1, subtitle: pgs, drawsImages: true), isTrue);
     });
   });
 
