@@ -24,20 +24,29 @@ target 'Runner' do
     require 'json'
     deps = JSON.parse(File.read(flutter_plugins_deps))
     tvos_plugins = deps.dig('plugins', 'tvos') || []
+    require 'fileutils'
+    # Liquiflux: each plugin through a link in .symlinks/plugins (as Flutter's iOS Podfile
+    # does), so Podfile.lock holds a relative path, not this machine's pub cache.
+    links = File.join(File.dirname(__FILE__), '.symlinks', 'plugins')
+    FileUtils.mkdir_p(links)
     tvos_plugins.each do |plugin|
       plugin_name = plugin['name']
-      plugin_path = plugin['path']
+      link = File.join(links, plugin_name)
+      FileUtils.rm_f(link)
+      File.symlink(plugin['path'], link)
+      plugin_path = File.join('.symlinks', 'plugins', plugin_name)
+      here = File.dirname(__FILE__)
       tvos_dir = File.join(plugin_path, 'tvos')
       # Plugins that ship a Package.swift are resolved via Swift Package Manager
       # (see flutter-tvos's generated FlutterGeneratedPluginSwiftPackage). Skip
       # them here so they are never linked twice (SPM + CocoaPods).
-      has_spm = File.exist?(File.join(tvos_dir, 'Package.swift'))
-      if File.directory?(tvos_dir) && !has_spm && File.exist?(File.join(tvos_dir, "#{plugin_name}.podspec"))
+      has_spm = File.exist?(File.join(here, tvos_dir, 'Package.swift'))
+      if File.directory?(File.join(here, tvos_dir)) && !has_spm && File.exist?(File.join(here, tvos_dir, "#{plugin_name}.podspec"))
         pod plugin_name, :path => tvos_dir
-      elsif !File.directory?(tvos_dir)
+      elsif !File.directory?(File.join(here, tvos_dir))
         # Liquiflux: a plugin that lists tvos in its pubspec but keeps its native code in ios/
         # (wakelock_plus 1.8: its iOS podspec declares a tvOS deployment target). Take that pod.
-        ios_spec = File.join(plugin_path, 'ios', "#{plugin_name}.podspec")
+        ios_spec = File.join(here, plugin_path, 'ios', "#{plugin_name}.podspec")
         if File.exist?(ios_spec) && File.read(ios_spec).include?('tvos.deployment_target')
           pod plugin_name, :path => File.join(plugin_path, 'ios')
         end
