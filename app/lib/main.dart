@@ -5,6 +5,7 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:console_core/console_core.dart';
 import 'package:console_ui/console_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderView, ViewConfiguration;
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:window_manager/window_manager.dart';
@@ -63,6 +64,8 @@ Future<void> main() => runZoned(
 
 Future<void> _main() async {
   _redactLogs();
+  // An Apple TV lays the app out on the TV canvas at the root instead of scaling it there.
+  if (isTvOS) TvCanvasBinding();
   WidgetsFlutterBinding.ensureInitialized();
   // Before anything goes out over https: trust only the app's own root list.
   await TrustedRoots.install();
@@ -160,6 +163,23 @@ class ConsoleApp extends StatelessWidget {
   );
 }
 
+/// Apple TV: the root of the app is laid out at [TvCanvas.width] logical pixels and drawn at
+/// the screen's full resolution, rather than at 1920 and scaled by [TvCanvas]'s FittedBox.
+/// A scale transform there put the frosted-glass panels' blur (BackdropFilter) in the wrong
+/// place under Impeller: the player's glass bars sat offset from their controls. With the
+/// canvas set here, TvCanvas finds its box already 1440 wide and scales by 1. An Apple TV has
+/// no pointer, so nothing reads touch positions against the platform's own pixel ratio.
+class TvCanvasBinding extends WidgetsFlutterBinding {
+  @override
+  ViewConfiguration createViewConfigurationFor(RenderView renderView) {
+    final view = ViewConfiguration.fromView(renderView.flutterView);
+    final physical = view.physicalConstraints;
+    if (!physical.hasBoundedWidth || physical.maxWidth <= 0) return view;
+    final ratio = physical.maxWidth / TvCanvas.width;
+    return ViewConfiguration(physicalConstraints: physical, logicalConstraints: physical / ratio, devicePixelRatio: ratio);
+  }
+}
+
 /// Android TVs report 1920×1080 at a pixel ratio of 2, which leaves a 960-wide logical screen:
 /// too cramped for the desktop layout (an Apple TV's is 1920 wide, which is too sparse). The app is laid out on a 1440-wide canvas instead and scaled
 /// to fill the screen, so it looks the same from the sofa as on a desktop at 1440.
@@ -178,9 +198,15 @@ class TvCanvas extends StatelessWidget {
       return MediaQuery(
         data: mq.copyWith(
           size: size,
-          devicePixelRatio: mq.devicePixelRatio * scale,
-          padding: mq.padding / scale,
-          viewPadding: mq.viewPadding / scale,
+          // Physical pixels per canvas pixel, however the scaling is done (here, or by
+          // TvCanvasBinding before layout, where scale is 1).
+          devicePixelRatio: View.of(context).physicalSize.width / width,
+          // tvOS reports a TV-safe area (90 x 60 points at 1080p) as padding, and the pages
+          // that keep clear of it (the player) then drew their scrims and glass in an inset
+          // box over the full-screen video. The TV layout keeps its own margins, as on
+          // Android TV, whose padding is zero.
+          padding: isTvOS ? EdgeInsets.zero : mq.padding / scale,
+          viewPadding: isTvOS ? EdgeInsets.zero : mq.viewPadding / scale,
           viewInsets: mq.viewInsets / scale,
           navigationMode: NavigationMode.directional,
         ),
