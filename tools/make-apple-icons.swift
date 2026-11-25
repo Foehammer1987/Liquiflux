@@ -15,8 +15,8 @@
 // The two layers at any size (e.g. an Apple TV layered icon's back and front, or iPhone's
 // full-bleed 1024 square, which iOS rounds itself):
 //   swift tools/make-apple-icons.swift layers docs/brand/liquiflux-mark.svg <out folder> <width> <height>
-// Apple TV (the whole AppIcon.brandassets: the layered icon, back and front, at 400x240 1x/2x
-// for the Home screen and 1280x768 for the App Store, and both Top Shelf images; tvOS adds
+// Apple TV (the whole AppIcon.brandassets: the layered icon, back, middle and front, at 400x240
+// for the Home screen and 1280x768 for the App Store, each 1x and 2x, and both Top Shelf images; tvOS adds
 // the parallax and the rounded corners itself):
 //   swift tools/make-apple-icons.swift tvos docs/brand/liquiflux-mark.svg app/tvos/Runner/Assets.xcassets/AppIcon.brandassets
 
@@ -91,9 +91,10 @@ func ios() -> Data {
 
 func write(_ text: String, _ path: String) { try! text.write(toFile: path, atomically: true, encoding: .utf8) }
 
-/// The Apple TV brand assets in [dir]: a two-layer image stack per icon size (Back opaque,
-/// Front the mark on transparent) and the two Top Shelf images (opaque, the mark a little
-/// above centre, smaller, so the shelf reads as a banner rather than a giant icon).
+/// The Apple TV brand assets in [dir]: a three-layer image stack per icon size (Back opaque,
+/// Middle a soft blue glow, Front the mark on transparent) and the two Top Shelf images
+/// (opaque, the mark a little above centre, smaller, so the shelf reads as a banner rather
+/// than a giant icon). File names follow flutter-tvos's template, which its build checks.
 func tvos(_ dir: String) {
   let fm = FileManager.default
   try? fm.removeItem(atPath: dir)
@@ -103,23 +104,34 @@ func tvos(_ dir: String) {
     try! data.write(to: URL(fileURLWithPath: path))
   }
   let info: [String: Any] = ["author": "xcode", "version": 1]
-  // name, points, scales
-  let stacks: [(String, Int, Int, [Int])] = [("App Icon - Small", 400, 240, [1, 2]), ("App Icon - Large", 1280, 768, [1])]
-  for (name, w, h, scales) in stacks {
+  // name, file prefix, points, scales
+  let stacks: [(String, String, Int, Int, [Int])] = [("App Icon - Small", "small", 400, 240, [1, 2]), ("App Icon - Large", "large", 1280, 768, [1, 2])]
+  for (name, prefix, w, h, scales) in stacks {
     let stack = folder("\(name).imagestack")
-    json(["info": info, "layers": [["filename": "Front.imagestacklayer"], ["filename": "Back.imagestacklayer"]]], "\(stack)/Contents.json")
-    for layer in ["Front", "Back"] {
+    json(["info": info, "layers": [["filename": "Front.imagestacklayer"], ["filename": "Middle.imagestacklayer"], ["filename": "Back.imagestacklayer"]]], "\(stack)/Contents.json")
+    for layer in ["Front", "Middle", "Back"] {
       let set = folder("\(name).imagestack/\(layer).imagestacklayer/Content.imageset")
       json(["info": info], "\(stack)/\(layer).imagestacklayer/Contents.json")
       var images: [[String: Any]] = []
       for scale in scales {
         let pw = w * scale, ph = h * scale
-        let file = "\(layer.lowercased())_\(w)x\(h)@\(scale)x.png"
+        let file = "\(prefix)_\(layer.lowercased())\(scale == 1 ? "" : "@\(scale)x").png"
         let rect = NSRect(x: 0, y: 0, width: pw, height: ph)
         let side = CGFloat(min(pw, ph))
-        let png = layer == "Back"
-          ? canvas(pw, ph, opaque: true) { _ in back(in: rect) }
-          : canvas(pw, ph) { _ in front(in: NSRect(x: (CGFloat(pw) - side)/2, y: (CGFloat(ph) - side)/2, width: side, height: side)) }
+        let png: Data
+        switch layer {
+        case "Back":
+          png = canvas(pw, ph, opaque: true) { _ in back(in: rect) }
+        case "Middle":
+          // A soft glow of the mark's blue behind it, so the parallax has a layer between.
+          png = canvas(pw, ph) { _ in
+            let centre = NSPoint(x: CGFloat(pw)/2, y: CGFloat(ph)/2)
+            NSGradient(colors: [c(30, 120, 255).withAlphaComponent(0.22), c(30, 120, 255).withAlphaComponent(0)])!
+              .draw(fromCenter: centre, radius: 0, toCenter: centre, radius: side * 0.6, options: [])
+          }
+        default:
+          png = canvas(pw, ph) { _ in front(in: NSRect(x: (CGFloat(pw) - side)/2, y: (CGFloat(ph) - side)/2, width: side, height: side)) }
+        }
         try! png.write(to: URL(fileURLWithPath: "\(set)/\(file)"))
         images.append(["idiom": "tv", "filename": file, "scale": "\(scale)x"])
       }
@@ -132,7 +144,7 @@ func tvos(_ dir: String) {
     var images: [[String: Any]] = []
     for scale in [1, 2] {
       let pw = w * scale, ph = h * scale
-      let file = "\(name.lowercased().replacingOccurrences(of: " ", with: "_"))@\(scale)x.png"
+      let file = "\(name == "Top Shelf Image" ? "top_shelf" : "top_shelf_wide")\(scale == 1 ? "" : "@2x").png"
       let rect = NSRect(x: 0, y: 0, width: pw, height: ph)
       let side = CGFloat(ph) * 0.62
       let png = canvas(pw, ph, opaque: true) { _ in

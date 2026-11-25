@@ -1,9 +1,14 @@
 {
   "images" : [
     {
-      "filename" : "front_1280x768@1x.png",
+      "filename" : "large_front.png",
       "idiom" : "tv",
       "scale" : "1x"
+    },
+    {
+      "filename" : "large_front@2x.png",
+      "idiom" : "tv",
+      "scale" : "2x"
     }
   ],
   "info" : {
