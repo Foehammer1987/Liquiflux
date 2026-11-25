@@ -218,10 +218,37 @@ needs to be registered with that team. What the Mac, iPhone/iPad and Apple TV ap
 editing it, run `dart tools/apple_sync.dart`. `tools/ios-tour.sh` takes screenshots of every
 screen on a simulator (with `node tools/mock-servers.mjs` running for the signed-in pages).
 
+### Apple TV
+
+The Apple TV app (tvOS 18 and later) is built with [flutter-tvos](https://github.com/fluttertv/flutter-tvos),
+a CLI and tvOS engine that sit beside Flutter, release **v3.47.7-tvos.1.11.3** (Flutter 3.47.7).
+Install it outside the repository, then build from `app/`:
+
+```sh
+git clone https://github.com/fluttertv/flutter-tvos.git ~/dev/flutter-tvos
+cd ~/dev/flutter-tvos && git checkout v3.47.7-tvos.1.11.3
+export PATH="$PATH:$HOME/dev/flutter-tvos/bin" LANG=en_US.UTF-8   # CocoaPods needs the UTF-8 locale
+flutter-tvos precache
+
+cd app
+flutter-tvos build tvos --simulator --debug      # build/tvos/Debug-appletvsimulator/Runner.app
+xcrun simctl install booted build/tvos/Debug-appletvsimulator/Runner.app
+TVOS_ENGINE_SKIP_SIGNING=1 flutter-tvos build tvos --release   # a device build, development signing
+xcrun devicectl device install app --device <Apple TV> build/tvos/Release-appletvos/Runner.app
+```
+
+The Xcode project is `app/tvos` (team and bundle id as on iOS; the Apple TV must be registered
+with the team). The player is [AetherEngine](https://github.com/superuser404notfound/AetherEngine),
+pinned in `packages/liquiflux_aether`; small Apple TV services (user defaults, the keyboard) are
+in `packages/liquiflux_tvos`. A launch with `LIQUIFLUX_PROBE=on` in its environment
+(`devicectl device process launch --environment-variables`) writes the app's and the player's
+logs to its `tmp` folder. `TVOS_ENGINE_SKIP_SIGNING=1` skips flutter-tvos's engine signing,
+which a TestFlight upload needs an Apple Distribution certificate for.
+
 ### Your own mpv or FFmpeg
 
 Liquiflux plays through mpv and FFmpeg, under the GNU LGPL (the Mac and iPhone builds use
-LGPL 3). They ship as separate libraries, and you can build Liquiflux with your own copies:
+LGPL 3; the Apple TV plays through AetherEngine, LGPL 3, and FFmpeg under LGPL 2.1). They ship as separate libraries, and you can build Liquiflux with your own copies:
 [docs/native-licenses.md](docs/native-licenses.md) says where their sources are and how.
 
 ### Releases
@@ -248,6 +275,8 @@ for an AniList API client id.
 | `packages/console_core` | Pure Dart: Plex, Seerr and Riptide clients, sign-in, moods, playback rules. |
 | `packages/console_ui` | The design system: theme, panels, posters, focus handling for the remote. |
 | `packages/media_kit_video` | A patched media_kit_video with tear-free video on Windows. |
+| `packages/liquiflux_aether` | The Apple TV player plugin (AetherEngine). |
+| `packages/liquiflux_tvos` | Small Apple TV services: user defaults, the system keyboard, launch switches. |
 | `tools` | Setup and build scripts, the Windows installer script, and mock servers for development. |
 
 Developer notes, including how to run the app against mock servers, are in the
