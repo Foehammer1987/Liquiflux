@@ -96,10 +96,6 @@ class _ShellState extends State<Shell> {
       });
     });
     if (isTv) FocusManager.instance.addListener(_focusMoved);
-    if (isTvOS) {
-      _searchFocus.addListener(_searchKeyboardClosed);
-      _search.addListener(_searchTextArrived);
-    }
     playerHandoff.addListener(_fromPlayer);
     if (isTizen) {
       NetworkWatch.instance.online.addListener(_networkChanged);
@@ -183,8 +179,6 @@ class _ShellState extends State<Shell> {
     _updateSub?.cancel();
     _updateCheck?.cancel();
     Notifier.instance.onAction = null;
-    if (isTvOS) _searchFocus.removeListener(_searchKeyboardClosed);
-    _typed?.cancel();
     _searchFocus.dispose();
     _searchButton.dispose();
     _welcome.dispose();
@@ -616,54 +610,8 @@ class _ShellState extends State<Shell> {
     _leaving = false;
   }
 
-  /// Apple TV: the system keyboard types into a field of its own and hands the text over as
-  /// it closes, so the keyboard's Search button can reach the app before the text does (an
-  /// empty submit, which searched for nothing; only leaving the field afterwards searched).
-  /// There, each sign that typing is over (a submit, the field letting go of focus, text
-  /// arriving after either) waits a moment for the text to land, then searches what's in
-  /// the box.
-  void _searchKeyboardClosed() {
-    if (Probe.on) debugPrint('search: field focus ${_searchFocus.hasFocus}, ${_search.text.length} characters');
-    if (_searchFocus.hasFocus) {
-      _lastSearch = null;
-      _typing = true;
-      _submitSeen = false;
-      return;
-    }
-    _typingOver('focus');
-  }
-
-  void _searchTextArrived() {
-    if (Probe.on) debugPrint('search: text now ${_search.text.length} characters, field focus ${_searchFocus.hasFocus}, typing $_typing');
-    if (_typing && (!_searchFocus.hasFocus || _submitSeen)) _typingOver('text');
-  }
-
-  void _typingOver(String why) {
-    if (Probe.on) debugPrint('search: $why');
-    if (!_typing) return;
-    if (why == 'submit') _submitSeen = true;
-    _typed?.cancel();
-    _typed = Timer(const Duration(milliseconds: 350), () {
-      if (!mounted) return;
-      final q = _search.text.trim();
-      if (Probe.on) debugPrint('search: typing over ($why), ${q.length} characters');
-      if (q.isEmpty || q == _lastSearch) return;
-      _typing = false;
-      _submitSearch(q);
-    });
-  }
-
-  /// The keyboard is (or was just) up for the search field.
-  bool _typing = false;
-  bool _submitSeen = false;
-  Timer? _typed;
-
-  /// The text just searched for, so the same text isn't searched twice on its way out.
-  String? _lastSearch;
-
   void _submitSearch(String q) {
     if (q.trim().isEmpty) return;
-    _lastSearch = q.trim();
     // On a TV the results take focus once they load.
     if (isTv) _searchFocus.unfocus();
     go(SearchDest(q.trim()));
@@ -759,7 +707,7 @@ class _ShellState extends State<Shell> {
                         top: 0,
                         // No search before sign-in: there's nothing to search yet, and on a TV the pill was a
                         // focus trap above the welcome page.
-                        child: _TopChrome(search: _search, searchFocus: _searchFocus, searchButton: _searchButton, onSearch: isTvOS ? (_) => _typingOver('submit') : _submitSearch, toPage: _toPage, showSearch: !needsSetup, showLogo: !needsSetup, onLogo: () => go(const HomeDest())),
+                        child: _TopChrome(search: _search, searchFocus: _searchFocus, searchButton: _searchButton, onSearch: _submitSearch, toPage: _toPage, showSearch: !needsSetup, showLogo: !needsSetup, onLogo: () => go(const HomeDest())),
                       ),
                       if (_toasts.isNotEmpty)
                         Positioned(
@@ -1145,10 +1093,28 @@ class _SearchBox extends StatelessWidget {
       child: Focusable(
         focusNode: button,
         semanticLabel: 'Search',
-        onTap: focus.requestFocus,
+        onTap: isTvOS ? () => unawaited(_appleTvKeyboard()) : focus.requestFocus,
         builder: (_, _, _) => box,
       ),
     );
+  }
+
+  /// Apple TV: tvOS's own keyboard, opened by the liquiflux_tvos plugin, instead of the
+  /// field's. Through flutter-tvos's keyboard the text reached the field only after the
+  /// keyboard's Search key had come and gone, so nothing was searched until Back. The plugin
+  /// hands back the text as the keyboard closes; it's put in the box and searched.
+  Future<void> _appleTvKeyboard() async {
+    String? text;
+    try {
+      text = await const MethodChannel('liquiflux/tvos').invokeMethod<String>('keyboard', {'text': controller.text, 'placeholder': 'Search movies and shows'});
+    } catch (e) {
+      debugPrint('apple tv keyboard: $e');
+      focus.requestFocus();
+      return;
+    }
+    if (text == null) return;
+    controller.text = text;
+    if (text.trim().isNotEmpty) onSubmit(text);
   }
 
   Widget _pill(BuildContext context) {
