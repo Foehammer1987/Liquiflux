@@ -73,7 +73,7 @@ jobs:
         run: CONSOLE_TOUCH=1 flutter test test/touch_test.dart test/touch_layout_test.dart test/touch_polish_test.dart test/phone_hero_test.dart
       - name: App tests as a TV (remote-control focus)
         working-directory: app
-        run: CONSOLE_TV=1 flutter test test/tv_home_test.dart test/updates_focus_test.dart test/profiles_tv_test.dart test/tv_settings_test.dart test/tracking_focus_test.dart
+        run: CONSOLE_TV=1 flutter test test/tv_home_test.dart test/updates_focus_test.dart test/profiles_tv_test.dart test/tv_settings_test.dart test/tracking_focus_test.dart test/tv_request_rows_test.dart test/rail_tip_test.dart
 
   android:
     needs: test

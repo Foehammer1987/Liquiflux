@@ -4,6 +4,7 @@ import 'package:console_core/console_core.dart';
 import 'package:console_ui/console_ui.dart';
 import 'package:flutter/material.dart';
 
+import '../../platform.dart';
 import '../../services/links.dart';
 import '../../state/scope.dart';
 import '../common.dart';
@@ -162,6 +163,9 @@ class _SeerrTitlePageState extends State<SeerrTitlePage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
+        // On a TV the rows have no Request button, so the page says where the title stands,
+        // as the rows' In Your Library badge does.
+        if (isTv && inPlex == null && state.requestable && state.label == 'Not Requested') const Align(alignment: Alignment.centerLeft, child: ConsoleBadge(notInLibrary)),
         if (!state.requestable || state.label != 'Not Requested') RequestProgress(state: state),
         if (_requestError != null) ...[const SizedBox(height: Space.space1), Text(_requestError!, style: ConsoleText.caption.copyWith(color: context.c.dangerText))],
       ],

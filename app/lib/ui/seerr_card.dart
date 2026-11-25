@@ -2,12 +2,20 @@ import 'package:console_core/console_core.dart';
 import 'package:console_ui/console_ui.dart';
 import 'package:flutter/material.dart';
 
+import '../platform.dart';
 import '../state/scope.dart';
 import 'nav.dart';
 
 /// A title Plex doesn't have: poster (opens the full detail page), one Request button, then live progress.
+///
+/// On a TV the rows carry no Request button: with a remote, Down from a poster landed on it
+/// instead of on the next row. There a title not in the library says so with a badge, and
+/// is requested from its page (SeerrTitlePage), which Select on the poster opens.
 class SeerrCard extends StatefulWidget {
-  const SeerrCard({super.key, required this.item, this.onRequested, this.plexKey});
+  const SeerrCard({super.key, required this.item, this.onRequested, this.plexKey, this.tv});
+
+  /// The TV layout (no Request button); null follows [isTv]. Tests set it.
+  final bool? tv;
   final SeerrResult item;
 
   /// Set when Plex already has the title (even if Seerr hasn't noticed): it opens in the library.
@@ -68,6 +76,8 @@ class _SeerrCardState extends State<SeerrCard> {
             alignment: Alignment.centerLeft,
             child: ConsoleBadge('In Your Library', tone: Tone.success),
           )
+        else if (state.requestable && (widget.tv ?? isTv))
+          const Align(alignment: Alignment.centerLeft, child: ConsoleBadge(notInLibrary))
         else if (state.requestable)
           ConsoleButton(
             label: _busy ? 'Requesting' : (state.label == 'Partially Available' ? 'Request Rest' : 'Request'),
@@ -84,3 +94,6 @@ class _SeerrCardState extends State<SeerrCard> {
     );
   }
 }
+
+/// The badge for a title that isn't in the library: on a TV's rows, and on its page.
+const notInLibrary = 'Not in Your Library';

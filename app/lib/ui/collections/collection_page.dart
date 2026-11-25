@@ -842,7 +842,9 @@ class _ChapterState extends State<_Chapter> {
                   ),
                 ],
               ),
-              if (canRequest) ...[
+              // Not on a TV: Down from the card landed on it rather than the next row; the status
+              // line above already says "Not in library", and the title's page requests it.
+              if (canRequest && !isTv) ...[
                 const SizedBox(height: Space.space2),
                 ConsoleButton(label: _busy ? 'Requesting…' : 'Request', icon: LucideIcons.download, size: ButtonSize.sm, onPressed: _busy ? null : _request),
               ],
