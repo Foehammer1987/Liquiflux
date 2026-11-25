@@ -50,7 +50,7 @@ void main() {
       return status == 200 ? json(timeline) : json({'error': 'no'}, status);
     });
     final plex = PlexClient(baseUrl: 'http://plex.test:32400', token: 'tok', clientId: 'c', http: JsonHttp(client: MockClient((r) async => json({}, 404))));
-    final riptide = Riptide(plex: plex, server: 'http://192.168.1.30:8089', http: JsonHttp(client: client), retryDelays: const [Duration(milliseconds: 5), Duration(milliseconds: 5)], now: now);
+    final riptide = Riptide(plex: plex, server: 'http://192.0.2.30:8089', http: JsonHttp(client: client), retryDelays: const [Duration(milliseconds: 5), Duration(milliseconds: 5)], now: now);
     return (riptide: riptide, seen: seen);
   }
 

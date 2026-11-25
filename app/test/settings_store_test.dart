@@ -59,7 +59,7 @@ void main() {
     final secrets = FakeSecrets();
     final s = store(secrets);
     final loaded = await s.load();
-    await s.save(loaded.copyWith(plexUrl: 'http://10.0.0.2:32400', plexToken: 'plexTok3n', plexAccountToken: 'acctTok3n', seerrApiKey: 'seerrK3y', traktClientId: 'traktId1'));
+    await s.save(loaded.copyWith(plexUrl: 'http://198.51.100.2:32400', plexToken: 'plexTok3n', plexAccountToken: 'acctTok3n', seerrApiKey: 'seerrK3y', traktClientId: 'traktId1'));
     final text = await file.readAsString();
     expect(text, isNot(contains('plexTok3n')));
     expect(text, isNot(contains('acctTok3n')));
@@ -72,11 +72,11 @@ void main() {
     expect(again.riptideSignInToken, 'acctTok3n');
     expect(again.seerrApiKey, 'seerrK3y');
     expect(again.traktClientId, 'traktId1');
-    expect(again.plexUrl, 'http://10.0.0.2:32400');
+    expect(again.plexUrl, 'http://198.51.100.2:32400');
   });
 
   test('an older settings.json holding credentials is moved and scrubbed', () async {
-    file.writeAsStringSync(jsonEncode({'plexUrl': 'http://10.0.0.2:32400', '_plexToken': 'oldTok3n', 'seerrApiKey': 'oldK3y', 'traktClientId': 'oldTrakt', 'clientId': 'console-abc'}));
+    file.writeAsStringSync(jsonEncode({'plexUrl': 'http://198.51.100.2:32400', '_plexToken': 'oldTok3n', 'seerrApiKey': 'oldK3y', 'traktClientId': 'oldTrakt', 'clientId': 'console-abc'}));
     final old = Directory('${root.path}/Console')..createSync();
     File('${old.path}/settings.json').writeAsStringSync(jsonEncode({'_plexToken': 'oldTok3n', 'theme': 'light'}));
     final secrets = FakeSecrets();
@@ -88,7 +88,7 @@ void main() {
     expect(secrets.values, {'plex_token': 'oldTok3n', 'seerr_api_key': 'oldK3y', 'trakt_client_id': 'oldTrakt'});
     final j = await saved();
     expect(j.keys, isNot(anyOf(contains('_plexToken'), contains('plexToken'), contains('seerrApiKey'), contains('_seerrApiKey'), contains('traktClientId'))));
-    expect(j['plexUrl'], 'http://10.0.0.2:32400');
+    expect(j['plexUrl'], 'http://198.51.100.2:32400');
     final oldText = File('${old.path}/settings.json').readAsStringSync();
     expect(oldText, isNot(contains('oldTok3n')));
     expect(oldText, contains('light'));
@@ -102,7 +102,7 @@ void main() {
   });
 
   test('without a credential store nothing is written in plain text', () async {
-    file.writeAsStringSync(jsonEncode({'_plexToken': 'linuxTok3n', 'plexUrl': 'http://10.0.0.2:32400'}));
+    file.writeAsStringSync(jsonEncode({'_plexToken': 'linuxTok3n', 'plexUrl': 'http://198.51.100.2:32400'}));
     final secrets = FakeSecrets()..broken = true;
     final s = store(secrets);
     final loaded = await s.load();
@@ -278,7 +278,7 @@ void main() {
   test('Apple: an install that has its settings keeps its sign-ins', () async {
     final secrets = FakeSecrets();
     final first = SettingsStore(secrets: secrets, folder: () async => dir, forgetOnFreshInstall: true);
-    await first.save((await first.load()).copyWith(plexUrl: 'http://10.0.0.2:32400', plexToken: 'plexTok3n'));
+    await first.save((await first.load()).copyWith(plexUrl: 'http://198.51.100.2:32400', plexToken: 'plexTok3n'));
     final again = await SettingsStore(secrets: secrets, folder: () async => dir, forgetOnFreshInstall: true).load();
     expect(again.plexToken, 'plexTok3n');
   });
