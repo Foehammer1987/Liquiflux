@@ -91,6 +91,7 @@ public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStream
               try await engine.load(url: url, startPosition: (start ?? 0) > 0 ? start : nil, options: options)
               guard let self, !Task.isCancelled else { return }
               self.loading = false
+              self.checkNowPlaying(engine)
               switch self.pendingPlay {
               case true?: engine.play()
               case false?: engine.pause()
@@ -328,6 +329,22 @@ public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStream
       }
     }
     artworkTask?.resume()
+  }
+
+  /// Logs (to the engine's log) whether the system took this app's Now Playing session, and
+  /// asks again if not: tvOS shows the card only for the active session.
+  @MainActor
+  private func checkNowPlaying(_ engine: AetherEngine) {
+    guard let session = engine.videoNowPlayingSession else {
+      EngineLog.emit("[Liquiflux] now playing: no session on this route (\(engine.videoRoute))")
+      return
+    }
+    EngineLog.emit("[Liquiflux] now playing: session active \(session.isActive), info keys \(session.nowPlayingInfoCenter.nowPlayingInfo?.keys.sorted().joined(separator: ",") ?? "none")")
+    if !session.isActive {
+      session.becomeActiveIfPossible { active in
+        EngineLog.emit("[Liquiflux] now playing: asked to become active: \(active)")
+      }
+    }
   }
 
   /// Back to the TV's own mode (the one the user set in tvOS), as AetherEngine's default stop does.
