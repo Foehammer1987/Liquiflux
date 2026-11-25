@@ -630,7 +630,7 @@ class PlayerSession extends ChangeNotifier {
 
   /// With [direct] output, what the player can't show itself goes through Plex: a
   /// picture-based subtitle (burned in) or a video codec the hardware decoder doesn't take.
-  bool get needsServer => directNeedsServer(direct: direct, subtitle: subtitle, video: _video, audio: audio, samsung: isTizen, drawsImages: isTvOS) || decodersNeedServer(PlayerDecoders.current, audio: audio, video: _video);
+  bool get needsServer => directNeedsServer(direct: direct, subtitle: subtitle, video: _video, audio: audio, samsung: isTizen, drawsImages: isTvOS, appleTv: isTvOS) || decodersNeedServer(PlayerDecoders.current, audio: audio, video: _video);
 
   PlexStream? get _video => streams.where((s) => s.isVideo).firstOrNull;
 
@@ -639,7 +639,7 @@ class PlayerSession extends ChangeNotifier {
   bool get soundNeedsServer => !PlayerDecoders.current.playsAudio(audio?.codec);
 
   /// The sound goes through Plex but nothing about the picture does.
-  bool get _pictureAsIs => soundNeedsServer && PlayerDecoders.current.playsVideo(_video?.codec) && !directNeedsServer(direct: direct, subtitle: subtitle, video: _video, samsung: isTizen, drawsImages: isTvOS);
+  bool get _pictureAsIs => soundNeedsServer && PlayerDecoders.current.playsVideo(_video?.codec) && !directNeedsServer(direct: direct, subtitle: subtitle, video: _video, samsung: isTizen, drawsImages: isTvOS, appleTv: isTvOS);
 
   /// Whether a track [decoders] can't decode sends the title through Plex. On a Mac, iPhone
   /// or iPad a film with Dolby TrueHD sound played silently ("Failed to initialize a decoder
@@ -660,13 +660,25 @@ class PlayerSession extends ChangeNotifier {
   /// Apple TV), so they don't need Plex to burn them in, which would also cost a 4K HDR
   /// title its HDR.
   @visibleForTesting
-  static bool directNeedsServer({required bool direct, PlexStream? subtitle, PlexStream? video, PlexStream? audio, bool samsung = false, bool drawsImages = false}) {
+  static bool directNeedsServer({required bool direct, PlexStream? subtitle, PlexStream? video, PlexStream? audio, bool samsung = false, bool drawsImages = false, bool appleTv = false}) {
     if (!direct) return false;
     if ((subtitle?.isImageSubtitle ?? false) && !drawsImages) return true;
     if (samsung && samsungUnplayableAudio.contains(audio?.codec?.toLowerCase())) return true;
     final codec = video?.codec?.toLowerCase();
-    return codec != null && !hardwareCodecs.contains(codec) && !(samsung && samsungExtraCodecs.contains(codec));
+    if (codec == null || hardwareCodecs.contains(codec) || (samsung && samsungExtraCodecs.contains(codec))) return false;
+    if (appleTv) return !appleTvPlays(codec, height: video?.height);
+    return true;
   }
+
+  /// Video an Apple TV plays itself beyond [hardwareCodecs]: AetherEngine decodes these in
+  /// software (FFmpeg, dav1d), which an A12 or later keeps up with at HD sizes. AV1 has no
+  /// hardware decoder on any Apple TV so far, so 4K AV1 still goes through Plex.
+  static bool appleTvPlays(String codec, {int? height}) => switch (codec) {
+    'av1' => (height ?? 0) > 0 && height! <= 1088,
+    _ => appleTvSoftwareCodecs.contains(codec),
+  };
+
+  static const appleTvSoftwareCodecs = {'vc1', 'wmv3', 'wmv2', 'wmv1', 'mpeg1video', 'msmpeg4v3', 'msmpeg4v2', 'msmpeg4', 'h263', 'theora', 'mjpeg', 'vp6', 'vp6f', 'flv1'};
 
   /// Answers the resume question: carry on from the saved place, or start again.
   Future<void> chooseStart({required bool resume}) async {

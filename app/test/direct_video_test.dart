@@ -81,6 +81,12 @@ void main() {
       // An Apple TV's player draws picture-based subtitles itself: no burn-in.
       expect(PlayerSession.directNeedsServer(direct: true, video: hevc, subtitle: pgs, drawsImages: true), isFalse);
       expect(PlayerSession.directNeedsServer(direct: true, video: av1, subtitle: pgs, drawsImages: true), isTrue);
+      // An Apple TV decodes VC-1 and HD AV1 itself; 4K AV1 (no hardware decoder) goes to Plex.
+      PlexStream v(String codec, int height) => PlexStream(streamType: 1, id: 9, codec: codec, height: height);
+      expect(PlayerSession.directNeedsServer(direct: true, video: v('vc1', 1080), appleTv: true), isFalse);
+      expect(PlayerSession.directNeedsServer(direct: true, video: v('av1', 1080), appleTv: true), isFalse);
+      expect(PlayerSession.directNeedsServer(direct: true, video: v('av1', 2160), appleTv: true), isTrue);
+      expect(PlayerSession.directNeedsServer(direct: true, video: v('vc1', 1080)), isTrue);
     });
   });
 
