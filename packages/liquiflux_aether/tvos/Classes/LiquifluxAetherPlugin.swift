@@ -1,4 +1,5 @@
 import AVFoundation
+import AVKit
 import AetherEngine
 import Combine
 import Flutter
@@ -40,6 +41,8 @@ public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStream
   /// calls then, so it is applied once the load returns.
   private var pendingPlay: Bool?
   private var loading = false
+  /// Counts stops and opens, so a delayed display-mode reset knows whether it's still wanted.
+  private var stops = 0
   /// The fit asked for before the engine existed, applied when it's made.
   private var pendingGravity: AVLayerVideoGravity = .resizeAspect
   /// The artwork request for the current Now Playing card, replaced by the next title's.
@@ -68,6 +71,7 @@ public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStream
       let args = call.arguments as? [String: Any] ?? [:]
       switch call.method {
       case "open":
+        stops += 1
         guard let s = args["url"] as? String, let url = URL(string: s) else {
           result(FlutterError(code: "bad-url", message: "No address to play", details: nil))
           return
@@ -158,8 +162,18 @@ public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStream
       case "stop":
         subtitleImages.show([])
         loadTask?.cancel()
-        engine?.stop()
+        // The TV leaves its HDR or Dolby Vision mode only once the app has finished leaving
+        // the player: a mode switch freezes the screen for a moment, and one started now caught
+        // the page's slide back in half-way and held it there until the switch ended.
+        engine?.stop(resetDisplayCriteria: false, finalTeardown: true)
         view?.isHidden = true
+        stops += 1
+        let stop = stops
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
+          // Not if another title opened since (it keeps or sets the mode itself).
+          guard let self, self.stops == stop, !self.loading else { return }
+          self.resetDisplayMode()
+        }
         result(nil)
       default:
         result(FlutterMethodNotImplemented)
@@ -314,6 +328,15 @@ public final class LiquifluxAetherPlugin: NSObject, FlutterPlugin, FlutterStream
       }
     }
     artworkTask?.resume()
+  }
+
+  /// Back to the TV's own mode (the one the user set in tvOS), as AetherEngine's default stop does.
+  @MainActor
+  private func resetDisplayMode() {
+    let windows = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap { $0.windows }
+    for window in windows where window.avDisplayManager.preferredDisplayCriteria != nil {
+      window.avDisplayManager.preferredDisplayCriteria = nil
+    }
   }
 
   private static func track(_ t: TrackInfo) -> [String: Any] {
